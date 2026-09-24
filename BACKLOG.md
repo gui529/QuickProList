@@ -8,12 +8,15 @@ their own section at the bottom and must never be worked by an agent.
 1. **Pick one item.** Choose the highest-priority (P0 > P1 > P2) unchecked item in
    "Agent-workable items" that has no unresolved `Blocked by:`. Work on exactly one
    item per session/commit — don't bundle.
-2. **Branch.** Work on a `claude/*` branch (create one if you're not already on one).
-   Never commit or push directly to `main` — Vercel deploys from `main`, so a broken
-   push there is a broken production site.
-3. **Before committing:** run `npm run build` and `npm run lint`. Both must pass
-   (or you must explain in the commit body why a pre-existing failure is unrelated
-   to your change — see AGENTS.md/CLAUDE.md for repo conventions).
+2. **Push straight to `main`.** The owner has approved pushing directly to `main` —
+   Vercel deploys from it, so every push here goes live. That makes step 3 non-
+   negotiable: never push a change that hasn't cleanly passed build/lint/test.
+   `git pull --ff-only origin main` before you start, to avoid clobbering a push
+   from another concurrent session.
+3. **Before committing:** run `npm run build` and `npm run lint`. Both must pass —
+   no exceptions, since this ships straight to production. `npm test` must also
+   pass if the item touches code covered by a test. If anything fails, fix it or
+   leave the item unchecked and don't push.
 4. **Verify offline.** This environment usually has no `SUPABASE_*`, `STRIPE_*`,
    `YELP_API_KEY`, `RESEND_*`, or `TWILIO_*` credentials, and outbound network to
    `quickprolist.com` / `supabase.co` is often blocked. Every acceptance criterion
@@ -22,8 +25,11 @@ their own section at the bottom and must never be worked by an agent.
    criterion can't be verified offline, add a test double or mock first (see QPL-000).
 5. **Close the loop in the same commit:** check the box `[x]`, and add the commit
    SHA next to the item (`Done in <sha>`). One commit = one item = one checkbox flip.
-6. **No PRs unless the repo owner asks.** Push the branch and stop; the owner (or a
-   separate review pass) decides when to open a PR.
+6. **No PRs.** Push directly; there's no branch to open a PR from.
+7. **Anything risky still goes on a branch, not `main`.** A migration, a change
+   to billing/webhook code paths, or anything else whose failure mode is bad
+   data or bad charges (not just a broken build) — push to a `claude/*` branch
+   instead and say so, even though direct-to-main is otherwise the default.
 
 ---
 
