@@ -30,6 +30,13 @@ their own section at the bottom and must never be worked by an agent.
    to billing/webhook code paths, or anything else whose failure mode is bad
    data or bad charges (not just a broken build) — push to a `claude/*` branch
    instead and say so, even though direct-to-main is otherwise the default.
+8. **QA loop.** Every `backlog-worker` run (`.claude/agents/backlog-worker.md`)
+   is followed by a `qa-validator` run (`.claude/agents/qa-validator.md`) that
+   rebuilds, re-checks the acceptance criterion, and reverts only on objective
+   breakage (failed build/lint, a committed secret). Anything else it finds
+   gets filed as a **new** item here — ID `QPL-<original>-QA<n>` — instead of
+   just being reported and lost. If you see one of those IDs, it's a QA
+   follow-up: treat it like any other item, same priority rules apply.
 
 ---
 

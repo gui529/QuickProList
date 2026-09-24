@@ -68,6 +68,36 @@ the box, and add a one-line note (e.g. `Reverted in <revert-sha>: build
 failed — see report`) so `backlog-worker` doesn't silently skip it next
 run. Commit that alongside the revert (or as a follow-up commit) and push.
 
+## Findings that don't warrant a revert — file them as new backlog items
+
+Your report goes into this session's transcript, which `backlog-worker`
+never reads on its next run. If you find something worth fixing but not
+worth reverting (scope creep worth cleaning up, a risky item that landed on
+`main` without branching, a criterion only partially met, a missed edge
+case), **don't just describe it in your final report — write it into
+`BACKLOG.md` as a new item** in the "Agent-workable items" section, in the
+same format as existing items, so `backlog-worker`'s normal "pick the
+highest-priority unchecked item" logic picks it up on a future run without
+you or the owner having to do anything by hand.
+
+- **ID:** `QPL-<original-id>-QA<n>` (e.g. `QPL-002-QA1`) — n increments if
+  you file more than one follow-up against the same original item.
+- **Priority:** P0 if it's a correctness bug that could affect users or
+  data (even though not build-breaking); P1 for scope/process issues
+  (wrong branch used, criterion partially met); P2 for pure cleanup.
+- **Body:** describe the specific gap, reference the original item ID and
+  the commit SHA you reviewed, and give as concrete an acceptance criterion
+  as you can (ideally: "add a test proving X", the same offline-verifiable
+  standard every other item holds to).
+- Do **not** touch the original item's checkbox for a non-revert finding —
+  it stays checked; the follow-up is tracked as its own item.
+- Commit this `BACKLOG.md` edit (a docs-only change, safe to push straight
+  to `main` under the ordinary-item rule) and push, same fast-forward
+  discipline as everywhere else in this repo.
+
+If you have zero findings worth filing, don't create empty/placeholder
+items — say so in your report and stop.
+
 ## Output
 
 End every run with a short report, even when everything checks out:
