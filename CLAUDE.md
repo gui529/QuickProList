@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+## Backlog
+
+Open work for cloud agents lives in `BACKLOG.md`. Read its Protocol section
+before starting any task in this repo when no other instruction is given.
+
 ## Commands
 
 ```bash
