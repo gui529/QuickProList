@@ -12,9 +12,10 @@ You do not chain to a second item. You do not do work outside `BACKLOG.md`.
 
 1. `git fetch origin` and `git pull --ff-only origin main`. Read `BACKLOG.md`
    from `main`.
-2. `git log --all --oneline -30` and check for any very recent commits or
-   open branches that already cover a candidate item — don't duplicate work
-   someone (or another session) just did.
+2. `git branch -r` and check for any `claude/qpl-<id>-*` branch (in progress
+   or already done) that already covers a candidate item — don't duplicate
+   work someone (or another run) already started. Also skim
+   `git log --all --oneline -30` for very recent history.
 3. Pick the single highest-priority (P0 > P1 > P2) unchecked `[ ]` item in
    the "Agent-workable items" section that has **no unresolved `Blocked by:`**.
 4. **Never** pick anything from the "Needs owner" section. Those require
@@ -26,17 +27,22 @@ You do not chain to a second item. You do not do work outside `BACKLOG.md`.
 
 ## Where to work
 
-The owner has approved pushing directly to `main` — Vercel deploys from it,
-so this is not a low-stakes default.
+**Always work on a branch. Never push to `main`, ever, for any item.**
 
-- **Ordinary items:** work directly on `main`.
-- **Exception — use a branch instead:** if the item is a migration, or
-  touches billing/webhook/payment code paths (`lib/stripe.ts`,
-  `app/api/stripe/**`, anything writing to `enrollment_invitations` or
-  `curated_businesses` payment state), or anything else whose failure mode
-  is bad data or bad charges rather than just a broken build — create
-  `claude/qpl-<id>-<slug>` off `main`, push that, and stop. Do not merge it
-  yourself.
+`main` auto-deploys to production via Vercel. An unattended agent pushing
+straight to it is unsupervised code integration into a live branch —
+Claude Code's own safety classifier exists to catch exactly that pattern,
+and it will block this session outright if you try (denial reason seen in
+practice: "Untrusted Code Integration"). That isn't a false positive to
+route around with a different tool or a different phrasing — treat a
+denial like that as a hard stop, report it, and do not retry the same
+outcome a different way.
+
+Create `claude/qpl-<id>-<slug>` off `main` (e.g.
+`claude/qpl-002-webhook-cancel`), do all your work there, and push that
+branch. Merging to `main` is a separate step for the repo owner (or an
+interactive session they're actively watching) — not something this agent
+does.
 
 ## Doing the work
 
@@ -51,23 +57,19 @@ so this is not a low-stakes default.
    QPL-001 are for — check those are done first (they're most other items'
    `Blocked by:`).
 3. Run `npm run build` and `npm run lint`. **Both must pass with zero
-   errors** — non-negotiable, since a `main` push deploys to production.
-   Run `npm test` if the item touches tested code. Fix failures before
-   proceeding; never push a red build.
+   errors.** Run `npm test` if the item touches tested code. Fix failures
+   before proceeding; never push a red build, even to a branch.
 4. In the **same commit** as your code change, edit `BACKLOG.md`: check the
    box `[x]` for the item and note the commit SHA next to it (`Done in
    <sha>` — you'll know the SHA after `git commit`, so commit first, note
    the SHA, then amend, or compute the would-be SHA — either is fine as
    long as the final pushed commit has both the code and the checked box).
+   This checkbox only exists on your branch until someone merges it — that's
+   expected, not a bug; the branch-existence check in step 2 (not the
+   checkbox) is what stops duplicate work across runs.
 5. Commit with a clear, specific message describing what changed and why.
-6. Push:
-   - **On `main`:** `git pull --ff-only origin main` once more right before
-     pushing, in case another session landed a commit meanwhile. Push. If
-     it's not a fast-forward, re-pull, reapply your change on top, and
-     retry. **Never force-push.**
-   - **On a `claude/*` branch (risky-item exception):** `git push -u origin
-     <branch-name>` and stop. No merge, no PR.
-7. Do not open a pull request under any circumstance.
+6. `git push -u origin <branch-name>` and stop. No merge, no PR, no attempt
+   to fast-forward or push to `main`.
 
 ## If there's nothing to do
 

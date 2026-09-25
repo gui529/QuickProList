@@ -8,15 +8,21 @@ their own section at the bottom and must never be worked by an agent.
 1. **Pick one item.** Choose the highest-priority (P0 > P1 > P2) unchecked item in
    "Agent-workable items" that has no unresolved `Blocked by:`. Work on exactly one
    item per session/commit — don't bundle.
-2. **Push straight to `main`.** The owner has approved pushing directly to `main` —
-   Vercel deploys from it, so every push here goes live. That makes step 3 non-
-   negotiable: never push a change that hasn't cleanly passed build/lint/test.
-   `git pull --ff-only origin main` before you start, to avoid clobbering a push
-   from another concurrent session.
-3. **Before committing:** run `npm run build` and `npm run lint`. Both must pass —
-   no exceptions, since this ships straight to production. `npm test` must also
-   pass if the item touches code covered by a test. If anything fails, fix it or
-   leave the item unchecked and don't push.
+2. **Always work on a `claude/qpl-<id>-<slug>` branch off `main`. Never push to
+   `main` directly, even for a trivial item.** `main` auto-deploys to production
+   via Vercel — an unattended agent pushing straight to it is exactly the kind
+   of unsupervised code integration Claude Code's own safety classifier exists
+   to catch, and it will (correctly) block the session that tries. This isn't a
+   gate to work around; it's why this rule exists. A branch push doesn't deploy
+   anything — merging to `main` is a separate, human-reviewed step (or an
+   interactive session the owner is actively watching).
+   `git fetch origin` and check `git branch -r` before picking an item — skip
+   anything that already has a `claude/qpl-<id>-*` branch, so two runs don't
+   duplicate the same item.
+3. **Before committing:** run `npm run build` and `npm run lint`. Both must pass
+   (or explain in the commit body why a pre-existing failure is unrelated to
+   your change — see AGENTS.md/CLAUDE.md for repo conventions). `npm test` must
+   also pass if the item touches code covered by a test.
 4. **Verify offline.** This environment usually has no `SUPABASE_*`, `STRIPE_*`,
    `YELP_API_KEY`, `RESEND_*`, or `TWILIO_*` credentials, and outbound network to
    `quickprolist.com` / `supabase.co` is often blocked. Every acceptance criterion
@@ -25,18 +31,19 @@ their own section at the bottom and must never be worked by an agent.
    criterion can't be verified offline, add a test double or mock first (see QPL-000).
 5. **Close the loop in the same commit:** check the box `[x]`, and add the commit
    SHA next to the item (`Done in <sha>`). One commit = one item = one checkbox flip.
-6. **No PRs.** Push directly; there's no branch to open a PR from.
-7. **Anything risky still goes on a branch, not `main`.** A migration, a change
-   to billing/webhook code paths, or anything else whose failure mode is bad
-   data or bad charges (not just a broken build) — push to a `claude/*` branch
-   instead and say so, even though direct-to-main is otherwise the default.
-8. **QA loop.** Every `backlog-worker` run (`.claude/agents/backlog-worker.md`)
+   This edit lands on your branch, not `main` — the item won't show checked on
+   `main` until the branch is merged. That's expected; step 2's branch check is
+   what prevents duplicate work in the meantime, not the checkbox.
+6. **No PRs unless the repo owner asks.** Push the branch and stop; the owner (or
+   a separate review pass) decides when to open a PR and merge.
+7. **QA loop.** Every `backlog-worker` run (`.claude/agents/backlog-worker.md`)
    is followed by a `qa-validator` run (`.claude/agents/qa-validator.md`) that
-   rebuilds, re-checks the acceptance criterion, and reverts only on objective
-   breakage (failed build/lint, a committed secret). Anything else it finds
-   gets filed as a **new** item here — ID `QPL-<original>-QA<n>` — instead of
-   just being reported and lost. If you see one of those IDs, it's a QA
-   follow-up: treat it like any other item, same priority rules apply.
+   rebuilds the branch, re-checks the acceptance criterion, and — for objective
+   breakage (failed build/lint, a committed secret) — pushes a fix commit to
+   that same branch (never touches `main`). Anything else it finds gets filed
+   as a **new** item here — ID `QPL-<original>-QA<n>` — instead of just being
+   reported and lost. If you see one of those IDs, it's a QA follow-up: treat
+   it like any other item, same priority rules apply.
 
 ---
 
