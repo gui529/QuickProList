@@ -51,7 +51,7 @@ their own section at the bottom and must never be worked by an agent.
 
 ### P0 — foundation (unblocks acceptance criteria for everything else)
 
-- [ ] **QPL-000**: Add a test runner and first unit test.
+- [x] **QPL-000**: Add a test runner and first unit test. Done in 9762d3a.
   Install `vitest` as a dev dependency, add `"test": "vitest run"` to
   `package.json` scripts. Write `lib/search.test.ts` covering
   `getMergedResults` in `lib/search.ts` with `lib/kv.ts` and `lib/yelp.ts`
