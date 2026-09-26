@@ -166,7 +166,7 @@ their own section at the bottom and must never be worked by an agent.
   `lib/listing-requests.ts`, `app/api/list-business/route.ts`.
   **Blocked by:** QPL-000, QPL-001.
 
-- [ ] **QPL-007**: Migrations don't reconstruct the schema from scratch.
+- [x] **QPL-007**: Migrations don't reconstruct the schema from scratch. Done in 210233e.
   The `migrations/` directory only has 4 incremental ALTER/CREATE files; there
   is no baseline migration for `curated_businesses` or `admins`, which
   `lib/kv.ts` and `lib/auth.ts` both assume exist. Anyone bootstrapping a
