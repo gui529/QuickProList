@@ -10,6 +10,12 @@
 -- ADD COLUMN IF NOT EXISTS / CREATE TABLE) and are safe to run after this one
 -- in their existing order.
 --
+-- Incremental files are numbered (001_, 002_, ...) so that running
+-- migrations/*.sql in plain alphabetical order always creates a table before
+-- anything ALTERs or REFERENCES it. See migrations/order.test.ts, which
+-- fails loudly if that invariant is ever broken (e.g. a new file added
+-- without a correct numeric prefix).
+--
 -- Column list for curated_businesses cross-checked against:
 --   - `CuratedRow` in lib/kv.ts
 --   - the `.select()` in lib/reports.ts's getBusinessReports
