@@ -10,15 +10,15 @@ You do not chain to a second item. You do not do work outside `BACKLOG.md`.
 
 ## Before you start
 
-1. `git fetch origin` and `git pull --ff-only origin main`. Read `BACKLOG.md`
-   from `main`.
-2. `git branch -r` and check for any `claude/qpl-<id>-*` branch (in progress
-   or already done) that already covers a candidate item — don't duplicate
-   work someone (or another run) already started. Also skim
-   `git log --all --oneline -30` for very recent history.
-3. Pick the single highest-priority (P0 > P1 > P2) unchecked `[ ]` item in
+1. `git fetch origin` and `git checkout dev && git pull --ff-only origin dev`.
+   Read `BACKLOG.md` from `dev` — that's the shared branch every agent
+   (`backlog-worker`, `qa-validator`, `product-owner`) reads and writes.
+2. Pick the single highest-priority (P0 > P1 > P2) unchecked `[ ]` item in
    the "Agent-workable items" section that has **no unresolved `Blocked by:`**.
-4. **Never** pick anything from the "Needs owner" section. Those require
+   Because everyone works on the same branch, an item checked `[x]` on `dev`
+   really is done — no branch-existence dance needed to avoid duplicating
+   work.
+3. **Never** pick anything from the "Needs owner" section. Those require
    credentials, legal judgment, or content only the repo owner can provide —
    restoring Supabase, TCPA/CAN-SPAM legal review, privacy/terms copy, the
    Yelp ToS decision, provisioning a paid rate-limit store. If literally
@@ -27,22 +27,21 @@ You do not chain to a second item. You do not do work outside `BACKLOG.md`.
 
 ## Where to work
 
-**Always work on a branch. Never push to `main`, ever, for any item.**
+**Always work directly on `dev`. Never push to `main`, ever, for any item.**
 
-`main` auto-deploys to production via Vercel. An unattended agent pushing
-straight to it is unsupervised code integration into a live branch —
-Claude Code's own safety classifier exists to catch exactly that pattern,
-and it will block this session outright if you try (denial reason seen in
-practice: "Untrusted Code Integration"). That isn't a false positive to
-route around with a different tool or a different phrasing — treat a
-denial like that as a hard stop, report it, and do not retry the same
-outcome a different way.
+`main` auto-deploys to production via Vercel; `dev` does not. An unattended
+agent pushing straight to `main` is unsupervised code integration into a
+live branch — Claude Code's own safety classifier exists to catch exactly
+that pattern, and it will block this session outright if you try (denial
+reason seen in practice: "Untrusted Code Integration"). That isn't a false
+positive to route around with a different tool or a different phrasing —
+treat a denial like that as a hard stop, report it, and do not retry the
+same outcome a different way.
 
-Create `claude/qpl-<id>-<slug>` off `main` (e.g.
-`claude/qpl-002-webhook-cancel`), do all your work there, and push that
-branch. Merging to `main` is a separate step for the repo owner (or an
-interactive session they're actively watching) — not something this agent
-does.
+`dev` is the shared integration branch every agent pushes to directly — no
+per-item branch, no PR. The repo owner reviews `dev` and merges it into
+`main` themselves whenever they're ready to ship; that's a separate,
+human-driven step this agent never performs.
 
 ## Doing the work
 
@@ -53,23 +52,22 @@ does.
    outbound network to `quickprolist.com` / `supabase.co` is often blocked.
    Every acceptance criterion in `BACKLOG.md` is written to be checkable
    with `npm run build`, `npm run lint`, and `npm test` alone. If the item
-   needs a mock/test double that doesn't exist yet, that's what QPL-000/
-   QPL-001 are for — check those are done first (they're most other items'
-   `Blocked by:`).
+   needs a mock/test double that doesn't exist yet, check whether an
+   earlier item already added one (see `lib/*.test-double.ts`) before
+   building your own.
 3. Run `npm run build` and `npm run lint`. **Both must pass with zero
    errors.** Run `npm test` if the item touches tested code. Fix failures
-   before proceeding; never push a red build, even to a branch.
+   before proceeding; never push a red `dev`.
 4. In the **same commit** as your code change, edit `BACKLOG.md`: check the
    box `[x]` for the item and note the commit SHA next to it (`Done in
    <sha>` — you'll know the SHA after `git commit`, so commit first, note
    the SHA, then amend, or compute the would-be SHA — either is fine as
    long as the final pushed commit has both the code and the checked box).
-   This checkbox only exists on your branch until someone merges it — that's
-   expected, not a bug; the branch-existence check in step 2 (not the
-   checkbox) is what stops duplicate work across runs.
 5. Commit with a clear, specific message describing what changed and why.
-6. `git push -u origin <branch-name>` and stop. No merge, no PR, no attempt
-   to fast-forward or push to `main`.
+6. `git pull --ff-only origin dev` once more right before pushing, in case
+   another session landed a commit on `dev` meanwhile. Push. If it's not a
+   fast-forward, re-pull, reapply your change on top, and retry. **Never
+   force-push.**
 
 ## If there's nothing to do
 
@@ -86,4 +84,5 @@ make no changes and say so plainly — don't invent work outside
 - Never include a model name or identifier in commit messages, code
   comments, or any file content — attribution lines in commits are handled
   by the harness, not by you writing them into the diff.
-- One item, one commit (plus its checkbox flip), one push, then stop.
+- One item, one commit (plus its checkbox flip), one push to `dev`, then
+  stop.

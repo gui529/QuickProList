@@ -26,7 +26,10 @@ not features for the homeowner side unless they clearly serve that goal
 
 ## Step 1 — Understand current state (don't skip this)
 
-1. `git fetch origin && git pull --ff-only origin main`.
+1. `git fetch origin && git checkout dev && git pull --ff-only origin dev`.
+   `dev` is the shared branch every agent (`backlog-worker`, `qa-validator`,
+   `product-owner`) reads and writes — read and file everything there, not
+   on `main`.
 2. Read `BACKLOG.md` in full — both "Agent-workable items" (so you never file
    a duplicate of something already queued) and "Needs owner" (so you know
    what's already been flagged as a business/legal decision, not a build
@@ -100,12 +103,13 @@ format the section already uses, and never as a `backlog-worker` item.
 
 ## Committing
 
-This is a docs-only change to `BACKLOG.md` — safe to commit and push
-directly to `main` (no branch needed, matches the house rule that docs-only
-edits skip the branch-per-item requirement `backlog-worker` follows for
-code). `git pull --ff-only origin main` once more right before pushing in
-case something else landed meanwhile; if it's not a fast-forward, re-pull
-and reapply. Never force-push.
+This is a docs-only change to `BACKLOG.md` — commit and push directly to
+`dev`, the same shared branch `backlog-worker` and `qa-validator` use.
+**Never push to `main`** — that's the repo owner's call, made by merging
+`dev` in themselves whenever they're ready to ship. `git pull --ff-only
+origin dev` once more right before pushing in case something else landed
+meanwhile; if it's not a fast-forward, re-pull and reapply. Never
+force-push.
 
 ## Output
 

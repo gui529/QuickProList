@@ -5,20 +5,23 @@ their own section at the bottom and must never be worked by an agent.
 
 ## Protocol (read this before touching anything)
 
-1. **Pick one item.** Choose the highest-priority (P0 > P1 > P2) unchecked item in
+1. **Everyone reads and writes the shared `dev` branch.** `backlog-worker`,
+   `qa-validator`, and `product-owner` all `git checkout dev && git pull
+   --ff-only origin dev` before doing anything, and push their commits
+   straight to `dev` — no per-item branch, no PR. `main` auto-deploys to
+   production via Vercel; `dev` does not. **Never push to `main`, ever, for
+   any reason.** An unattended agent pushing straight to `main` is exactly
+   the kind of unsupervised code integration Claude Code's own safety
+   classifier exists to catch, and it will (correctly) block the session
+   that tries — this isn't a gate to work around, it's why `dev` exists.
+   The repo owner reviews `dev` and merges it into `main` themselves,
+   whenever they're ready to ship — a separate, human-driven step no agent
+   performs.
+2. **Pick one item.** Choose the highest-priority (P0 > P1 > P2) unchecked item in
    "Agent-workable items" that has no unresolved `Blocked by:`. Work on exactly one
-   item per session/commit — don't bundle.
-2. **Always work on a `claude/qpl-<id>-<slug>` branch off `main`. Never push to
-   `main` directly, even for a trivial item.** `main` auto-deploys to production
-   via Vercel — an unattended agent pushing straight to it is exactly the kind
-   of unsupervised code integration Claude Code's own safety classifier exists
-   to catch, and it will (correctly) block the session that tries. This isn't a
-   gate to work around; it's why this rule exists. A branch push doesn't deploy
-   anything — merging to `main` is a separate, human-reviewed step (or an
-   interactive session the owner is actively watching).
-   `git fetch origin` and check `git branch -r` before picking an item — skip
-   anything that already has a `claude/qpl-<id>-*` branch, so two runs don't
-   duplicate the same item.
+   item per session/commit — don't bundle. Because everyone shares `dev`, a
+   checked `[x]` box is immediately visible to the next run — no separate
+   dedup check needed.
 3. **Before committing:** run `npm run build` and `npm run lint`. Both must pass
    (or explain in the commit body why a pre-existing failure is unrelated to
    your change — see AGENTS.md/CLAUDE.md for repo conventions). `npm test` must
@@ -31,27 +34,22 @@ their own section at the bottom and must never be worked by an agent.
    criterion can't be verified offline, add a test double or mock first (see QPL-000).
 5. **Close the loop in the same commit:** check the box `[x]`, and add the commit
    SHA next to the item (`Done in <sha>`). One commit = one item = one checkbox flip.
-   This edit lands on your branch, not `main` — the item won't show checked on
-   `main` until the branch is merged. That's expected; step 2's branch check is
-   what prevents duplicate work in the meantime, not the checkbox.
-6. **No PRs unless the repo owner asks.** Push the branch and stop; the owner (or
-   a separate review pass) decides when to open a PR and merge.
+6. **No PRs unless the repo owner asks.** Push to `dev` and stop; the owner
+   decides when (and how) to bring `dev` into `main`.
 7. **QA loop.** Every `backlog-worker` run (`.claude/agents/backlog-worker.md`)
    is followed by a `qa-validator` run (`.claude/agents/qa-validator.md`) that
-   rebuilds the branch, re-checks the acceptance criterion, and — for objective
-   breakage (failed build/lint, a committed secret) — pushes a fix commit to
-   that same branch (never touches `main`). Anything else it finds gets filed
-   as a **new** item here — ID `QPL-<original>-QA<n>` — instead of just being
-   reported and lost. If you see one of those IDs, it's a QA follow-up: treat
-   it like any other item, same priority rules apply.
+   rebuilds `dev`, re-checks the acceptance criterion, and — for objective
+   breakage (failed build/lint, a committed secret) — pushes a fix commit
+   straight to `dev`. Anything else it finds gets filed as a **new** item
+   here — ID `QPL-<original>-QA<n>` — instead of just being reported and
+   lost. If you see one of those IDs, it's a QA follow-up: treat it like
+   any other item, same priority rules apply.
 8. **Where new items come from.** Besides QA follow-ups, `product-owner`
    (`.claude/agents/product-owner.md`) runs roughly once a day: it reviews
    the live product and researches the market, then files a handful of new
-   feature items marked `**Filed by:** product-owner, <date>`. It never
-   implements anything itself — those items are `backlog-worker`'s to pick
-   up like any other, same priority rules. `product-owner`'s BACKLOG.md
-   edits are docs-only and push straight to `main` (no branch), same as a
-   `qa-validator` finding-filing commit.
+   feature items marked `**Filed by:** product-owner, <date>`, straight to
+   `dev`. It never implements anything itself — those items are
+   `backlog-worker`'s to pick up like any other, same priority rules.
 
 ---
 
