@@ -1,5 +1,14 @@
 import { Resend } from 'resend'
 
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function getClient() {
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY not configured')
@@ -35,7 +44,7 @@ export async function sendEmail(
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155">${line}</p>`)
+    .map((line) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155">${escapeHtml(line)}</p>`)
     .join('')
 
   const html = `<!DOCTYPE html>
@@ -60,7 +69,7 @@ export async function sendEmail(
     <!-- Body -->
     <div style="padding:36px 40px">
       <p style="margin:0 0 6px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#f59e0b">Featured Listing Opportunity</p>
-      <h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0f172a;line-height:1.2">Hi ${businessName}!</h1>
+      <h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0f172a;line-height:1.2">Hi ${escapeHtml(businessName)}!</h1>
 
       ${paragraphs}
 
