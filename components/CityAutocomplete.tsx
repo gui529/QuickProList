@@ -24,16 +24,18 @@ export default function CityAutocomplete({ value, onChange, onSubmit, onPick, pl
   const wrapRef = useRef<HTMLDivElement>(null)
   const aborterRef = useRef<AbortController | null>(null)
 
+  const trimmedValue = value.trim()
+  const visibleCities = trimmedValue.length < 2 ? [] : cities
+
   useEffect(() => {
     const q = value.trim()
     if (q.length < 2) {
-      setCities([])
       return
     }
     aborterRef.current?.abort()
     const ac = new AbortController()
     aborterRef.current = ac
-    setLoading(true)
+    void Promise.resolve().then(() => setLoading(true))
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`/api/cities?q=${encodeURIComponent(q)}`, { signal: ac.signal })
@@ -72,14 +74,14 @@ export default function CityAutocomplete({ value, onChange, onSubmit, onPick, pl
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setOpen(true)
-      setHighlight((h) => Math.min(h + 1, cities.length - 1))
+      setHighlight((h) => Math.min(h + 1, visibleCities.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setHighlight((h) => Math.max(h - 1, 0))
     } else if (e.key === 'Enter') {
-      if (open && cities[highlight]) {
+      if (open && visibleCities[highlight]) {
         e.preventDefault()
-        pick(cities[highlight])
+        pick(visibleCities[highlight])
       } else {
         onSubmit?.()
       }
@@ -103,12 +105,12 @@ export default function CityAutocomplete({ value, onChange, onSubmit, onPick, pl
         onKeyDown={handleKey}
         className={className ?? 'w-full bg-transparent py-3.5 sm:py-4 text-base text-slate-900 placeholder-slate-400 focus:outline-none'}
       />
-      {open && (cities.length > 0 || loading) && (
+      {open && (visibleCities.length > 0 || loading) && (
         <ul className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl ring-1 ring-slate-200 shadow-lg z-30 max-h-64 overflow-y-auto py-1">
-          {loading && cities.length === 0 && (
+          {loading && visibleCities.length === 0 && (
             <li className="px-4 py-2 text-sm text-slate-400">Searching…</li>
           )}
-          {cities.map((c, i) => (
+          {visibleCities.map((c, i) => (
             <li key={c.label}>
               <button
                 type="button"

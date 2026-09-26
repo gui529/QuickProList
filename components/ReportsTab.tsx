@@ -122,22 +122,27 @@ function BusinessReports() {
   const [error, setError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  function load() {
+    return Promise.resolve()
+      .then(() => {
+        setLoading(true)
+        setError('')
+        return fetch('/api/reports')
+      })
+      .then((res) => res.json().then((data) => ({ res, data })))
+      .then(({ res, data }) => {
+        if (!res.ok) {
+          setError(data.error ?? 'Failed to load')
+        } else {
+          setReports(data.reports)
+        }
+      })
+      .finally(() => setLoading(false))
+  }
+
   useEffect(() => {
     load()
   }, [])
-
-  async function load() {
-    setLoading(true)
-    setError('')
-    const res = await fetch('/api/reports')
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error ?? 'Failed to load')
-    } else {
-      setReports(data.reports)
-    }
-    setLoading(false)
-  }
 
   const paidCount = reports.filter((r) => r.current_status === 'paid').length
   const trialCount = reports.filter((r) => r.current_status === 'trial').length

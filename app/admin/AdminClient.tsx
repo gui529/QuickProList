@@ -12,6 +12,7 @@ import TrialModal from '@/components/TrialModal'
 import Link from 'next/link'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
 import type { Business } from '@/lib/yelp'
+import type { EnrollmentInvitation } from '@/lib/invitations'
 
 type Tab = 'curate' | 'yelp' | 'enrollments' | 'reports'
 
@@ -29,7 +30,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   const [yelpModalBusiness, setYelpModalBusiness] = useState<Business | null>(null)
   const [showManualModal, setShowManualModal] = useState(false)
   const [enrollTarget, setEnrollTarget] = useState<{ business: Business; category: string } | null>(null)
-  const [enrollments, setEnrollments] = useState<any[]>([])
+  const [enrollments, setEnrollments] = useState<EnrollmentInvitation[]>([])
   const [loadingEnrollments, setLoadingEnrollments] = useState(false)
   const [trialTarget, setTrialTarget] = useState<{ business: Business; category: string; cities: string[] } | null>(null)
   const [proSiteToggling, setProSiteToggling] = useState<string | null>(null)
@@ -41,10 +42,10 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   const [deletingEnrollmentId, setDeletingEnrollmentId] = useState<string | null>(null)
   const [enrollmentDeleteError, setEnrollmentDeleteError] = useState('')
 
-  async function loadCurated() {
-    const res = await fetch('/api/curated')
-    const data = await res.json()
-    setCurated(data.businesses ?? [])
+  function loadCurated() {
+    return fetch('/api/curated')
+      .then((res) => res.json())
+      .then((data) => setCurated(data.businesses ?? []))
   }
 
   useEffect(() => {

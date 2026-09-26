@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { CATEGORIES } from '@/lib/categories'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
@@ -12,14 +12,10 @@ interface Props {
 export default function EnrollClient({ invitation, token }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search)
-    if (searchParams.get('success') === '1') {
-      setSuccess(true)
-    }
-  }, [])
+  const [success] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('success') === '1'
+  })
 
   const categoryLabel = CATEGORIES.find((c) => c.value === invitation.category)?.label || invitation.category
 
@@ -74,7 +70,7 @@ export default function EnrollClient({ invitation, token }: Props) {
         <div className="bg-white rounded-3xl shadow-lg ring-1 ring-slate-200 p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Get Featured</h1>
-            <p className="text-slate-600">Join QuickProList's verified pro network</p>
+            <p className="text-slate-600">Join QuickProList&apos;s verified pro network</p>
           </div>
 
           <div className="space-y-6 mb-8">

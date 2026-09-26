@@ -235,7 +235,7 @@ their own section at the bottom and must never be worked by an agent.
 
 ### P2 — hardening / hygiene
 
-- [ ] **QPL-011**: Fix the 14 ESLint errors from the current audit.
+- [x] **QPL-011**: Fix the 14 ESLint errors from the current audit. Done in 8f048929aaedc806337074d2f664d3adc3098398.
   Run `npx eslint . -f json` and fix each reported error (not warnings) —
   `set-state-in-effect` in `AdminClient.tsx`, `EnrollClient.tsx`,
   `app/page.tsx`, `CampaignReportsTab.tsx`, `CityAutocomplete.tsx`,
