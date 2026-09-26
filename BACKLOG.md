@@ -187,7 +187,7 @@ their own section at the bottom and must never be worked by an agent.
 
 ### P1 — security / correctness
 
-- [ ] **QPL-008**: Open redirect in the auth callback.
+- [x] **QPL-008**: Open redirect in the auth callback. Done in 20fbc03.
   `app/auth/callback/route.ts:6` reads `next` from the query string and
   redirects to it unchecked (`req.nextUrl.searchParams.get('next') ?? '/admin'`).
   An attacker can craft `/auth/callback?code=...&next=https://evil.example`.

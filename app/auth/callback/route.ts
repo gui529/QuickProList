@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { safeRedirectPath } from '@/lib/safe-redirect'
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code')
-  const next = req.nextUrl.searchParams.get('next') ?? '/admin'
+  const next = safeRedirectPath(req.nextUrl.searchParams.get('next'), '/admin')
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=missing_code', req.url))
