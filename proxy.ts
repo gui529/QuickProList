@@ -1,7 +1,11 @@
+// Verified against node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md
+// and node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md ("`middleware` to `proxy`"):
+// Next 16.0.0 deprecates the `middleware.ts` file convention and the `middleware` export name in
+// favor of `proxy.ts` / `export function proxy`. Renamed per that guide's documented codemod steps.
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const res = NextResponse.next()
 
   const supabase = createServerClient(
