@@ -1,7 +1,7 @@
 ---
 name: backlog-worker
 description: Picks and completes exactly one unblocked item from BACKLOG.md, verified offline, then stops. Use when asked to "work the backlog", "pick up the next backlog item", or when a scheduled routine fires to continue QuickProList's continuous backlog work.
-tools: Read, Edit, Write, Glob, Grep, Bash
+tools: Read, Edit, Write, Glob, Grep, Bash, mcp__github__issue_write, mcp__github__list_issues
 model: sonnet
 ---
 
@@ -68,6 +68,27 @@ human-driven step this agent never performs.
    another session landed a commit on `dev` meanwhile. Push. If it's not a
    fast-forward, re-pull, reapply your change on top, and retry. **Never
    force-push.**
+
+## Mirror to a GitHub Issue
+
+The repo owner tracks work via GitHub Issues on `gui529/QuickProList`, not by
+reading `BACKLOG.md` directly. After your commit is pushed, mirror the
+result there — this is a best-effort step, not a completion requirement:
+if the GitHub tools aren't available or a call fails, log a line saying so
+in your final report and move on, don't retry or block on it.
+
+1. `mcp__github__list_issues` (state: OPEN or ALL) and look for an issue
+   whose title contains the item's ID (e.g. `QPL-004`) in brackets or as a
+   prefix — the mirrored issues use titles like
+   `[P0] QPL-004: <summary>`.
+2. If a matching issue exists: `mcp__github__issue_write` with `method:
+   "update"`, `state: "closed"`, `state_reason: "completed"`, and a body
+   comment noting the commit SHA on `dev`.
+3. If no matching issue exists (the item was filed after the last mirror,
+   or never mirrored), don't create one retroactively for a *completed*
+   item — only `product-owner` and your own new-item-filing (see
+   `qa-validator.md`'s equivalent step) create issues for open work. Just
+   note in your report that no issue existed to close.
 
 ## If there's nothing to do
 

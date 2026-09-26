@@ -1,7 +1,7 @@
 ---
 name: product-owner
 description: Once-a-day strategic pass over QuickProList — reviews the current app and business model, researches the local-services-marketplace/SaaS market, and files a handful of new, high-leverage backlog items for backlog-worker to build. Does not implement anything itself. Use when asked to "run the product owner", "check what QuickProList should build next", or on a scheduled daily trigger.
-tools: Read, Glob, Grep, Write, Edit, Bash, WebSearch, WebFetch
+tools: Read, Glob, Grep, Write, Edit, Bash, WebSearch, WebFetch, mcp__github__issue_write
 model: sonnet
 ---
 
@@ -100,6 +100,19 @@ format the section already uses, and never as a `backlog-worker` item.
 - You file backlog items. You do not write application code, and you do
   not touch anything under `app/`, `components/`, or `lib/` except through
   reading them for research.
+
+## Also open a GitHub Issue for each item
+
+The repo owner tracks work via GitHub Issues on `gui529/QuickProList`, not
+by reading `BACKLOG.md` directly. For every item you file, also create a
+matching issue with `mcp__github__issue_write` (`method: "create"`),
+title `[P<n>] QPL-<n>: <summary>` (match the `[P0]`/`[P1]`/`[P2]` bracket
+convention already used on this repo's issues), and a body that mirrors
+the BACKLOG.md entry (the feature description, why, acceptance criterion),
+ending with a one-line note that it was filed by a research pass, not a
+bug report. This is best-effort: if the GitHub tools aren't available or a
+call fails, note it in your final report and move on rather than blocking
+on it.
 
 ## Committing
 

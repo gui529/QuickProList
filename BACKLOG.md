@@ -55,6 +55,13 @@ their own section at the bottom and must never be worked by an agent.
    feature items marked `**Filed by:** product-owner, <date>`, straight to
    `dev`. It never implements anything itself — those items are
    `backlog-worker`'s to pick up like any other, same priority rules.
+9. **GitHub Issues mirror.** The repo owner tracks work via GitHub Issues
+   on `gui529/QuickProList`, not by reading this file. `product-owner` and
+   `qa-validator` open a matching issue (title `[P<n>] QPL-<n>: <summary>`)
+   for every new item they file; `backlog-worker` (and `qa-validator`, on a
+   clean pass) closes the matching issue when an item is done. This is
+   best-effort, not a blocking requirement — `BACKLOG.md` on `dev` is still
+   the actual source of truth every agent reads to decide what to do next.
 
 ---
 
