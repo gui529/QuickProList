@@ -24,6 +24,21 @@ function prettifyCity(city: string): string {
 export default function ShareLinkModal({ open, onClose, business, city, category }: Props) {
   const [copied, setCopied] = useState(false)
 
+  // This component returns `null` (not unmounting) while closed, so the
+  // `copied` state would otherwise persist across opens/closes. Reset it
+  // as soon as `open` flips to false, derived during render via the
+  // "adjusting state based on a prop change" pattern (setState called
+  // directly in the render body, not inside a useEffect — refs can't be
+  // read/written during render either, per react-hooks/refs, so a plain
+  // state value tracks the previous `open` instead of a ref).
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (!open && copied) {
+      setCopied(false)
+    }
+  }
+
   if (!open) return null
 
   const prettyCity = business?.cities?.[0]
