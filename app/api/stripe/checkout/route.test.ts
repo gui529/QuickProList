@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 
 // Only stub out `getInvitationByToken` (so the test doesn't need live
 // Supabase credentials) — keep the real `isInvitationExpired` so this test
@@ -73,5 +73,62 @@ describe('POST /api/stripe/checkout (expiration enforcement)', () => {
 
     expect(res.status).toBe(200)
     expect(createCheckoutSessionMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('POST /api/stripe/checkout (return URL origin)', () => {
+  const originalSiteUrl = process.env.SITE_URL
+
+  beforeEach(() => {
+    getInvitationByTokenMock.mockReset()
+    createCheckoutSessionMock.mockClear()
+  })
+
+  afterEach(() => {
+    if (originalSiteUrl === undefined) delete process.env.SITE_URL
+    else process.env.SITE_URL = originalSiteUrl
+  })
+
+  function returnUrlArg(): string {
+    // createCheckoutSession(token, businessName, monthlyPrice, returnUrl)
+    return createCheckoutSessionMock.mock.calls[0][3]
+  }
+
+  it('ignores the Origin header entirely when SITE_URL is set', async () => {
+    process.env.SITE_URL = 'https://configured.example.com'
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    const res = await POST(makeRequest(invitation.token, '10.0.0.3') as never)
+
+    expect(res.status).toBe(200)
+    expect(returnUrlArg()).toBe(`https://configured.example.com/enroll/${invitation.token}`)
+  })
+
+  it('falls back to the Origin header when SITE_URL is unset', async () => {
+    delete process.env.SITE_URL
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    const res = await POST(makeRequest(invitation.token, '10.0.0.4') as never)
+
+    expect(res.status).toBe(200)
+    expect(returnUrlArg()).toBe(`https://example.test/enroll/${invitation.token}`)
+  })
+
+  it('falls back to the production domain when neither SITE_URL nor Origin is set', async () => {
+    delete process.env.SITE_URL
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    const req = new Request('https://example.test/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'x-forwarded-for': '10.0.0.5' },
+      body: JSON.stringify({ token: invitation.token }),
+    })
+    const res = await POST(req as never)
+
+    expect(res.status).toBe(200)
+    expect(returnUrlArg()).toBe(`https://www.quickprolist.com/enroll/${invitation.token}`)
   })
 })

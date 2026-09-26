@@ -27,7 +27,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invitation already paid' }, { status: 400 })
     }
 
-    const returnUrl = `${req.headers.get('origin')}/enroll/${token}`
+    const baseUrl = (
+      process.env.SITE_URL ??
+      req.headers.get('origin') ??
+      'https://www.quickprolist.com'
+    ).replace(/\/$/, '')
+    const returnUrl = `${baseUrl}/enroll/${token}`
     const checkoutUrl = await createCheckoutSession(
       token,
       invitation.business_name,
