@@ -43,7 +43,12 @@ their own section at the bottom and must never be worked by an agent.
    straight to `dev`. Anything else it finds gets filed as a **new** item
    here — ID `QPL-<original>-QA<n>` — instead of just being reported and
    lost. If you see one of those IDs, it's a QA follow-up: treat it like
-   any other item, same priority rules apply.
+   any other item, same priority rules apply. When a review turns up
+   nothing wrong, `qa-validator` appends `QA: passed (<sha>)` to the same
+   line as the item's `Done in <sha>` note — that's the only place a clean
+   pass gets recorded, so a checked item with no `QA:` annotation and no
+   `QA<n>` follow-up means it was implemented but never actually reviewed
+   (e.g. a cycle that died between the two steps).
 8. **Where new items come from.** Besides QA follow-ups, `product-owner`
    (`.claude/agents/product-owner.md`) runs roughly once a day: it reviews
    the live product and researches the market, then files a handful of new

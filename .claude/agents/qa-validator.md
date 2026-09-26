@@ -48,6 +48,24 @@ build/lint/test, pushing a fix — happens on `dev`, never on `main`.
    signature changed without updating all call sites — `grep` for other
    callers).
 
+## Record a clean pass — don't leave it invisible
+
+If everything above checks out (build/lint/test pass, criterion genuinely
+met, no findings worth a fix-forward or a new item), **append `QA: passed
+(<your-commit-sha-or-"clean", if you made no commit>)` to the same
+BACKLOG.md line that already has `Done in <sha>`**, and push that as its
+own small commit if you didn't already push a fix-forward one. This is the
+only place a clean QA result is ever recorded — without it, "QA looked at
+this and it was fine" only exists in this session's transcript, which
+nobody can see later. The repo owner (or a future audit) can then `grep`
+BACKLOG.md for a checked item with no `QA:` annotation to spot anything
+that was implemented but never actually got reviewed (e.g. a session that
+crashed between the backlog-worker and qa-validator steps).
+
+Skip this only when you *did* file a `QA<n>` follow-up or a fix-forward
+commit for the item — those already make the review visible; don't also
+add a redundant `QA: passed` note to an item you just flagged a problem on.
+
 ## When something's broken
 
 **Build/lint/test failure that's small and obvious to fix** (a typo, a
