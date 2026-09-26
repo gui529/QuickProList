@@ -7,6 +7,7 @@ const {
   handleSubscriptionCanceledMock,
   addCuratedFromYelpMock,
   addCuratedManualMock,
+  updateCuratedManualMock,
   setCuratedContactEmailMock,
   getCuratedByIdMock,
   sendEmailMock,
@@ -22,6 +23,7 @@ const {
   const handleSubscriptionCanceledMock = vi.fn()
   const addCuratedFromYelpMock = vi.fn().mockResolvedValue(undefined)
   const addCuratedManualMock = vi.fn().mockResolvedValue(undefined)
+  const updateCuratedManualMock = vi.fn().mockResolvedValue(undefined)
   const setCuratedContactEmailMock = vi.fn().mockResolvedValue(undefined)
   const getCuratedByIdMock = vi.fn()
   const sendEmailMock = vi.fn().mockResolvedValue('email-id')
@@ -31,6 +33,7 @@ const {
     handleSubscriptionCanceledMock,
     addCuratedFromYelpMock,
     addCuratedManualMock,
+    updateCuratedManualMock,
     setCuratedContactEmailMock,
     getCuratedByIdMock,
     sendEmailMock,
@@ -46,6 +49,7 @@ vi.mock('@/lib/stripe', () => ({
 vi.mock('@/lib/kv', () => ({
   addCuratedFromYelp: addCuratedFromYelpMock,
   addCuratedManual: addCuratedManualMock,
+  updateCuratedManual: updateCuratedManualMock,
   setCuratedContactEmail: setCuratedContactEmailMock,
   getCuratedById: getCuratedByIdMock,
 }))
@@ -95,6 +99,7 @@ describe('POST /api/stripe/webhook (idempotency)', () => {
     handleSubscriptionCanceledMock.mockClear()
     addCuratedFromYelpMock.mockClear()
     addCuratedManualMock.mockClear()
+    updateCuratedManualMock.mockClear()
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
@@ -134,6 +139,48 @@ describe('POST /api/stripe/webhook (idempotency)', () => {
 
     expect(addCuratedManualMock).toHaveBeenCalledTimes(1)
     expect(addCuratedFromYelpMock).not.toHaveBeenCalled()
+  })
+
+  // Regression test for #35: enrolling a business that is already a manual
+  // curated_businesses row must update that row rather than inserting a
+  // second, bare duplicate.
+  it('updates the pre-existing curated_businesses row instead of inserting a duplicate when the invitation already links one', async () => {
+    const invitation = seedInvitation({
+      status: 'pending',
+      business_name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['austin'],
+      curated_business_id: 'existing-curated-1',
+    })
+
+    const event = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_123',
+          subscription: 'sub_test_456',
+          metadata: { invitationToken: invitation.token },
+        },
+      },
+    }
+    constructEventMock.mockReturnValue(event)
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+
+    // Updated the pre-existing row, never inserted a new one.
+    expect(updateCuratedManualMock).toHaveBeenCalledWith('existing-curated-1', {
+      name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['austin'],
+    })
+    expect(addCuratedManualMock).not.toHaveBeenCalled()
+
+    // The invitation's curated_business_id still points at the pre-existing
+    // row — markInvitationPaid never overwrote it with a freshly-inserted id.
+    const paidInvitation = await getInvitationByToken(invitation.token)
+    expect(paidInvitation?.status).toBe('paid')
+    expect(paidInvitation?.curated_business_id).toBe('existing-curated-1')
   })
 
   it('persists customer_details.email onto the curated business on checkout.session.completed', async () => {
@@ -195,6 +242,7 @@ describe('POST /api/stripe/webhook (subscription status handling)', () => {
     handleSubscriptionCanceledMock.mockClear()
     addCuratedFromYelpMock.mockClear()
     addCuratedManualMock.mockClear()
+    updateCuratedManualMock.mockClear()
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
@@ -236,6 +284,7 @@ describe('POST /api/stripe/webhook (dunning notice on invoice.payment_failed)', 
     handleSubscriptionCanceledMock.mockClear()
     addCuratedFromYelpMock.mockClear()
     addCuratedManualMock.mockClear()
+    updateCuratedManualMock.mockClear()
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()

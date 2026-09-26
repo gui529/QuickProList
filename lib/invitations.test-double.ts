@@ -82,7 +82,7 @@ export async function createInvitation(input: CreateInvitationInput): Promise<st
     status: 'pending',
     stripe_session_id: null,
     stripe_subscription_id: null,
-    curated_business_id: null,
+    curated_business_id: input.curatedBusinessId ?? null,
     created_at: now.toISOString(),
     expires_at: new Date(now.getTime() + THIRTY_DAYS_MS).toISOString(),
     canceled_at: null,

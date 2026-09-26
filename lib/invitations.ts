@@ -34,6 +34,15 @@ export interface CreateInvitationInput {
   monthlyPrice: number
   yelpId?: string
   yelpData?: Partial<Business>
+  /**
+   * When enrolling a business that is already a `curated_businesses` row
+   * (e.g. converting an existing manually-pinned pro to a paid
+   * subscription), the id of that pre-existing row. Carried through to the
+   * webhook so `checkout.session.completed` updates this row in place
+   * instead of inserting a second, bare duplicate — mirroring how the
+   * Yelp-sourced path already dedupes via `upsert` on `yelp_id`.
+   */
+  curatedBusinessId?: string
 }
 
 export async function createInvitation(input: CreateInvitationInput): Promise<string> {
@@ -47,6 +56,7 @@ export async function createInvitation(input: CreateInvitationInput): Promise<st
     category: input.category,
     cities: input.cities,
     monthly_price: input.monthlyPrice,
+    curated_business_id: input.curatedBusinessId || null,
   }).select('token').single()
 
   if (error || !data) throw new Error('Failed to create invitation')

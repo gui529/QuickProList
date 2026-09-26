@@ -3,7 +3,13 @@ import { createClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
 import { getStripe, handleSubscriptionCanceled } from '@/lib/stripe'
 import { getInvitationByToken, getInvitationBySubscriptionId, markInvitationPaid } from '@/lib/invitations'
-import { addCuratedFromYelp, addCuratedManual, getCuratedById, setCuratedContactEmail } from '@/lib/kv'
+import {
+  addCuratedFromYelp,
+  addCuratedManual,
+  getCuratedById,
+  setCuratedContactEmail,
+  updateCuratedManual,
+} from '@/lib/kv'
 import { sendEmail } from '@/lib/email'
 import type { Business } from '@/lib/yelp'
 
@@ -95,6 +101,17 @@ export async function POST(req: NextRequest) {
           .single()
 
         curatedBusinessId = data?.id || ''
+      } else if (invitation.curated_business_id) {
+        // The invitation was created for a business that already had a
+        // curated_businesses row (e.g. converting an existing manual pin to
+        // a paid subscription) — update that row in place rather than
+        // inserting a second, bare duplicate. See #35.
+        await updateCuratedManual(invitation.curated_business_id, {
+          name: invitation.business_name,
+          category: invitation.category,
+          cities: invitation.cities,
+        })
+        curatedBusinessId = invitation.curated_business_id
       } else {
         await addCuratedManual({
           name: invitation.business_name,

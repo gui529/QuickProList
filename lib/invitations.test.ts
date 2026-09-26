@@ -34,6 +34,19 @@ describe('lib/invitations.ts (in-memory test double)', () => {
     expect(invitation?.business_name).toBe('Acme Plumbing')
   })
 
+  it('createInvitation persists an optional curatedBusinessId for enrolling an already-curated business', async () => {
+    const token = await createInvitation({
+      businessName: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['austin'],
+      monthlyPrice: 29.99,
+      curatedBusinessId: 'existing-curated-1',
+    })
+
+    const invitation = await getInvitationByToken(token)
+    expect(invitation?.curated_business_id).toBe('existing-curated-1')
+  })
+
   it('markInvitationPaid transitions status and records Stripe/curated ids', async () => {
     const token = await createInvitation({
       businessName: 'Acme Plumbing',

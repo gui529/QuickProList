@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
       monthlyPrice: body.monthlyPrice || 29.99,
       yelpId: body.yelpId,
       yelpData: body.yelpData,
+      curatedBusinessId: body.existingCuratedId || undefined,
     })
     return NextResponse.json({ token })
   } catch (err) {

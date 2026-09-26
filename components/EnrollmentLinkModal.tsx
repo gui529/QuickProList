@@ -45,6 +45,12 @@ export default function EnrollmentLinkModal({ open, onClose, business, defaultCa
           monthlyPrice,
           yelpId: business.yelpId,
           yelpData: business.source === 'yelp' ? business : null,
+          // Manual businesses only ever exist as curated rows (never as a
+          // live, not-yet-pinned search result), so `business.id` here is
+          // always the pre-existing curated_businesses id — pass it through
+          // so the webhook updates that row instead of inserting a
+          // duplicate bare one on checkout completion.
+          existingCuratedId: business.source === 'manual' ? business.id : undefined,
         }),
       })
 
