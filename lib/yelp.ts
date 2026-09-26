@@ -17,6 +17,7 @@ export interface Business {
   imageUrl: string
   url: string
   websiteUrl?: string
+  reviewUrl?: string
   categories: string[]
   cities?: string[]
   category?: string

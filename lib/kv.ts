@@ -25,6 +25,7 @@ interface CuratedRow {
   address: string | null
   image_url: string | null
   website_url: string | null
+  review_url: string | null
   rating: number | null
   review_count: number | null
   categories: string[] | null
@@ -38,6 +39,21 @@ interface CuratedRow {
   phone_clicks: number | null
   website_clicks: number | null
   directions_clicks: number | null
+}
+
+/**
+ * Derive the "leave us a review" link for a curated business — an explicit
+ * `review_url` always wins (the only source for manually-added pros, since
+ * there's no Yelp id to derive one from); a Yelp-sourced pro without one
+ * falls back to the Yelp write-a-review deep link. Returns `undefined`
+ * (never a broken link) when neither is available.
+ */
+function reviewUrlFor(row: Pick<CuratedRow, 'source' | 'yelp_id' | 'review_url'>): string | undefined {
+  if (row.review_url) return row.review_url
+  if (row.source === 'yelp' && row.yelp_id) {
+    return `https://www.yelp.com/writeareview/biz/${row.yelp_id}`
+  }
+  return undefined
 }
 
 function rowToBusiness(row: CuratedRow): Business {
@@ -61,6 +77,7 @@ function rowToBusiness(row: CuratedRow): Business {
     imageUrl: row.image_url ?? '',
     url: isYelp && row.yelp_id ? `https://www.yelp.com/biz/${row.yelp_id}` : '',
     websiteUrl,
+    reviewUrl: reviewUrlFor(row),
     categories: row.categories ?? [],
     cities: row.cities ?? [],
     category: row.category,
@@ -191,6 +208,7 @@ export interface ManualBusinessInput {
   phone?: string
   address?: string
   websiteUrl?: string
+  reviewUrl?: string
   imageUrl?: string
   category: string
   cities: string[]
@@ -212,6 +230,7 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     address: input.address || null,
     image_url: input.imageUrl || null,
     website_url: input.websiteUrl || null,
+    review_url: input.reviewUrl || null,
     categories: input.categories ?? [],
     trial_ends_at: input.trialEndsAt ?? null,
     is_trial: input.trialEndsAt !== undefined,
@@ -227,6 +246,7 @@ export async function updateCuratedManual(id: string, input: Partial<ManualBusin
   if (input.phone !== undefined) update.phone = input.phone || null
   if (input.address !== undefined) update.address = input.address || null
   if (input.websiteUrl !== undefined) update.website_url = input.websiteUrl || null
+  if (input.reviewUrl !== undefined) update.review_url = input.reviewUrl || null
   if (input.imageUrl !== undefined) update.image_url = input.imageUrl || null
   if (input.category !== undefined) update.category = input.category
   if (input.cities !== undefined) update.cities = input.cities.map(normalizeCity).filter(Boolean)

@@ -277,6 +277,7 @@ export function EditManualBusinessModal({
   const [phone, setPhone] = useState(business.phone ?? '')
   const [address, setAddress] = useState(business.address ?? '')
   const [websiteUrl, setWebsiteUrl] = useState(business.websiteUrl ?? '')
+  const [reviewUrl, setReviewUrl] = useState(business.reviewUrl ?? '')
   const [imageUrl, setImageUrl] = useState(business.imageUrl ?? '')
   const [selectedDefaultImage, setSelectedDefaultImage] = useState<string | null>(null)
   const [category, setCategory] = useState(business.category ?? CATEGORIES[0].value)
@@ -323,6 +324,7 @@ export function EditManualBusinessModal({
         phone,
         address,
         websiteUrl,
+        reviewUrl,
         imageUrl: effectiveImageUrl,
         category,
         cities_update: cities,
@@ -366,6 +368,11 @@ export function EditManualBusinessModal({
 
       <Field label="Website URL">
         <input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
+      </Field>
+
+      <Field label="Review URL">
+        <input value={reviewUrl} onChange={(e) => setReviewUrl(e.target.value)} placeholder="https://g.page/r/.../review" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
+        <p className="text-xs text-slate-500 mt-1">Link customers use to leave a review (e.g. a Google Maps review link). Powers the &quot;Get Reviews&quot; button.</p>
       </Field>
 
       <Field label="Tags (comma-separated)">

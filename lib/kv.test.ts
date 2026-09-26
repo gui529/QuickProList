@@ -32,6 +32,7 @@ import {
   incrementProfileView,
   incrementContactClick,
   getCuratedByDashboardToken,
+  getCuratedById,
 } from './kv'
 
 function makeBusiness(overrides: Partial<Business> = {}): Business {
@@ -209,5 +210,68 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
     const result = await getCuratedByDashboardToken('any-token')
 
     expect(result).toBeNull()
+  })
+})
+
+describe('reviewUrl derivation (lib/kv.ts)', () => {
+  beforeEach(() => {
+    fromMock.mockClear()
+    selectState.data = null
+    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+  })
+
+  it('derives the Yelp write-a-review link when no explicit review_url is set', async () => {
+    selectState.data = {
+      id: 'curated-1',
+      source: 'yelp',
+      yelp_id: 'yelp-biz-1',
+      review_url: null,
+      name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: [],
+      categories: [],
+      is_trial: false,
+    }
+
+    const result = await getCuratedById('curated-1')
+
+    expect(result?.reviewUrl).toBe('https://www.yelp.com/writeareview/biz/yelp-biz-1')
+  })
+
+  it('returns a stored review_url unchanged for a manual business', async () => {
+    selectState.data = {
+      id: 'curated-2',
+      source: 'manual',
+      yelp_id: null,
+      review_url: 'https://g.page/r/example/review',
+      name: 'Bob Roofing',
+      category: 'roofing',
+      cities: [],
+      categories: [],
+      is_trial: false,
+    }
+
+    const result = await getCuratedById('curated-2')
+
+    expect(result?.reviewUrl).toBe('https://g.page/r/example/review')
+  })
+
+  it('returns undefined (not a broken link) when neither a stored review_url nor a Yelp id exists', async () => {
+    selectState.data = {
+      id: 'curated-3',
+      source: 'manual',
+      yelp_id: null,
+      review_url: null,
+      name: 'Carol Painting',
+      category: 'painting',
+      cities: [],
+      categories: [],
+      is_trial: false,
+    }
+
+    const result = await getCuratedById('curated-3')
+
+    expect(result?.reviewUrl).toBeUndefined()
   })
 })

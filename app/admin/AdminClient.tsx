@@ -6,6 +6,7 @@ import { CATEGORIES } from '@/lib/categories'
 import { YelpSnapshotModal, ManualBusinessModal, EditManualBusinessModal } from '@/components/BusinessModal'
 import CityAutocomplete from '@/components/CityAutocomplete'
 import ShareLinkModal from '@/components/ShareLinkModal'
+import ReviewLinkModal from '@/components/ReviewLinkModal'
 import EnrollmentLinkModal from '@/components/EnrollmentLinkModal'
 import ReportsTab from '@/components/ReportsTab'
 import TrialModal from '@/components/TrialModal'
@@ -132,6 +133,8 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
     if (!location.trim()) return
     setShareTarget({ city: location, category })
   }
+
+  const [reviewTarget, setReviewTarget] = useState<Business | null>(null)
 
   const curatedYelpIds = new Set(curated.map((b) => b.yelpId).filter(Boolean) as string[])
 
@@ -293,6 +296,12 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
                 >
                   <ShareIcon />
                   Share
+                </button>
+                <button
+                  onClick={() => setReviewTarget(b)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-50 text-teal-800 hover:bg-teal-100 transition-colors"
+                >
+                  Get Reviews
                 </button>
                 {b.dashboardToken && (
                   <button
@@ -613,6 +622,12 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
         business={shareTarget?.business}
         city={shareTarget?.city ?? ''}
         category={shareTarget?.category ?? ''}
+      />
+
+      <ReviewLinkModal
+        open={!!reviewTarget}
+        onClose={() => setReviewTarget(null)}
+        business={reviewTarget ?? undefined}
       />
 
       {enrollTarget && (
