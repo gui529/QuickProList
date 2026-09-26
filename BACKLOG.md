@@ -109,7 +109,7 @@ their own section at the bottom and must never be worked by an agent.
   filter, currently only filters `trial_ends_at`).
   **Blocked by:** QPL-000, QPL-001 (for the test double/mock pattern).
 
-- [x] **QPL-003**: Multi-city enrollment only lists the business in one city. Done in 5eda82d.
+- [x] **QPL-003**: Multi-city enrollment only lists the business in one city. Done in c66dfb0.
   `app/api/stripe/webhook/route.ts:904` and `app/api/invitations/route.ts:311`
   (trial path) both call `addCuratedFromYelp(..., invitation.cities[0])` /
   `addCuratedFromYelp(..., cities[0])` — only the first city of a
@@ -125,6 +125,26 @@ their own section at the bottom and must never be worked by an agent.
   **Files:** `lib/kv.ts` (`addCuratedFromYelp`), `app/api/stripe/webhook/route.ts:904`,
   `app/api/invitations/route.ts:311`.
   **Blocked by:** QPL-000, QPL-001.
+
+- [ ] **QPL-003-QA1**: QPL-003's test only covers `addCuratedFromYelp` directly, not the webhook/invitation call sites it fixed.
+  QA review of QPL-003 (commit `c66dfb0`) found `lib/kv.test.ts` proves
+  `addCuratedFromYelp` stores every city passed in, but the acceptance
+  criterion asked for a test that creates a multi-city invitation and
+  *simulates the webhook event* — nothing exercises
+  `app/api/stripe/webhook/route.ts`'s `checkout.session.completed` handler
+  or `app/api/invitations/route.ts`'s trial path end-to-end, so a future
+  regression at either call site (e.g. reverting to `invitation.cities[0]`)
+  would not be caught. `lib/stripe.test.ts` already shows the pattern to
+  follow: `vi.mock('./kv', ...)` /
+  `vi.mock('./invitations', ...)` against `lib/kv.test-double.ts` /
+  `lib/invitations.test-double.ts`.
+  **Acceptance:** a test that seeds a 3-city invitation, invokes the
+  Stripe webhook handler (or the invitation trial-path handler) the same
+  way `lib/stripe.test.ts` does, and asserts the resulting curated row's
+  `cities` array contains all 3 cities, not just the first.
+  **Files:** `lib/stripe.test.ts` or a new `app/api/stripe/webhook/route.test.ts`,
+  `app/api/invitations/route.ts`.
+  **Blocked by:** none.
 
 - [ ] **QPL-004**: Stripe webhook is not idempotent — retries create duplicate rows.
   `app/api/stripe/webhook/route.ts` doesn't check `invitation.status === 'paid'`
