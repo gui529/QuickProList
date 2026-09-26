@@ -1,4 +1,6 @@
 import Stripe from 'stripe'
+import { getInvitationBySubscriptionId, markInvitationCanceled } from './invitations'
+import { setCuratedDelisted } from './kv'
 
 let stripeClient: Stripe | null = null
 
@@ -40,4 +42,24 @@ export async function createCheckoutSession(
     metadata: { invitationToken },
   })
   return session.url || ''
+}
+
+/**
+ * Handle a canceled/expired Stripe subscription: marks the linked
+ * enrollment invitation canceled and delists its curated business (hides it
+ * from `getCurated` without deleting the row) so search stops surfacing a
+ * business that's no longer paying. Looks up the invitation by
+ * `stripe_subscription_id`; a no-op if none matches (e.g. event for a
+ * subscription this app never created).
+ */
+export async function handleSubscriptionCanceled(subscriptionId: string): Promise<void> {
+  const invitation = await getInvitationBySubscriptionId(subscriptionId)
+  if (!invitation) return
+
+  if (invitation.status !== 'canceled') {
+    await markInvitationCanceled(invitation.id)
+  }
+  if (invitation.curated_business_id) {
+    await setCuratedDelisted(invitation.curated_business_id, true)
+  }
 }

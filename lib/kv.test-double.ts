@@ -31,6 +31,7 @@ interface CuratedRow {
   trial_ends_at: string | null
   is_trial: boolean
   pro_site_enabled: boolean
+  delisted_at: string | null
   created_at: string
 }
 
@@ -62,6 +63,7 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     trial_ends_at: row.trial_ends_at ?? null,
     is_trial: row.is_trial ?? false,
     pro_site_enabled: row.pro_site_enabled ?? false,
+    delisted_at: row.delisted_at ?? null,
     created_at: row.created_at ?? new Date().toISOString(),
   }
   rows.push(full)
@@ -107,6 +109,7 @@ export async function getCurated(category: string, city: string): Promise<Busine
       (r) =>
         r.category === category &&
         r.cities.includes(normalizeCity(city)) &&
+        !r.delisted_at &&
         (!r.trial_ends_at || new Date(r.trial_ends_at).getTime() > now)
     )
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -149,6 +152,7 @@ export async function addCuratedFromYelp(
     trial_ends_at: trialEndsAt ?? null,
     is_trial: trialEndsAt !== undefined,
     pro_site_enabled: base?.pro_site_enabled ?? false,
+    delisted_at: base?.delisted_at ?? null,
     created_at: base?.created_at ?? new Date().toISOString(),
   }
   if (existingIdx >= 0) rows[existingIdx] = row
@@ -175,6 +179,7 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     trial_ends_at: input.trialEndsAt ?? null,
     is_trial: input.trialEndsAt !== undefined,
     pro_site_enabled: false,
+    delisted_at: null,
     created_at: new Date().toISOString(),
   })
 }
@@ -202,6 +207,12 @@ export async function updateCuratedCities(id: string, cities: string[]): Promise
 
 export async function removeCurated(id: string): Promise<void> {
   rows = rows.filter((r) => r.id !== id)
+}
+
+export async function setCuratedDelisted(id: string, delisted: boolean): Promise<void> {
+  const row = rows.find((r) => r.id === id)
+  if (!row) throw new Error('Not found')
+  row.delisted_at = delisted ? new Date().toISOString() : null
 }
 
 export async function updateProSiteEnabled(id: string, enabled: boolean): Promise<void> {

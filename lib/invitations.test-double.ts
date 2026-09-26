@@ -110,6 +110,12 @@ export async function getInvitationById(id: string): Promise<EnrollmentInvitatio
   return invitations.find((i) => i.id === id) ?? null
 }
 
+export async function getInvitationBySubscriptionId(
+  subscriptionId: string
+): Promise<EnrollmentInvitation | null> {
+  return invitations.find((i) => i.stripe_subscription_id === subscriptionId) ?? null
+}
+
 export async function createTrialInvitation(input: CreateTrialInvitationInput): Promise<void> {
   const now = new Date()
   invitations.push({

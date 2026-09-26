@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, handleSubscriptionCanceled } from '@/lib/stripe'
 import { getInvitationByToken, markInvitationPaid } from '@/lib/invitations'
 import { addCuratedFromYelp, addCuratedManual } from '@/lib/kv'
 import type { Business } from '@/lib/yelp'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+
+// Subscription statuses that should delist the business — a lapsed/failed
+// or explicitly canceled subscription should stop being surfaced in search.
+const DELISTING_SUBSCRIPTION_STATUSES = new Set(['canceled', 'unpaid', 'past_due'])
 
 export async function POST(req: NextRequest) {
   if (!webhookSecret) {
@@ -110,6 +114,14 @@ export async function POST(req: NextRequest) {
         subscriptionId,
         curatedBusinessId
       )
+    } else if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as Stripe.Subscription
+      await handleSubscriptionCanceled(subscription.id)
+    } else if (event.type === 'customer.subscription.updated') {
+      const subscription = event.data.object as Stripe.Subscription
+      if (DELISTING_SUBSCRIPTION_STATUSES.has(subscription.status)) {
+        await handleSubscriptionCanceled(subscription.id)
+      }
     }
 
     return NextResponse.json({ ok: true })

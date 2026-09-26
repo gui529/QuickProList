@@ -86,7 +86,7 @@ their own section at the bottom and must never be worked by an agent.
 
 ### P0 — billing/data correctness bugs
 
-- [ ] **QPL-002**: Stripe webhook doesn't handle subscription cancellation/expiry.
+- [x] **QPL-002**: Stripe webhook doesn't handle subscription cancellation/expiry. Done in 844cf27.
   `app/api/stripe/webhook/route.ts` only handles `checkout.session.completed`.
   Add handlers for `customer.subscription.deleted` and
   `customer.subscription.updated` (status `canceled`/`unpaid`/`past_due`) that

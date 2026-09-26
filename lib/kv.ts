@@ -31,6 +31,7 @@ interface CuratedRow {
   trial_ends_at: string | null
   is_trial: boolean
   pro_site_enabled: boolean
+  delisted_at: string | null
 }
 
 function rowToBusiness(row: CuratedRow): Business {
@@ -72,6 +73,7 @@ export async function getCurated(category: string, city: string): Promise<Busine
     .select('*')
     .eq('category', category)
     .contains('cities', [normalizeCity(city)])
+    .is('delisted_at', null)
     .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
     .order('created_at', { ascending: true })
   if (error || !data) return []
@@ -209,6 +211,22 @@ export async function updateProSiteEnabled(id: string, enabled: boolean): Promis
   const { error } = await supabase
     .from('curated_businesses')
     .update({ pro_site_enabled: enabled })
+    .eq('id', id)
+  if (error) throw error
+}
+
+/**
+ * Hide (or restore) a curated business without deleting its row — used when
+ * a subscription is canceled/expired via the Stripe webhook. Hidden rows are
+ * filtered out of `getCurated`, mirroring the `trial_ends_at` pattern, but
+ * remain in `listAllCurated` for admin visibility/audit history.
+ */
+export async function setCuratedDelisted(id: string, delisted: boolean): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase not configured')
+  const { error } = await supabase
+    .from('curated_businesses')
+    .update({ delisted_at: delisted ? new Date().toISOString() : null })
     .eq('id', id)
   if (error) throw error
 }

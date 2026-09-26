@@ -116,6 +116,22 @@ export async function listPaidInvitations(): Promise<EnrollmentInvitation[]> {
   return data as EnrollmentInvitation[]
 }
 
+export async function getInvitationBySubscriptionId(
+  subscriptionId: string
+): Promise<EnrollmentInvitation | null> {
+  const supabase = getSupabase()
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('enrollment_invitations')
+    .select('*')
+    .eq('stripe_subscription_id', subscriptionId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as EnrollmentInvitation
+}
+
 export async function getInvitationById(id: string): Promise<EnrollmentInvitation | null> {
   const supabase = getSupabase()
   if (!supabase) return null
