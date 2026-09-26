@@ -2,9 +2,10 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { getCuratedById } from '@/lib/kv'
+import { getCuratedById, incrementProfileView } from '@/lib/kv'
 import { getBusinessById } from '@/lib/yelp'
 import type { Business, YelpHourPeriod } from '@/lib/yelp'
+import TrackedContactLink from '@/components/TrackedContactLink'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,6 +104,8 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
   if (!business || !business.proSiteEnabled) notFound()
 
   const biz = business as Business
+  // Fire-and-forget: never block rendering the page over a counter update.
+  void incrementProfileView(biz.id)
   const mapsUrl = biz.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(biz.address)}`
     : null
@@ -226,7 +229,9 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
 
           <div className="flex flex-wrap gap-3 justify-center">
             {biz.phone && (
-              <a
+              <TrackedContactLink
+                businessId={biz.id}
+                clickType="phone"
                 href={`tel:${biz.phone}`}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg bg-white text-slate-900 hover:bg-slate-100"
               >
@@ -242,10 +247,12 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
                 </svg>
                 {biz.phone}
-              </a>
+              </TrackedContactLink>
             )}
             {mapsUrl && (
-              <a
+              <TrackedContactLink
+                businessId={biz.id}
+                clickType="directions"
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -264,10 +271,12 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                   <circle cx="12" cy="10" r="3" />
                 </svg>
                 Get Directions
-              </a>
+              </TrackedContactLink>
             )}
             {biz.websiteUrl && (
-              <a
+              <TrackedContactLink
+                businessId={biz.id}
+                clickType="website"
                 href={biz.websiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -286,7 +295,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                   <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
                 Visit Website
-              </a>
+              </TrackedContactLink>
             )}
           </div>
 
@@ -482,7 +491,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-10">Get in touch</h2>
           <div className="bg-slate-50 rounded-3xl ring-1 ring-slate-200 overflow-hidden divide-y divide-slate-200">
             {biz.phone && (
-              <a href={`tel:${biz.phone}`} className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
+              <TrackedContactLink businessId={biz.id} clickType="phone" href={`tel:${biz.phone}`} className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
                 <div className="h-11 w-11 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-slate-300 flex items-center justify-center flex-shrink-0 transition-colors">
                   <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
@@ -495,10 +504,10 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                 <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
-              </a>
+              </TrackedContactLink>
             )}
             {biz.address && (
-              <a href={mapsUrl ?? '#'} target={mapsUrl ? '_blank' : undefined} rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
+              <TrackedContactLink businessId={biz.id} clickType="directions" href={mapsUrl ?? '#'} target={mapsUrl ? '_blank' : undefined} rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
                 <div className="h-11 w-11 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-slate-300 flex items-center justify-center flex-shrink-0 transition-colors">
                   <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z" />
@@ -512,10 +521,10 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                 <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
-              </a>
+              </TrackedContactLink>
             )}
             {biz.websiteUrl && (
-              <a href={biz.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
+              <TrackedContactLink businessId={biz.id} clickType="website" href={biz.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
                 <div className="h-11 w-11 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-slate-300 flex items-center justify-center flex-shrink-0 transition-colors">
                   <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
@@ -529,7 +538,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                 <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M7 17 17 7" /><path d="M8 7h9v9" />
                 </svg>
-              </a>
+              </TrackedContactLink>
             )}
             {biz.url && (
               <a href={biz.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
@@ -558,19 +567,19 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
           </h2>
           <p className="text-white/50 text-lg mb-10">Get in touch with {biz.name} today.</p>
           {biz.phone && (
-            <a href={`tel:${biz.phone}`} className="group inline-flex flex-col items-center gap-1 bg-white hover:bg-slate-100 transition-colors rounded-3xl px-10 py-5 shadow-2xl mb-6">
+            <TrackedContactLink businessId={biz.id} clickType="phone" href={`tel:${biz.phone}`} className="group inline-flex flex-col items-center gap-1 bg-white hover:bg-slate-100 transition-colors rounded-3xl px-10 py-5 shadow-2xl mb-6">
               <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Call us</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{biz.phone}</span>
-            </a>
+            </TrackedContactLink>
           )}
           {biz.websiteUrl && (
             <div>
-              <a href={biz.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-white/50 hover:text-white/80 transition-colors">
+              <TrackedContactLink businessId={biz.id} clickType="website" href={biz.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-white/50 hover:text-white/80 transition-colors">
                 or visit our website
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M7 17 17 7" /><path d="M8 7h9v9" />
                 </svg>
-              </a>
+              </TrackedContactLink>
             </div>
           )}
         </div>

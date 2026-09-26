@@ -8,7 +8,7 @@
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
 import type { Business } from './yelp'
-import type { ManualBusinessInput } from './kv'
+import type { ContactClickType, ManualBusinessInput } from './kv'
 
 export function normalizeCity(input: string): string {
   return input.trim().toLowerCase().split(',')[0].trim()
@@ -33,6 +33,10 @@ interface CuratedRow {
   pro_site_enabled: boolean
   delisted_at: string | null
   created_at: string
+  profile_views: number
+  phone_clicks: number
+  website_clicks: number
+  directions_clicks: number
 }
 
 let rows: CuratedRow[] = []
@@ -65,6 +69,10 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     pro_site_enabled: row.pro_site_enabled ?? false,
     delisted_at: row.delisted_at ?? null,
     created_at: row.created_at ?? new Date().toISOString(),
+    profile_views: row.profile_views ?? 0,
+    phone_clicks: row.phone_clicks ?? 0,
+    website_clicks: row.website_clicks ?? 0,
+    directions_clicks: row.directions_clicks ?? 0,
   }
   rows.push(full)
   return full
@@ -156,6 +164,10 @@ export async function addCuratedFromYelp(
     pro_site_enabled: base?.pro_site_enabled ?? false,
     delisted_at: base?.delisted_at ?? null,
     created_at: base?.created_at ?? new Date().toISOString(),
+    profile_views: base?.profile_views ?? 0,
+    phone_clicks: base?.phone_clicks ?? 0,
+    website_clicks: base?.website_clicks ?? 0,
+    directions_clicks: base?.directions_clicks ?? 0,
   }
   if (existingIdx >= 0) rows[existingIdx] = row
   else rows.push(row)
@@ -183,6 +195,10 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     pro_site_enabled: false,
     delisted_at: null,
     created_at: new Date().toISOString(),
+    profile_views: 0,
+    phone_clicks: 0,
+    website_clicks: 0,
+    directions_clicks: 0,
   })
 }
 
@@ -221,6 +237,20 @@ export async function updateProSiteEnabled(id: string, enabled: boolean): Promis
   const row = rows.find((r) => r.id === id)
   if (!row) throw new Error('Not found')
   row.pro_site_enabled = enabled
+}
+
+export async function incrementProfileView(id: string): Promise<void> {
+  const row = rows.find((r) => r.id === id)
+  if (!row) return
+  row.profile_views += 1
+}
+
+export async function incrementContactClick(id: string, type: ContactClickType): Promise<void> {
+  const row = rows.find((r) => r.id === id)
+  if (!row) return
+  if (type === 'phone') row.phone_clicks += 1
+  else if (type === 'website') row.website_clicks += 1
+  else row.directions_clicks += 1
 }
 
 export async function uploadBusinessPhoto(

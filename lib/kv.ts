@@ -233,6 +233,41 @@ export async function setCuratedDelisted(id: string, delisted: boolean): Promise
   if (error) throw error
 }
 
+/**
+ * Bump a single integer counter column on a `curated_businesses` row by 1.
+ * Supabase's JS client has no atomic increment for a plain `update()`, so
+ * this reads the current value and writes back current+1 — acceptable for
+ * low-contention view/click counters. No-ops (rather than throwing) when
+ * Supabase isn't configured or the row can't be found, matching the
+ * fire-and-forget call sites (page render, click-tracking endpoint) that
+ * should never fail a request over a missed counter increment.
+ */
+async function incrementCounterColumn(id: string, column: string): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) return
+  const { data } = await supabase
+    .from('curated_businesses')
+    .select(column)
+    .eq('id', id)
+    .maybeSingle()
+  if (!data) return
+  const current = (data as unknown as Record<string, number | null>)[column] ?? 0
+  await supabase
+    .from('curated_businesses')
+    .update({ [column]: current + 1 })
+    .eq('id', id)
+}
+
+export async function incrementProfileView(id: string): Promise<void> {
+  await incrementCounterColumn(id, 'profile_views')
+}
+
+export type ContactClickType = 'phone' | 'website' | 'directions'
+
+export async function incrementContactClick(id: string, type: ContactClickType): Promise<void> {
+  await incrementCounterColumn(id, `${type}_clicks`)
+}
+
 export async function uploadBusinessPhoto(
   file: ArrayBuffer,
   contentType: string,
