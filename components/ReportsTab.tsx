@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { BusinessReport } from '@/lib/reports'
-import type { EnrollmentInvitation } from '@/lib/invitations'
+import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 import PaidProsTab from '@/components/PaidProsTab'
 
 type ReportSection = 'businesses' | 'subscriptions'
@@ -75,9 +75,15 @@ function InvitationTimeline({ invitations }: { invitations: EnrollmentInvitation
                 {inv.monthly_price === 0 ? 'Free' : `$${inv.monthly_price.toFixed(2)}/mo`}
               </td>
               <td className="py-2 pr-4 whitespace-nowrap">
-                <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${INV_STATUS_CLASSES[inv.status]}`}>
-                  {inv.status}
-                </span>
+                {inv.status !== 'trial' && isInvitationExpired(inv) ? (
+                  <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${INV_STATUS_CLASSES.expired}`}>
+                    expired
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${INV_STATUS_CLASSES[inv.status]}`}>
+                    {inv.status}
+                  </span>
+                )}
               </td>
               <td className="py-2 pr-4 text-slate-600 whitespace-nowrap">{formatDate(inv.trial_ends_at)}</td>
               <td className="py-2 text-slate-600 whitespace-nowrap">{formatDate(inv.canceled_at)}</td>
