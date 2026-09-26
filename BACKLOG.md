@@ -44,6 +44,14 @@ their own section at the bottom and must never be worked by an agent.
    as a **new** item here — ID `QPL-<original>-QA<n>` — instead of just being
    reported and lost. If you see one of those IDs, it's a QA follow-up: treat
    it like any other item, same priority rules apply.
+8. **Where new items come from.** Besides QA follow-ups, `product-owner`
+   (`.claude/agents/product-owner.md`) runs roughly once a day: it reviews
+   the live product and researches the market, then files a handful of new
+   feature items marked `**Filed by:** product-owner, <date>`. It never
+   implements anything itself — those items are `backlog-worker`'s to pick
+   up like any other, same priority rules. `product-owner`'s BACKLOG.md
+   edits are docs-only and push straight to `main` (no branch), same as a
+   `qa-validator` finding-filing commit.
 
 ---
 
