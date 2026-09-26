@@ -252,7 +252,7 @@ their own section at the bottom and must never be worked by an agent.
   **Files:** as listed above.
   **Blocked by:** none.
 
-- [ ] **QPL-012**: Add error/404/loading pages.
+- [x] **QPL-012**: Add error/404/loading pages. Done in e32ad82.
   Next.js App Router supports `app/error.tsx`, `app/not-found.tsx`,
   `app/loading.tsx`. None exist — check
   `node_modules/next/dist/docs` for the current Next 16 conventions per
