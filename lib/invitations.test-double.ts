@@ -131,6 +131,15 @@ export async function getInvitationBySubscriptionId(
   return invitations.find((i) => i.stripe_subscription_id === subscriptionId) ?? null
 }
 
+export async function getInvitationByCuratedBusinessId(
+  curatedBusinessId: string
+): Promise<EnrollmentInvitation | null> {
+  const matches = invitations
+    .filter((i) => i.curated_business_id === curatedBusinessId && i.status === 'paid')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  return matches[0] ?? null
+}
+
 export async function createTrialInvitation(input: CreateTrialInvitationInput): Promise<void> {
   const now = new Date()
   invitations.push({

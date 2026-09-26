@@ -156,6 +156,32 @@ export async function getInvitationBySubscriptionId(
   return data as EnrollmentInvitation
 }
 
+/**
+ * Look up the most recent `paid` invitation linked to a curated business —
+ * used by the Stripe Billing Portal route to find the `stripe_subscription_id`
+ * for a business identified only by its dashboard token. Returns `null` when
+ * there's no paid invitation on record (e.g. a trial or never-subscribed
+ * business), including when Supabase isn't configured.
+ */
+export async function getInvitationByCuratedBusinessId(
+  curatedBusinessId: string
+): Promise<EnrollmentInvitation | null> {
+  const supabase = getSupabase()
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('enrollment_invitations')
+    .select('*')
+    .eq('curated_business_id', curatedBusinessId)
+    .eq('status', 'paid')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data as EnrollmentInvitation
+}
+
 export async function getInvitationById(id: string): Promise<EnrollmentInvitation | null> {
   const supabase = getSupabase()
   if (!supabase) return null

@@ -45,6 +45,29 @@ export async function createCheckoutSession(
 }
 
 /**
+ * Create a Stripe Billing Portal session for a paying business, so it can
+ * update its card, view invoices, or cancel without an admin acting on its
+ * behalf via the admin-only `/api/paid-pros/[id]/cancel` route. Looks up the
+ * subscription's customer rather than requiring a separately-stored
+ * `stripe_customer_id`, since `stripe_subscription_id` is already the field
+ * persisted on `enrollment_invitations` (see `markInvitationPaid`).
+ */
+export async function createBillingPortalSession(
+  subscriptionId: string,
+  returnUrl: string
+): Promise<string> {
+  const stripe = getStripe()
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  const customerId =
+    typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  })
+  return session.url
+}
+
+/**
  * Handle a canceled/expired Stripe subscription: marks the linked
  * enrollment invitation canceled and delists its curated business (hides it
  * from `getCurated` without deleting the row) so search stops surfacing a
