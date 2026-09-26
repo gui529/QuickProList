@@ -233,6 +233,34 @@ their own section at the bottom and must never be worked by an agent.
   **Files:** `app/api/stripe/checkout/route.ts:813`.
   **Blocked by:** QPL-000.
 
+- [ ] **QPL-007-QA1**: Incremental migrations still can't run in filename order on a fresh project.
+  QPL-007 (done in 316c3af) added `migrations/000_baseline.sql` for
+  `curated_businesses`/`admins`, but the *incremental* migration files are
+  still broken for a from-scratch bootstrap: alphabetically,
+  `add_canceled_status.sql` sorts before `add_enrollment_invitations.sql`
+  and does `ALTER TABLE enrollment_invitations ADD COLUMN IF NOT EXISTS
+  canceled_at ...` — which fails outright because
+  `add_enrollment_invitations.sql` (the file that runs `CREATE TABLE
+  enrollment_invitations`) hasn't run yet. Same risk applies to any future
+  incremental file that assumes a table created by a later-sorting
+  filename. Pre-existing, not introduced by 316c3af — QPL-007's acceptance
+  criterion only covered `curated_businesses`/`admins` and explicitly
+  deferred live-schema verification to QPL-020.
+  **Acceptance:** either (a) rename the incremental files with a numeric
+  prefix that encodes true dependency order (mirroring `000_baseline.sql`),
+  or (b) add a short header comment to each file declaring its
+  prerequisite file(s), plus a `migrations/README.md` documenting the
+  required run order. Whichever approach: add a small script or test
+  (`lib/*.test.ts` or a plain node script under `scripts/`) that parses
+  `migrations/*.sql`, checks every `ALTER TABLE <t>` / references to table
+  `<t>` has a preceding `CREATE TABLE <t>` in run order, and fails loudly
+  if not — proving the *current* file set (after whatever renaming/fix)
+  is self-consistent. `npm run build`/`lint` green.
+  **Files:** `migrations/add_canceled_status.sql`,
+  `migrations/add_enrollment_invitations.sql`, `migrations/add_trial_support.sql`,
+  `migrations/add_campaign_contacts.sql`.
+  **Blocked by:** none.
+
 ### P2 — hardening / hygiene
 
 - [ ] **QPL-011**: Fix the 14 ESLint errors from the current audit.
