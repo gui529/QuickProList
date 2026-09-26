@@ -49,6 +49,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
+      if (invitation.status === 'paid') {
+        // Already processed — Stripe retries the same event on any non-2xx
+        // response or timeout, so this must be a safe no-op rather than
+        // re-inserting the curated business.
+        return NextResponse.json({ ok: true })
+      }
+
       let curatedBusinessId: string
       const supabase = createClient(
         process.env.SUPABASE_URL!,
