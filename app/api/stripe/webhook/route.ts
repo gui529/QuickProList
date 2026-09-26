@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
             yelpId: invitation.yelp_id,
           },
           invitation.category,
-          invitation.cities[0]
+          invitation.cities
         )
 
         const { data } = await supabase

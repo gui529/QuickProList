@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
             yelpId: body.yelpId,
           },
           body.category,
-          cities[0],
+          cities,
           trialEndsAt
         )
         const { data } = await supabase

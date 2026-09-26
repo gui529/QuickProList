@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       let business = body.business
       const detail = await getBusinessById(business.id).catch(() => null)
       if (detail?.websiteUrl) business = { ...business, websiteUrl: detail.websiteUrl }
-      await addCuratedFromYelp(business, body.category, body.city)
+      await addCuratedFromYelp(business, body.category, [body.city])
       return NextResponse.json({ ok: true })
     } catch (err) {
       console.error('addCuratedFromYelp failed:', err)

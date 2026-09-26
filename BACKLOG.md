@@ -104,7 +104,7 @@ their own section at the bottom and must never be worked by an agent.
   filter, currently only filters `trial_ends_at`).
   **Blocked by:** QPL-000, QPL-001 (for the test double/mock pattern).
 
-- [ ] **QPL-003**: Multi-city enrollment only lists the business in one city.
+- [x] **QPL-003**: Multi-city enrollment only lists the business in one city. Done in 5eda82d.
   `app/api/stripe/webhook/route.ts:904` and `app/api/invitations/route.ts:311`
   (trial path) both call `addCuratedFromYelp(..., invitation.cities[0])` /
   `addCuratedFromYelp(..., cities[0])` — only the first city of a

@@ -130,9 +130,11 @@ export async function listAllCurated(): Promise<Business[]> {
 export async function addCuratedFromYelp(
   business: Business,
   category: string,
-  city: string,
+  cities: string[],
   trialEndsAt?: string | null
 ): Promise<void> {
+  const normalizedCities = [...new Set(cities.map(normalizeCity).filter(Boolean))]
+  if (normalizedCities.length === 0) throw new Error('At least one city is required')
   const existingIdx = rows.findIndex((r) => r.yelp_id === business.id)
   const base = existingIdx >= 0 ? rows[existingIdx] : undefined
   const row: CuratedRow = {
@@ -140,7 +142,7 @@ export async function addCuratedFromYelp(
     yelp_id: business.id,
     source: 'yelp',
     category,
-    cities: [normalizeCity(city)],
+    cities: normalizedCities,
     name: business.name,
     phone: business.phone || null,
     address: business.address || null,

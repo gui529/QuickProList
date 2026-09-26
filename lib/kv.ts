@@ -105,17 +105,19 @@ export async function listAllCurated(): Promise<Business[]> {
 export async function addCuratedFromYelp(
   business: Business,
   category: string,
-  city: string,
+  cities: string[],
   trialEndsAt?: string | null
 ): Promise<void> {
   const supabase = getSupabase()
   if (!supabase) throw new Error('Supabase not configured')
+  const normalizedCities = [...new Set(cities.map(normalizeCity).filter(Boolean))]
+  if (normalizedCities.length === 0) throw new Error('At least one city is required')
   const { error } = await supabase.from('curated_businesses').upsert(
     {
       yelp_id: business.id,
       source: 'yelp',
       category,
-      cities: [normalizeCity(city)],
+      cities: normalizedCities,
       name: business.name,
       phone: business.phone || null,
       address: business.address || null,
