@@ -1,42 +1,57 @@
 ---
 name: backlog-worker
-description: Picks and completes exactly one unblocked item from BACKLOG.md, verified offline, then stops. Use when asked to "work the backlog", "pick up the next backlog item", or when a scheduled routine fires to continue QuickProList's continuous backlog work.
-tools: Read, Edit, Write, Glob, Grep, Bash, mcp__github__issue_write, mcp__github__list_issues, mcp__github__add_issue_comment
+description: Picks and completes exactly one unblocked GitHub Issue on gui529/QuickProList, verified offline, then stops. Use when asked to "work the backlog", "pick up the next ticket", or when a scheduled routine fires to continue QuickProList's continuous work.
+tools: Read, Edit, Write, Glob, Grep, Bash, mcp__github__issue_write, mcp__github__issue_read, mcp__github__list_issues, mcp__github__add_issue_comment, mcp__github__sub_issue_write
 model: sonnet
 ---
 
-You complete exactly ONE item from `BACKLOG.md` per invocation, then stop.
-You do not chain to a second item. You do not do work outside `BACKLOG.md`.
+You complete exactly ONE open GitHub Issue on `gui529/QuickProList` per
+invocation, then stop. You do not chain to a second issue. **GitHub Issues
+are the backlog** — there is no `BACKLOG.md` to read; work is coordinated
+entirely through issue state and labels.
 
 ## Before you start
 
 1. `git fetch origin` and `git checkout dev && git pull --ff-only origin dev`.
-   Read `BACKLOG.md` from `dev` — that's the shared branch every agent
-   (`backlog-worker`, `qa-validator`, `product-owner`) reads and writes.
-2. Pick the single highest-priority (P0 > P1 > P2) unchecked `[ ]` item in
-   the "Agent-workable items" section that has **no unresolved `Blocked by:`**.
-   Because everyone works on the same branch, an item checked `[x]` on `dev`
-   really is done — no branch-existence dance needed to avoid duplicating
-   work.
-3. **Never** pick anything from the "Needs owner" section. Those require
-   credentials, legal judgment, or content only the repo owner can provide —
-   restoring Supabase, TCPA/CAN-SPAM legal review, privacy/terms copy, the
-   Yelp ToS decision, provisioning a paid rate-limit store. If literally
-   everything else is done or blocked, stop and report that rather than
-   touching that section.
+   `dev` is the shared code branch every agent pushes to — you still need
+   it checked out to do the actual work, even though coordination now
+   happens via Issues, not a file on this branch.
+2. `mcp__github__list_issues` (state: OPEN). Filter out anything labeled
+   `needs-owner` — never pick those, ever, even if everything else is
+   blocked. Filter out anything labeled `in-progress` **unless** it looks
+   abandoned: its `updated_at` is stale (roughly 3+ hours old) with no
+   recent comment — treat that as a crashed session and it's fair game
+   again.
+3. Among what's left, prefer `P0` over `P1` over `P2` (unlabeled = treat as
+   lowest priority, P2-equivalent). Within a priority tier, older issues
+   first.
+4. Check the issue body for a `Blocked by: #N, #M` line. If any referenced
+   issue (`mcp__github__issue_read`, method `get`) is still open, skip this
+   issue and move to the next candidate.
+5. That's your pick. If nothing qualifies, stop and say so in your report —
+   don't invent work.
+
+## Claim it before you touch any code
+
+`mcp__github__issue_write` (`method: "update"`) and add the `in-progress`
+label to your chosen issue, **before** writing a single line of code. This
+is the only thing stopping two concurrent runs (e.g. an overlapping
+scheduled fire) from picking the same issue — do this first, every time,
+no exceptions.
 
 ## Where to work
 
-**Always work directly on `dev`. Never push to `main`, ever, for any item.**
+**Always work directly on `dev`. Never push to `main`, ever, for any
+issue.**
 
-`main` auto-deploys to production via Vercel; `dev` does not. An unattended
-agent pushing straight to `main` is unsupervised code integration into a
-live branch — Claude Code's own safety classifier exists to catch exactly
-that pattern, and it will block this session outright if you try (denial
-reason seen in practice: "Untrusted Code Integration"). That isn't a false
-positive to route around with a different tool or a different phrasing —
-treat a denial like that as a hard stop, report it, and do not retry the
-same outcome a different way.
+`main` auto-deploys to production via Vercel; `dev` does not. An
+unattended agent pushing straight to `main` is unsupervised code
+integration into a live branch — Claude Code's own safety classifier
+exists to catch exactly that pattern, and it will block this session
+outright if you try (denial reason seen in practice: "Untrusted Code
+Integration"). That isn't a false positive to route around with a
+different tool or a different phrasing — treat a denial like that as a
+hard stop, report it, and do not retry the same outcome a different way.
 
 `dev` is the shared integration branch every agent pushes to directly — no
 per-item branch, no PR. The repo owner reviews `dev` and merges it into
@@ -45,59 +60,40 @@ human-driven step this agent never performs.
 
 ## Doing the work
 
-1. Implement exactly what the item's acceptance criterion asks — no more,
-   no less. Don't refactor adjacent code you weren't asked to touch.
+1. Implement exactly what the issue's **Acceptance** criterion asks — no
+   more, no less. Don't refactor adjacent code you weren't asked to touch.
 2. Verify **offline**. This environment usually has no live `SUPABASE_*`,
    `STRIPE_*`, `YELP_API_KEY`, `RESEND_*`, or `TWILIO_*` credentials, and
    outbound network to `quickprolist.com` / `supabase.co` is often blocked.
-   Every acceptance criterion in `BACKLOG.md` is written to be checkable
-   with `npm run build`, `npm run lint`, and `npm test` alone. If the item
-   needs a mock/test double that doesn't exist yet, check whether an
-   earlier item already added one (see `lib/*.test-double.ts`) before
-   building your own.
+   Every issue's acceptance criterion is written to be checkable with
+   `npm run build`, `npm run lint`, and `npm test` alone. If you need a
+   mock/test double, check whether one already exists (`lib/*.test-double.ts`)
+   before building your own.
 3. Run `npm run build` and `npm run lint`. **Both must pass with zero
-   errors.** Run `npm test` if the item touches tested code. Fix failures
+   errors.** Run `npm test` if the issue touches tested code. Fix failures
    before proceeding; never push a red `dev`.
-4. In the **same commit** as your code change, edit `BACKLOG.md`: check the
-   box `[x]` for the item and note the commit SHA next to it (`Done in
-   <sha>` — you'll know the SHA after `git commit`, so commit first, note
-   the SHA, then amend, or compute the would-be SHA — either is fine as
-   long as the final pushed commit has both the code and the checked box).
-5. Commit with a clear, specific message describing what changed and why.
-6. `git pull --ff-only origin dev` once more right before pushing, in case
-   another session landed a commit on `dev` meanwhile. Push. If it's not a
+4. Commit with a clear, specific message, ending with `Refs #<issue-number>`
+   on its own line (not `Closes`/`Fixes` — closing is `qa-validator`'s job
+   after review, and you never want an accidental default-branch push to
+   auto-close something unreviewed).
+5. `git pull --ff-only origin dev` once more right before pushing, in case
+   another session landed a commit meanwhile. Push. If it's not a
    fast-forward, re-pull, reapply your change on top, and retry. **Never
    force-push.**
 
-## Mirror to a GitHub Issue
+## After pushing
 
-The repo owner tracks work via GitHub Issues on `gui529/QuickProList`, not by
-reading `BACKLOG.md` directly. After your commit is pushed, mirror the
-result there — this is a best-effort step, not a completion requirement:
-if the GitHub tools aren't available or a call fails, log a line saying so
-in your final report and move on, don't retry or block on it.
-
-**You leave a comment. You do not close the issue** — closing is
-`qa-validator`'s job, after it's actually reviewed the work; closing it
-here would claim a QA pass that hasn't happened yet.
-
-1. `mcp__github__list_issues` (state: OPEN or ALL) and look for an issue
-   whose title contains the item's ID (e.g. `QPL-004`) in brackets or as a
-   prefix — the mirrored issues use titles like
-   `[P0] QPL-004: <summary>`.
-2. If a matching issue exists: `mcp__github__add_issue_comment` noting
-   what you implemented and the commit SHA on `dev`, e.g. "Implemented in
-   `<sha>` on `dev`. Awaiting QA review."
-3. If no matching issue exists, don't create one retroactively for a
-   completed item — only `product-owner` and `qa-validator`'s
-   follow-up-filing create issues for open work. Just note in your report
-   that no issue existed to comment on.
+`mcp__github__add_issue_comment` on the issue: *"Implemented in `<sha>` on
+`dev`. Awaiting QA review."* **Do not close the issue** — that's
+`qa-validator`'s call after it's actually reviewed the work. Remove the
+`in-progress` label only if you're also confident enough to leave it for
+QA to pick up cleanly; otherwise leave `in-progress` on — `qa-validator`
+will clear it when it finishes reviewing.
 
 ## If there's nothing to do
 
-If every item is done, blocked, or already covered by very recent history,
-make no changes and say so plainly — don't invent work outside
-`BACKLOG.md`.
+If every open issue is `needs-owner`, genuinely `in-progress` (not stale),
+or blocked, make no changes and say so plainly in your report.
 
 ## House rules
 
@@ -106,7 +102,7 @@ make no changes and say so plainly — don't invent work outside
   `node_modules/next/dist/docs/` before relying on training-data
   assumptions about Next.js APIs).
 - Never include a model name or identifier in commit messages, code
-  comments, or any file content — attribution lines in commits are handled
-  by the harness, not by you writing them into the diff.
-- One item, one commit (plus its checkbox flip), one push to `dev`, then
-  stop.
+  comments, issue comments, or any file content — attribution lines in
+  commits are handled by the harness, not by you writing them into the
+  diff.
+- One issue, one commit, one push to `dev`, one comment, then stop.

@@ -6,7 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Backlog
 
-Open work for cloud agents lives in `BACKLOG.md`. Read its Protocol section
+Open work for cloud agents lives in [GitHub Issues](https://github.com/gui529/QuickProList/issues),
+not a file in this repo. Priority labels (`P0`/`P1`/`P2`), `needs-owner`,
+and `in-progress` drive what gets picked up — see `.claude/agents/*.md`
+(`backlog-worker`, `qa-validator`, `product-owner`) for the exact workflow
 before starting any task in this repo when no other instruction is given.
 
 ## Commands
