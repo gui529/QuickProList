@@ -1,11 +1,58 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { getCuratedById } from '@/lib/kv'
 import { getBusinessById } from '@/lib/yelp'
 import type { Business, YelpHourPeriod } from '@/lib/yelp'
 
 export const dynamic = 'force-dynamic'
+
+async function loadBusiness(id: string): Promise<Business | null> {
+  let business: Business | null = await getCuratedById(id)
+  if (!business) {
+    business = await getBusinessById(id).catch(() => null)
+  } else if (business.yelpId) {
+    const yelpFull = await getBusinessById(business.yelpId).catch(() => null)
+    if (yelpFull) {
+      business = {
+        ...business,
+        hours: yelpFull.hours,
+        isOpenNow: yelpFull.isOpenNow,
+        price: yelpFull.price,
+        photos: yelpFull.photos,
+      }
+    }
+  }
+  return business
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const business = await loadBusiness(id)
+  if (!business || !business.proSiteEnabled) {
+    return { title: 'QuickProList' }
+  }
+
+  const title = `${business.name} | QuickProList`
+  const description = business.address
+    ? `${business.name} — trusted local pro serving ${business.address}. View hours, reviews, and contact info on QuickProList.`
+    : `${business.name} — trusted local pro on QuickProList. View hours, reviews, and contact info.`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: business.imageUrl ? [business.imageUrl] : undefined,
+    },
+  }
+}
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -52,21 +99,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 export default async function ProSitePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  let business: Business | null = await getCuratedById(id)
-  if (!business) {
-    business = await getBusinessById(id).catch(() => null)
-  } else if (business.yelpId) {
-    const yelpFull = await getBusinessById(business.yelpId).catch(() => null)
-    if (yelpFull) {
-      business = {
-        ...business,
-        hours: yelpFull.hours,
-        isOpenNow: yelpFull.isOpenNow,
-        price: yelpFull.price,
-        photos: yelpFull.photos,
-      }
-    }
-  }
+  const business = await loadBusiness(id)
   if (!business || !business.proSiteEnabled) notFound()
 
   const biz = business as Business
