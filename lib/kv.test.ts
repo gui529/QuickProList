@@ -9,7 +9,7 @@ const { upsertMock, fromMock, createClientMock, selectState, updateMock } = vi.h
     eq: vi.fn().mockResolvedValue({ error: null }),
   })
   // Mutable holder so tests can control what the chained select().eq().maybeSingle() resolves to.
-  const selectState: { data: Record<string, number> | null } = { data: null }
+  const selectState: { data: Record<string, unknown> | null } = { data: null }
   const fromMock = vi.fn(() => ({
     upsert: upsertMock,
     update: updateMock,
@@ -27,7 +27,12 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: createClientMock,
 }))
 
-import { addCuratedFromYelp, incrementProfileView, incrementContactClick } from './kv'
+import {
+  addCuratedFromYelp,
+  incrementProfileView,
+  incrementContactClick,
+  getCuratedByDashboardToken,
+} from './kv'
 
 function makeBusiness(overrides: Partial<Business> = {}): Business {
   return {
@@ -131,5 +136,78 @@ describe('incrementProfileView / incrementContactClick (lib/kv.ts)', () => {
     await incrementProfileView('missing')
 
     expect(updateMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
+  beforeEach(() => {
+    fromMock.mockClear()
+    selectState.data = null
+    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+  })
+
+  it('returns the mapped dashboard data for a matching token', async () => {
+    selectState.data = {
+      id: 'curated-1',
+      name: 'Acme Plumbing',
+      source: 'yelp',
+      is_trial: false,
+      trial_ends_at: null,
+      profile_views: 12,
+      phone_clicks: 4,
+      website_clicks: 2,
+      directions_clicks: 1,
+    }
+
+    const result = await getCuratedByDashboardToken('good-token')
+
+    expect(result).toEqual({
+      id: 'curated-1',
+      name: 'Acme Plumbing',
+      source: 'yelp',
+      isTrial: false,
+      trialEndsAt: null,
+      profileViews: 12,
+      phoneClicks: 4,
+      websiteClicks: 2,
+      directionsClicks: 1,
+    })
+  })
+
+  it('defaults missing counters to 0', async () => {
+    selectState.data = {
+      id: 'curated-1',
+      name: 'Acme Plumbing',
+      source: 'manual',
+      is_trial: false,
+      trial_ends_at: null,
+    }
+
+    const result = await getCuratedByDashboardToken('good-token')
+
+    expect(result).toMatchObject({
+      profileViews: 0,
+      phoneClicks: 0,
+      websiteClicks: 0,
+      directionsClicks: 0,
+    })
+  })
+
+  it('returns null for an unknown token', async () => {
+    selectState.data = null
+
+    const result = await getCuratedByDashboardToken('bogus-token')
+
+    expect(result).toBeNull()
+  })
+
+  it('returns null when Supabase is not configured', async () => {
+    delete process.env.SUPABASE_URL
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    const result = await getCuratedByDashboardToken('any-token')
+
+    expect(result).toBeNull()
   })
 })

@@ -8,7 +8,7 @@
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
 import type { Business } from './yelp'
-import type { ContactClickType, ManualBusinessInput } from './kv'
+import type { BusinessDashboardData, ContactClickType, ManualBusinessInput } from './kv'
 
 export function normalizeCity(input: string): string {
   return input.trim().toLowerCase().split(',')[0].trim()
@@ -38,6 +38,7 @@ interface CuratedRow {
   website_clicks: number
   directions_clicks: number
   contact_email: string | null
+  dashboard_token: string | null
 }
 
 let rows: CuratedRow[] = []
@@ -51,8 +52,9 @@ export function __reset(): void {
 
 /** Test-only helper: seed a curated row directly, bypassing the add* helpers. */
 export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
+  const id = row.id ?? `curated-${++idCounter}`
   const full: CuratedRow = {
-    id: row.id ?? `curated-${++idCounter}`,
+    id,
     yelp_id: row.yelp_id ?? null,
     source: row.source ?? 'manual',
     category: row.category ?? 'general',
@@ -75,6 +77,7 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     website_clicks: row.website_clicks ?? 0,
     directions_clicks: row.directions_clicks ?? 0,
     contact_email: row.contact_email ?? null,
+    dashboard_token: row.dashboard_token ?? `dashboard-token-${id}`,
   }
   rows.push(full)
   return full
@@ -110,6 +113,7 @@ function rowToBusiness(row: CuratedRow): Business {
     trialEndsAt: row.is_trial ? (row.trial_ends_at ?? null) : undefined,
     proSiteEnabled: row.pro_site_enabled || undefined,
     contactEmail: row.contact_email ?? undefined,
+    dashboardToken: row.dashboard_token ?? undefined,
   }
 }
 
@@ -132,6 +136,24 @@ export async function getCuratedById(id: string): Promise<Business | null> {
   return row ? rowToBusiness(row) : null
 }
 
+export async function getCuratedByDashboardToken(
+  token: string
+): Promise<BusinessDashboardData | null> {
+  const row = rows.find((r) => r.dashboard_token === token)
+  if (!row) return null
+  return {
+    id: row.id,
+    name: row.name,
+    source: row.source,
+    isTrial: row.is_trial,
+    trialEndsAt: row.trial_ends_at,
+    profileViews: row.profile_views,
+    phoneClicks: row.phone_clicks,
+    websiteClicks: row.website_clicks,
+    directionsClicks: row.directions_clicks,
+  }
+}
+
 export async function listAllCurated(): Promise<Business[]> {
   return [...rows]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -148,8 +170,9 @@ export async function addCuratedFromYelp(
   if (normalizedCities.length === 0) throw new Error('At least one city is required')
   const existingIdx = rows.findIndex((r) => r.yelp_id === business.id)
   const base = existingIdx >= 0 ? rows[existingIdx] : undefined
+  const id = base?.id ?? `curated-${++idCounter}`
   const row: CuratedRow = {
-    id: base?.id ?? `curated-${++idCounter}`,
+    id,
     yelp_id: business.id,
     source: 'yelp',
     category,
@@ -172,6 +195,7 @@ export async function addCuratedFromYelp(
     website_clicks: base?.website_clicks ?? 0,
     directions_clicks: base?.directions_clicks ?? 0,
     contact_email: base?.contact_email ?? null,
+    dashboard_token: base?.dashboard_token ?? `dashboard-token-${id}`,
   }
   if (existingIdx >= 0) rows[existingIdx] = row
   else rows.push(row)
@@ -180,8 +204,9 @@ export async function addCuratedFromYelp(
 export async function addCuratedManual(input: ManualBusinessInput): Promise<void> {
   const cities = input.cities.map(normalizeCity).filter(Boolean)
   if (cities.length === 0) throw new Error('At least one city is required')
+  const id = `curated-${++idCounter}`
   rows.push({
-    id: `curated-${++idCounter}`,
+    id,
     yelp_id: null,
     source: 'manual',
     category: input.category,
@@ -204,6 +229,7 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     website_clicks: 0,
     directions_clicks: 0,
     contact_email: null,
+    dashboard_token: `dashboard-token-${id}`,
   })
 }
 

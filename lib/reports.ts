@@ -35,8 +35,21 @@ function getSupabase() {
   return createClient(url, key)
 }
 
-function deriveStatus(
-  row: CuratedRow,
+export interface DeriveStatusRow {
+  is_trial: boolean
+  trial_ends_at: string | null
+}
+
+/**
+ * Derive a business's current subscription/enrollment status from its
+ * `curated_businesses` row (just the two trial fields are needed) and its
+ * linked `enrollment_invitations`. Exported (not just used internally by
+ * `getBusinessReports`) so other status displays — e.g. the business-facing
+ * dashboard at `/dashboard/[token]` — can reuse the exact same logic instead
+ * of re-deriving it.
+ */
+export function deriveStatus(
+  row: DeriveStatusRow,
   invitations: EnrollmentInvitation[]
 ): BusinessReport['current_status'] {
   const now = new Date()

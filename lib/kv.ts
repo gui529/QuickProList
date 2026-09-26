@@ -33,6 +33,11 @@ interface CuratedRow {
   pro_site_enabled: boolean
   delisted_at: string | null
   contact_email: string | null
+  dashboard_token: string | null
+  profile_views: number | null
+  phone_clicks: number | null
+  website_clicks: number | null
+  directions_clicks: number | null
 }
 
 function rowToBusiness(row: CuratedRow): Business {
@@ -63,6 +68,7 @@ function rowToBusiness(row: CuratedRow): Business {
     trialEndsAt: row.is_trial ? (row.trial_ends_at ?? null) : undefined,
     proSiteEnabled: row.pro_site_enabled || undefined,
     contactEmail: row.contact_email ?? undefined,
+    dashboardToken: row.dashboard_token ?? undefined,
   }
 }
 
@@ -92,6 +98,50 @@ export async function getCuratedById(id: string): Promise<Business | null> {
     .maybeSingle()
   if (!data) return null
   return rowToBusiness(data as CuratedRow)
+}
+
+export interface BusinessDashboardData {
+  id: string
+  name: string
+  source: 'yelp' | 'manual'
+  isTrial: boolean
+  trialEndsAt: string | null
+  profileViews: number
+  phoneClicks: number
+  websiteClicks: number
+  directionsClicks: number
+}
+
+/**
+ * Look up a curated business by its `dashboard_token` — the secret used by
+ * the token-secured, no-login business-facing dashboard (`/dashboard/[token]`)
+ * to show a subscriber their own profile-view/click stats and status.
+ * Returns `null` on no match (including when Supabase isn't configured),
+ * which the dashboard page treats as a 404.
+ */
+export async function getCuratedByDashboardToken(
+  token: string
+): Promise<BusinessDashboardData | null> {
+  const supabase = getSupabase()
+  if (!supabase) return null
+  const { data } = await supabase
+    .from('curated_businesses')
+    .select('*')
+    .eq('dashboard_token', token)
+    .maybeSingle()
+  if (!data) return null
+  const row = data as CuratedRow
+  return {
+    id: row.id,
+    name: row.name,
+    source: row.source,
+    isTrial: row.is_trial,
+    trialEndsAt: row.trial_ends_at,
+    profileViews: row.profile_views ?? 0,
+    phoneClicks: row.phone_clicks ?? 0,
+    websiteClicks: row.website_clicks ?? 0,
+    directionsClicks: row.directions_clicks ?? 0,
+  }
 }
 
 export async function listAllCurated(): Promise<Business[]> {

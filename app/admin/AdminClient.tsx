@@ -107,6 +107,19 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
     window.location.href = '/login'
   }
 
+  const [copiedDashboardId, setCopiedDashboardId] = useState<string | null>(null)
+  async function handleCopyDashboardLink(b: Business) {
+    if (!b.dashboardToken) return
+    const url = `${window.location.origin}/dashboard/${b.dashboardToken}`
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      window.prompt('Copy this link:', url)
+    }
+    setCopiedDashboardId(b.id)
+    setTimeout(() => setCopiedDashboardId((cur) => (cur === b.id ? null : cur)), 1500)
+  }
+
   const [shareTarget, setShareTarget] = useState<{ business?: Business; city: string; category: string } | null>(null)
   function openShareForBusiness(b: Business, fallbackCity: string, fallbackCategory: string) {
     setShareTarget({
@@ -281,6 +294,15 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
                   <ShareIcon />
                   Share
                 </button>
+                {b.dashboardToken && (
+                  <button
+                    onClick={() => handleCopyDashboardLink(b)}
+                    title="Copy this business's performance dashboard link"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors"
+                  >
+                    {copiedDashboardId === b.id ? '✓ Copied' : 'Dashboard link'}
+                  </button>
+                )}
 
                 <div className="ml-auto flex items-center gap-1.5">
                   {deleteError && confirmingDeleteId === b.id && (
