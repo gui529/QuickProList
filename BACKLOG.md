@@ -62,7 +62,7 @@ their own section at the bottom and must never be worked by an agent.
   build` and `npm run lint` stay green.
   **Files:** `package.json`, new `lib/search.test.ts`, new `vitest.config.ts`.
 
-- [ ] **QPL-001**: In-memory/SQLite test doubles for the Supabase-backed libs.
+- [x] **QPL-001**: In-memory/SQLite test doubles for the Supabase-backed libs. Done in 68caab0.
   Add a lightweight fake behind the same exported function signatures as
   `lib/kv.ts`, `lib/invitations.ts`, `lib/campaigns.ts`, `lib/reports.ts`
   (e.g. `lib/kv.test-double.ts` using an in-memory array or `better-sqlite3`),
