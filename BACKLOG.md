@@ -252,6 +252,32 @@ their own section at the bottom and must never be worked by an agent.
   **Files:** as listed above.
   **Blocked by:** none.
 
+- [ ] **QPL-011-QA1**: Fix `copied` state leak in `ShareLinkModal` after the
+  QPL-011 `set-state-in-effect` refactor.
+  QA review of QPL-011 (commit a96ffb040e6c5aa8bf1f73e735dff4b362e7c31b) found
+  that `components/ShareLinkModal.tsx` used to reset `copied` to `false` in a
+  `useEffect` keyed on `[open, business, city, category]`. That effect was
+  removed and replaced with inline computation of `url`/`params` during
+  render, but nothing replaced the `setCopied(false)` reset. Because the
+  component returns `null` (not unmounting) when `open` is false, `copied`
+  state persists across opens/closes. If a user clicks "Copy link", then
+  closes and reopens the modal (same or different business) within the
+  1500ms window before the `setTimeout(() => setCopied(false), 1500)` in
+  `handleCopy` fires, the button will incorrectly show "✓ Copied" on
+  reopen even though nothing was just copied for the new content.
+  **Acceptance:** Add a test (e.g. with `@testing-library/react` + fake
+  timers, per QPL-000's test-double setup) that: opens the modal, clicks
+  copy, closes the modal before the 1500ms timeout elapses, reopens it, and
+  asserts the button reads "Copy link" (not "✓ Copied"). Fix by
+  resetting `copied` to `false` whenever `open` transitions to `true` (or
+  whenever `business`/`city`/`category` change while open), without
+  reintroducing a `set-state-in-effect` lint violation — e.g. reset via the
+  `key` prop from the parent, a ref-based comparison inside the render body,
+  or an effect that only *clears* a stale timeout rather than calling
+  `setState` synchronously.
+  **Files:** `components/ShareLinkModal.tsx`.
+  **Blocked by:** none.
+
 - [ ] **QPL-012**: Add error/404/loading pages.
   Next.js App Router supports `app/error.tsx`, `app/not-found.tsx`,
   `app/loading.tsx`. None exist — check
