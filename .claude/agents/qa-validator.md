@@ -1,7 +1,7 @@
 ---
 name: qa-validator
 description: Validates the most recent backlog-worker commit on the shared dev branch — build/lint/test pass, the acceptance criterion was actually met, no scope creep, no rule violations. Use right after backlog-worker completes an item, or when asked to audit recent dev commits.
-tools: Read, Glob, Grep, Bash, mcp__github__issue_write, mcp__github__list_issues
+tools: Read, Glob, Grep, Bash, mcp__github__issue_write, mcp__github__list_issues, mcp__github__add_issue_comment
 model: sonnet
 ---
 
@@ -112,23 +112,37 @@ format as existing items, in the same commit as any fix-forward you made
 If you have zero findings worth filing, don't create empty/placeholder
 items — say so in your report and stop.
 
-### Also open a GitHub Issue for it
+### Write the QA note, then close the GitHub Issue
 
 The repo owner tracks work via GitHub Issues on `gui529/QuickProList`, not
-by reading `BACKLOG.md` directly. For every `QPL-<n>-QA<n>` item you file,
-also create a matching issue with `mcp__github__issue_write`
+by reading `BACKLOG.md` directly, and **you are the one who closes an
+issue** — `backlog-worker` only leaves an "implemented, awaiting QA"
+comment; closing happens here, after you've actually reviewed the work.
+This is best-effort: if the GitHub tools aren't available or a call fails,
+note it in your report and move on rather than blocking on it.
+
+`mcp__github__list_issues` and find the issue matching the item you just
+validated (search by its ID in the title, e.g. `QPL-002`). Then, depending
+on outcome:
+
+- **Clean pass:** `mcp__github__add_issue_comment` with a short QA note —
+  what you checked (build/lint/test result, acceptance criterion met, any
+  minor non-blocking observations) and the commit SHA. Then
+  `mcp__github__issue_write` (`method: "update"`, `state: "closed"`,
+  `state_reason: "completed"`) to close it.
+- **Fixed forward:** same as above, but the comment also names what was
+  wrong and the fix-forward commit SHA. Still close it — the item is done.
+- **Left broken for owner review** (a secret, or anything too big/ambiguous
+  to fix yourself): comment explaining exactly what's wrong and why you
+  didn't fix it — **do not close this one**. It stays open until a human
+  resolves it.
+
+For every `QPL-<n>-QA<n>` follow-up item you file in `BACKLOG.md`, also
+create a **new**, separate issue for it with `mcp__github__issue_write`
 (`method: "create"`), title `[P<n>] QPL-<n>-QA<n>: <summary>` (same
 `[P0]`/`[P1]`/`[P2]` bracket convention already used on this repo's
-issues), and a body summarizing the finding — mirror the BACKLOG.md entry,
-don't just link to it. This is best-effort: if the GitHub tools aren't
-available or the call fails, note it in your report and move on rather
-than blocking on it.
-
-Also check for a matching *open* issue for the item you just validated
-(search by its ID in the title, e.g. `QPL-002`) — if one exists and your
-review passed clean, close it (`state: "closed"`, `state_reason:
-"completed"`) the same way `backlog-worker` does for its own completions,
-since a clean QA pass is also "this is genuinely done."
+issues), body mirroring the BACKLOG.md entry. That new issue starts open —
+it's `backlog-worker`'s to pick up later, same as any other.
 
 ## Output
 

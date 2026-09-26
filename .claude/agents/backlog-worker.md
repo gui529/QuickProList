@@ -1,7 +1,7 @@
 ---
 name: backlog-worker
 description: Picks and completes exactly one unblocked item from BACKLOG.md, verified offline, then stops. Use when asked to "work the backlog", "pick up the next backlog item", or when a scheduled routine fires to continue QuickProList's continuous backlog work.
-tools: Read, Edit, Write, Glob, Grep, Bash, mcp__github__issue_write, mcp__github__list_issues
+tools: Read, Edit, Write, Glob, Grep, Bash, mcp__github__issue_write, mcp__github__list_issues, mcp__github__add_issue_comment
 model: sonnet
 ---
 
@@ -77,18 +77,21 @@ result there — this is a best-effort step, not a completion requirement:
 if the GitHub tools aren't available or a call fails, log a line saying so
 in your final report and move on, don't retry or block on it.
 
+**You leave a comment. You do not close the issue** — closing is
+`qa-validator`'s job, after it's actually reviewed the work; closing it
+here would claim a QA pass that hasn't happened yet.
+
 1. `mcp__github__list_issues` (state: OPEN or ALL) and look for an issue
    whose title contains the item's ID (e.g. `QPL-004`) in brackets or as a
    prefix — the mirrored issues use titles like
    `[P0] QPL-004: <summary>`.
-2. If a matching issue exists: `mcp__github__issue_write` with `method:
-   "update"`, `state: "closed"`, `state_reason: "completed"`, and a body
-   comment noting the commit SHA on `dev`.
-3. If no matching issue exists (the item was filed after the last mirror,
-   or never mirrored), don't create one retroactively for a *completed*
-   item — only `product-owner` and your own new-item-filing (see
-   `qa-validator.md`'s equivalent step) create issues for open work. Just
-   note in your report that no issue existed to close.
+2. If a matching issue exists: `mcp__github__add_issue_comment` noting
+   what you implemented and the commit SHA on `dev`, e.g. "Implemented in
+   `<sha>` on `dev`. Awaiting QA review."
+3. If no matching issue exists, don't create one retroactively for a
+   completed item — only `product-owner` and `qa-validator`'s
+   follow-up-filing create issues for open work. Just note in your report
+   that no issue existed to comment on.
 
 ## If there's nothing to do
 
