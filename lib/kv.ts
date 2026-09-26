@@ -32,6 +32,7 @@ interface CuratedRow {
   is_trial: boolean
   pro_site_enabled: boolean
   delisted_at: string | null
+  contact_email: string | null
 }
 
 function rowToBusiness(row: CuratedRow): Business {
@@ -61,6 +62,7 @@ function rowToBusiness(row: CuratedRow): Business {
     isTrial: row.is_trial || undefined,
     trialEndsAt: row.is_trial ? (row.trial_ends_at ?? null) : undefined,
     proSiteEnabled: row.pro_site_enabled || undefined,
+    contactEmail: row.contact_email ?? undefined,
   }
 }
 
@@ -229,6 +231,23 @@ export async function setCuratedDelisted(id: string, delisted: boolean): Promise
   const { error } = await supabase
     .from('curated_businesses')
     .update({ delisted_at: delisted ? new Date().toISOString() : null })
+    .eq('id', id)
+  if (error) throw error
+}
+
+/**
+ * Store the contact email captured from Stripe Checkout's
+ * `customer_details.email` on a curated business — the address dunning
+ * notices (e.g. on `invoice.payment_failed`) are sent to. No-ops when
+ * Supabase isn't configured or `email` is falsy, matching the webhook's
+ * fire-and-forget-on-missing-data handling of this optional field.
+ */
+export async function setCuratedContactEmail(id: string, email: string): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase || !email) return
+  const { error } = await supabase
+    .from('curated_businesses')
+    .update({ contact_email: email })
     .eq('id', id)
   if (error) throw error
 }

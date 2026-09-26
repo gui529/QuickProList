@@ -2,15 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
 import { getStripe, handleSubscriptionCanceled } from '@/lib/stripe'
-import { getInvitationByToken, markInvitationPaid } from '@/lib/invitations'
-import { addCuratedFromYelp, addCuratedManual } from '@/lib/kv'
+import { getInvitationByToken, getInvitationBySubscriptionId, markInvitationPaid } from '@/lib/invitations'
+import { addCuratedFromYelp, addCuratedManual, getCuratedById, setCuratedContactEmail } from '@/lib/kv'
+import { sendEmail } from '@/lib/email'
 import type { Business } from '@/lib/yelp'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
-// Subscription statuses that should delist the business — a lapsed/failed
-// or explicitly canceled subscription should stop being surfaced in search.
-const DELISTING_SUBSCRIPTION_STATUSES = new Set(['canceled', 'unpaid', 'past_due'])
+// Subscription statuses that should delist the business. `past_due` is
+// intentionally excluded — Stripe automatically retries a failed card
+// several times before a subscription moves to `unpaid`/`canceled`, and
+// that retry window is the grace period a business gets to fix a declined
+// card before losing its listing. Only the terminal failure states delist.
+const DELISTING_SUBSCRIPTION_STATUSES = new Set(['canceled', 'unpaid'])
 
 export async function POST(req: NextRequest) {
   if (!webhookSecret) {
@@ -121,6 +125,14 @@ export async function POST(req: NextRequest) {
         subscriptionId,
         curatedBusinessId
       )
+
+      // Stripe Checkout always collects this; stash it so a future failed
+      // payment (invoice.payment_failed) has an address to send a dunning
+      // notice to.
+      const contactEmail = session.customer_details?.email
+      if (curatedBusinessId && contactEmail) {
+        await setCuratedContactEmail(curatedBusinessId, contactEmail)
+      }
     } else if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription
       await handleSubscriptionCanceled(subscription.id)
@@ -128,6 +140,26 @@ export async function POST(req: NextRequest) {
       const subscription = event.data.object as Stripe.Subscription
       if (DELISTING_SUBSCRIPTION_STATUSES.has(subscription.status)) {
         await handleSubscriptionCanceled(subscription.id)
+      }
+    } else if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object as Stripe.Invoice
+      const subscriptionRef = invoice.parent?.subscription_details?.subscription
+      const subscriptionId =
+        typeof subscriptionRef === 'string' ? subscriptionRef : (subscriptionRef?.id ?? '')
+
+      if (subscriptionId) {
+        const invitation = await getInvitationBySubscriptionId(subscriptionId)
+        const curatedBusinessId = invitation?.curated_business_id
+        if (curatedBusinessId) {
+          const business = await getCuratedById(curatedBusinessId)
+          if (business?.contactEmail) {
+            await sendEmail(
+              business.contactEmail,
+              business.name,
+              "We weren't able to process your most recent QuickProList payment. Please update your payment method to keep your listing live."
+            )
+          }
+        }
       }
     }
 

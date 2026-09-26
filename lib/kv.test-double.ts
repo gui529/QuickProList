@@ -37,6 +37,7 @@ interface CuratedRow {
   phone_clicks: number
   website_clicks: number
   directions_clicks: number
+  contact_email: string | null
 }
 
 let rows: CuratedRow[] = []
@@ -73,6 +74,7 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     phone_clicks: row.phone_clicks ?? 0,
     website_clicks: row.website_clicks ?? 0,
     directions_clicks: row.directions_clicks ?? 0,
+    contact_email: row.contact_email ?? null,
   }
   rows.push(full)
   return full
@@ -107,6 +109,7 @@ function rowToBusiness(row: CuratedRow): Business {
     isTrial: row.is_trial || undefined,
     trialEndsAt: row.is_trial ? (row.trial_ends_at ?? null) : undefined,
     proSiteEnabled: row.pro_site_enabled || undefined,
+    contactEmail: row.contact_email ?? undefined,
   }
 }
 
@@ -168,6 +171,7 @@ export async function addCuratedFromYelp(
     phone_clicks: base?.phone_clicks ?? 0,
     website_clicks: base?.website_clicks ?? 0,
     directions_clicks: base?.directions_clicks ?? 0,
+    contact_email: base?.contact_email ?? null,
   }
   if (existingIdx >= 0) rows[existingIdx] = row
   else rows.push(row)
@@ -199,6 +203,7 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     phone_clicks: 0,
     website_clicks: 0,
     directions_clicks: 0,
+    contact_email: null,
   })
 }
 
@@ -237,6 +242,13 @@ export async function updateProSiteEnabled(id: string, enabled: boolean): Promis
   const row = rows.find((r) => r.id === id)
   if (!row) throw new Error('Not found')
   row.pro_site_enabled = enabled
+}
+
+export async function setCuratedContactEmail(id: string, email: string): Promise<void> {
+  if (!email) return
+  const row = rows.find((r) => r.id === id)
+  if (!row) return
+  row.contact_email = email
 }
 
 export async function incrementProfileView(id: string): Promise<void> {

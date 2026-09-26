@@ -23,6 +23,7 @@ export interface Business {
   isTrial?: boolean
   trialEndsAt?: string | null
   proSiteEnabled?: boolean
+  contactEmail?: string
   hours?: YelpHourPeriod[]
   isOpenNow?: boolean
   price?: string
