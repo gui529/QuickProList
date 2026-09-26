@@ -12,7 +12,7 @@ import TrialModal from '@/components/TrialModal'
 import Link from 'next/link'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
 import type { Business } from '@/lib/yelp'
-import type { EnrollmentInvitation } from '@/lib/invitations'
+import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 
 type Tab = 'curate' | 'yelp' | 'enrollments' | 'reports'
 
@@ -527,12 +527,16 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
                   <div>
                     {inv.status === 'trial' ? (
                       <TrialBadge trialEndsAt={inv.trial_ends_at ?? null} />
+                    ) : isInvitationExpired(inv) ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+                        expired
+                      </span>
                     ) : (
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
                           inv.status === 'paid'
                             ? 'bg-emerald-50 text-emerald-700'
-                            : inv.status === 'expired' || inv.status === 'canceled'
+                            : inv.status === 'canceled'
                               ? 'bg-slate-100 text-slate-600'
                               : 'bg-amber-50 text-amber-700'
                         }`}
