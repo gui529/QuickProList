@@ -62,7 +62,7 @@ their own section at the bottom and must never be worked by an agent.
   build` and `npm run lint` stay green.
   **Files:** `package.json`, new `lib/search.test.ts`, new `vitest.config.ts`.
 
-- [ ] **QPL-001**: In-memory/SQLite test doubles for the Supabase-backed libs.
+- [x] **QPL-001**: In-memory/SQLite test doubles for the Supabase-backed libs. Done in 68caab0.
   Add a lightweight fake behind the same exported function signatures as
   `lib/kv.ts`, `lib/invitations.ts`, `lib/campaigns.ts`, `lib/reports.ts`
   (e.g. `lib/kv.test-double.ts` using an in-memory array or `better-sqlite3`),
@@ -320,6 +320,42 @@ their own section at the bottom and must never be worked by an agent.
   (should NOT be escaped, since it's plain text).
   **Files:** `lib/email.ts`.
   **Blocked by:** QPL-000.
+
+- [ ] **QPL-001-QA1**: Repo-wide `npm run lint` errors pre-date QPL-000/QPL-001 and block the lint gate for every future item.
+  Found during QA of QPL-001 (commit `5183d33`): QPL-001's own diff is
+  clean (zero lint errors in the new `lib/*.test-double.ts` /
+  `lib/invitations.test.ts` files), but `npm run lint` on this branch
+  exits with 14 errors, all pre-existing and unrelated to QPL-001 or
+  QPL-000 — confirmed present already on `main` at `7983b46`, before
+  either branch touched anything. No prior commit documented this
+  pre-existing failure per Protocol step 3 ("explain in the commit body
+  why a pre-existing failure is unrelated to your change"), so every
+  future item's `npm run lint` check silently starts from a non-zero
+  baseline. Errors: `app/admin/AdminClient.tsx:32,51`,
+  `app/api/stripe/webhook/route.ts:33`,
+  `app/enroll/[token]/EnrollClient.tsx:20,77`, `app/page.tsx:55`,
+  `components/CampaignReportsTab.tsx:29`, `components/CampaignTab.tsx:363`,
+  `components/CityAutocomplete.tsx:30`, `components/PaidProsTab.tsx:56`,
+  `components/ReportsTab.tsx:126`, `components/ShareLinkModal.tsx:38`,
+  `components/TrialModal.tsx:114`. Most are React Compiler / hooks rules
+  (`react-hooks/set-state-in-effect`, `react-hooks/purity`, "accessed
+  before declared") plus a couple of `@typescript-eslint/no-explicit-any`
+  and `react/no-unescaped-entities`.
+  **Acceptance:** `npm run lint` exits 0 with zero errors (warnings may
+  remain) on `main`; each fix is a minimal, behavior-preserving edit (e.g.
+  hoist a `function` declaration above the `useEffect` that calls it
+  instead of reordering logic; move a `setState` call out of a bare effect
+  body into the callback that triggers the change, or derive the value
+  during render instead; replace a `Date.now()` render-time call with a
+  value computed once via `useEffect`/`useMemo`). `npm run build` still
+  succeeds afterward.
+  **Files:** `app/admin/AdminClient.tsx`, `app/api/stripe/webhook/route.ts`,
+  `app/enroll/[token]/EnrollClient.tsx`, `app/page.tsx`,
+  `components/CampaignReportsTab.tsx`, `components/CampaignTab.tsx`,
+  `components/CityAutocomplete.tsx`, `components/PaidProsTab.tsx`,
+  `components/ReportsTab.tsx`, `components/ShareLinkModal.tsx`,
+  `components/TrialModal.tsx`.
+  **Blocked by:** none.
 
 ---
 
