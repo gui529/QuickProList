@@ -39,8 +39,15 @@ function HomePageInner() {
   const urlCategory = searchParams.get('category') ?? ''
   const urlHighlight = searchParams.get('highlight') ?? ''
 
-  const [city, setCity] = useState('')
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [city, setCity] = useState(() => {
+    if (urlLocation) return urlLocation
+    if (urlCategory) return ''
+    return loadSavedCity()
+  })
+  const [activeCategory, setActiveCategory] = useState<string | null>(() => {
+    const cat = CATEGORIES.find((c) => c.value === urlCategory)
+    return cat ? cat.value : null
+  })
   const [results, setResults] = useState<Business[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -49,20 +56,13 @@ function HomePageInner() {
   const highlightCardRef = useRef<HTMLDivElement>(null)
   const autoFiredRef = useRef(false)
 
-  // Initial mount: prefer URL params, fall back to saved city
+  // Initial mount: auto-run the search if the URL already specified a city + category
   useEffect(() => {
-    if (urlLocation || urlCategory) {
-      if (urlLocation) setCity(urlLocation)
-      const cat = CATEGORIES.find((c) => c.value === urlCategory)
-      if (cat) setActiveCategory(cat.value)
-      if (urlLocation && cat && !autoFiredRef.current) {
-        autoFiredRef.current = true
-        void runSearch(cat.value, urlLocation, urlHighlight || undefined)
-      }
-      return
+    const cat = CATEGORIES.find((c) => c.value === urlCategory)
+    if (urlLocation && cat && !autoFiredRef.current) {
+      autoFiredRef.current = true
+      void runSearch(cat.value, urlLocation, urlHighlight || undefined)
     }
-    const saved = loadSavedCity()
-    if (saved) setCity(saved)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

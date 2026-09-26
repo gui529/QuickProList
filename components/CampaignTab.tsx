@@ -360,7 +360,7 @@ export default function CampaignTab() {
         <div className="text-center py-12 bg-white rounded-2xl ring-1 ring-slate-200">
           <p className="text-3xl mb-2">📱</p>
           <p className="text-slate-700 font-medium">Search for pros above</p>
-          <p className="text-sm text-slate-500 mt-1">or use "Add Manually" to send SMS or email to a specific business</p>
+          <p className="text-sm text-slate-500 mt-1">or use &quot;Add Manually&quot; to send SMS or email to a specific business</p>
         </div>
       )}
 

@@ -8,21 +8,25 @@ export default function CampaignReportsTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  async function load() {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch('/api/campaigns')
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'Failed to load')
-      } else {
-        setContacts(data.contacts ?? [])
-      }
-    } catch {
-      setError('Network error')
-    }
-    setLoading(false)
+  function load() {
+    return Promise.resolve()
+      .then(() => {
+        setLoading(true)
+        setError('')
+        return fetch('/api/campaigns')
+      })
+      .then((res) => res.json().then((data) => ({ res, data })))
+      .then(({ res, data }) => {
+        if (!res.ok) {
+          setError(data.error ?? 'Failed to load')
+        } else {
+          setContacts(data.contacts ?? [])
+        }
+      })
+      .catch(() => {
+        setError('Network error')
+      })
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => {

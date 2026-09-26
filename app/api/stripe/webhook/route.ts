@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { getInvitationByToken, markInvitationPaid } from '@/lib/invitations'
 import { addCuratedFromYelp, addCuratedManual } from '@/lib/kv'
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   try {
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as any
+      const session = event.data.object as Stripe.Checkout.Session
       const token = session.metadata?.invitationToken
 
       if (!token) {
@@ -98,10 +99,15 @@ export async function POST(req: NextRequest) {
         curatedBusinessId = data?.id || ''
       }
 
+      const subscriptionId =
+        typeof session.subscription === 'string'
+          ? session.subscription
+          : (session.subscription?.id ?? '')
+
       await markInvitationPaid(
         token,
         session.id,
-        session.subscription || '',
+        subscriptionId,
         curatedBusinessId
       )
     }

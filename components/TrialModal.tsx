@@ -16,6 +16,7 @@ export default function TrialModal({ business, defaultCategory, defaultCities, o
   const [days, setDays] = useState(30)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [now] = useState(() => Date.now())
 
   async function handleStart() {
     setSaving(true)
@@ -111,7 +112,7 @@ export default function TrialModal({ business, defaultCategory, defaultCities, o
               />
               <span className="text-sm text-slate-600">days</span>
               <span className="text-xs text-slate-400">
-                Expires {new Date(Date.now() + days * 864e5).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                Expires {new Date(now + days * 864e5).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
           )}

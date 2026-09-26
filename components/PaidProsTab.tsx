@@ -52,22 +52,27 @@ export default function PaidProsTab() {
   const [cancelingId, setCancelingId] = useState<string | null>(null)
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
 
+  function load() {
+    return Promise.resolve()
+      .then(() => {
+        setLoading(true)
+        setError('')
+        return fetch('/api/paid-pros')
+      })
+      .then((res) => res.json().then((data) => ({ res, data })))
+      .then(({ res, data }) => {
+        if (!res.ok) {
+          setError(data.error ?? 'Failed to load')
+        } else {
+          setPros(data.pros)
+        }
+      })
+      .finally(() => setLoading(false))
+  }
+
   useEffect(() => {
     load()
   }, [])
-
-  async function load() {
-    setLoading(true)
-    setError('')
-    const res = await fetch('/api/paid-pros')
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error ?? 'Failed to load')
-    } else {
-      setPros(data.pros)
-    }
-    setLoading(false)
-  }
 
   async function handleCancel(id: string) {
     setCancelingId(id)

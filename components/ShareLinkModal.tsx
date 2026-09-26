@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Business } from '@/lib/yelp'
 import { CATEGORIES } from '@/lib/categories'
 
@@ -23,23 +23,19 @@ function prettifyCity(city: string): string {
 
 export default function ShareLinkModal({ open, onClose, business, city, category }: Props) {
   const [copied, setCopied] = useState(false)
-  const [url, setUrl] = useState('')
-
-  useEffect(() => {
-    if (!open) return
-    const prettyCity = business?.cities?.[0]
-      ? prettifyCity(business.cities[0])
-      : prettifyCity(city)
-    const finalCategory = business?.category ?? category
-    const params = new URLSearchParams()
-    if (prettyCity) params.set('location', prettyCity)
-    if (finalCategory) params.set('category', finalCategory)
-    if (business) params.set('highlight', business.id)
-    setUrl(`${window.location.origin}/?${params.toString()}`)
-    setCopied(false)
-  }, [open, business, city, category])
 
   if (!open) return null
+
+  const prettyCity = business?.cities?.[0]
+    ? prettifyCity(business.cities[0])
+    : prettifyCity(city)
+  const finalCategory = business?.category ?? category
+  const params = new URLSearchParams()
+  if (prettyCity) params.set('location', prettyCity)
+  if (finalCategory) params.set('category', finalCategory)
+  if (business) params.set('highlight', business.id)
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const url = `${origin}/?${params.toString()}`
 
   const categoryLabel = CATEGORIES.find((c) => c.value === (business?.category ?? category))?.label ?? category
 
