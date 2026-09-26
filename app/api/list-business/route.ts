@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createListingRequest } from '@/lib/listing-requests'
 
 interface Submission {
   businessName: string
@@ -37,16 +38,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
   }
 
-  console.log('[list-business] new submission', {
-    receivedAt: new Date().toISOString(),
-    businessName,
-    contactName,
-    email,
-    phone,
-    category,
-    zip,
-    message,
-  })
+  try {
+    await createListingRequest({ businessName, contactName, email, phone, category, zip, message })
+  } catch (err) {
+    // Persisting the lead is important, but a Supabase hiccup shouldn't
+    // block the submitter from seeing a success response — log and move on.
+    console.error('[list-business] failed to persist submission', err)
+  }
 
   return NextResponse.json({ ok: true })
 }
