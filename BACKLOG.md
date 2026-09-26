@@ -306,7 +306,7 @@ their own section at the bottom and must never be worked by an agent.
   **Files:** `components/ShareLinkModal.tsx`.
   **Blocked by:** none.
 
-- [ ] **QPL-012**: Add error/404/loading pages.
+- [x] **QPL-012**: Add error/404/loading pages. Done in c2c4824.
   Next.js App Router supports `app/error.tsx`, `app/not-found.tsx`,
   `app/loading.tsx`. None exist — check
   `node_modules/next/dist/docs` for the current Next 16 conventions per
@@ -316,6 +316,20 @@ their own section at the bottom and must never be worked by an agent.
   routes/files in its route list output; a manual code-level check (not
   live-server) confirms the files export the shape Next 16's docs describe.
   **Files:** new `app/error.tsx`, `app/not-found.tsx`.
+  **Blocked by:** none.
+
+- [ ] **QPL-012-QA1**: Update `app/error.tsx` to use Next 16.2+'s `unstable_retry` prop.
+  QA review of QPL-012 (commit c2c4824) found `app/error.tsx` uses the
+  `reset()` prop, which Next.js 16.2.4's own docs
+  (`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/error.md`)
+  now say to avoid in most cases in favor of `unstable_retry()` (added in
+  v16.2.0), which re-fetches and re-renders instead of just clearing error
+  state. `reset` still works and the build passes, so this is not urgent —
+  just not the current recommended pattern.
+  **Acceptance:** `app/error.tsx`'s exported `Error` component accepts and
+  calls `unstable_retry` instead of (or in addition to, falling back to)
+  `reset`, matching the doc's example; `npm run build` still succeeds.
+  **Files:** `app/error.tsx`.
   **Blocked by:** none.
 
 - [ ] **QPL-013**: `robots.txt`, sitemap, and per-page metadata.
