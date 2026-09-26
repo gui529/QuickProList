@@ -53,6 +53,20 @@ export async function createInvitation(input: CreateInvitationInput): Promise<st
   return data.token
 }
 
+/**
+ * True if an invitation should be treated as expired: either its status is
+ * already `'expired'`, or it's still `'pending'` and its `expires_at`
+ * timestamp has passed. Other terminal statuses (`paid`, `canceled`,
+ * `trial`) are never considered expired here — `trial` uses its own
+ * `trial_ends_at` field, and `paid`/`canceled` invitations have already
+ * moved past the enrollment window this check guards.
+ */
+export function isInvitationExpired(invitation: EnrollmentInvitation): boolean {
+  if (invitation.status === 'expired') return true
+  if (invitation.status !== 'pending') return false
+  return new Date(invitation.expires_at).getTime() < Date.now()
+}
+
 export async function getInvitationByToken(token: string): Promise<EnrollmentInvitation | null> {
   const supabase = getSupabase()
   if (!supabase) return null

@@ -7,6 +7,7 @@ import {
   deleteInvitation,
   getInvitationById,
   getInvitationByToken,
+  isInvitationExpired,
   listInvitations,
   listPaidInvitations,
   markInvitationCanceled,
@@ -94,5 +95,52 @@ describe('lib/invitations.ts (in-memory test double)', () => {
 
     expect(await getInvitationById(seeded.id)).toBeNull()
     expect(await listInvitations()).toHaveLength(0)
+  })
+
+  describe('isInvitationExpired', () => {
+    it('treats a pending invitation with a past expires_at as expired', () => {
+      const invitation = __seed({
+        status: 'pending',
+        expires_at: new Date(Date.now() - 1000).toISOString(),
+      })
+
+      expect(isInvitationExpired(invitation)).toBe(true)
+    })
+
+    it('treats a pending invitation with a future expires_at as not expired', () => {
+      const invitation = __seed({
+        status: 'pending',
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+      })
+
+      expect(isInvitationExpired(invitation)).toBe(false)
+    })
+
+    it('treats an invitation already marked status: expired as expired regardless of expires_at', () => {
+      const invitation = __seed({
+        status: 'expired',
+        expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+      })
+
+      expect(isInvitationExpired(invitation)).toBe(true)
+    })
+
+    it('does not treat a paid invitation with a past expires_at as expired', () => {
+      const invitation = __seed({
+        status: 'paid',
+        expires_at: new Date(Date.now() - 1000).toISOString(),
+      })
+
+      expect(isInvitationExpired(invitation)).toBe(false)
+    })
+
+    it('does not treat a trial invitation with a past expires_at as expired', () => {
+      const invitation = __seed({
+        status: 'trial',
+        expires_at: new Date(Date.now() - 1000).toISOString(),
+      })
+
+      expect(isInvitationExpired(invitation)).toBe(false)
+    })
   })
 })

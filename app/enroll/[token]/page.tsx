@@ -1,4 +1,4 @@
-import { getInvitationByToken } from '@/lib/invitations'
+import { getInvitationByToken, isInvitationExpired } from '@/lib/invitations'
 import EnrollClient from './EnrollClient'
 
 export default async function EnrollPage({ params }: { params: Promise<{ token: string }> }) {
@@ -16,7 +16,7 @@ export default async function EnrollPage({ params }: { params: Promise<{ token: 
     )
   }
 
-  if (invitation.status === 'expired') {
+  if (isInvitationExpired(invitation)) {
     return (
       <div className="min-h-screen grid place-items-center bg-slate-50 px-4">
         <div className="text-center">

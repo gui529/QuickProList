@@ -8,6 +8,9 @@
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
 import type { EnrollmentInvitation, CreateInvitationInput, CreateTrialInvitationInput } from './invitations'
+// Pure/no-I/O helper — safe to re-export from the real module even in the
+// test double, since it never touches Supabase.
+export { isInvitationExpired } from './invitations'
 
 let invitations: EnrollmentInvitation[] = []
 let idCounter = 0
