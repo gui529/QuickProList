@@ -8,9 +8,21 @@
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
 import type { EnrollmentInvitation, CreateInvitationInput, CreateTrialInvitationInput } from './invitations'
-// Pure/no-I/O helper — safe to re-export from the real module even in the
-// test double, since it never touches Supabase.
-export { isInvitationExpired } from './invitations'
+
+// Inlined copy of lib/invitations.ts's isInvitationExpired. This used to be
+// `export { isInvitationExpired } from './invitations'`, but under
+// `vi.mock('./invitations', () => import('./invitations.test-double'))`,
+// every import of the `'./invitations'` specifier — including this
+// re-export from inside the test double itself — gets redirected back to
+// this same test double, producing a circular self-import that deadlocks
+// vitest instead of throwing (npm test would hang indefinitely). Keeping an
+// inline copy of this pure/no-I/O helper breaks that cycle. Keep this in
+// sync with lib/invitations.ts if the real implementation changes.
+export function isInvitationExpired(invitation: EnrollmentInvitation): boolean {
+  if (invitation.status === 'expired') return true
+  if (invitation.status !== 'pending') return false
+  return new Date(invitation.expires_at).getTime() < Date.now()
+}
 
 let invitations: EnrollmentInvitation[] = []
 let idCounter = 0
