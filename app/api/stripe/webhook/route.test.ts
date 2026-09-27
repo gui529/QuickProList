@@ -235,6 +235,113 @@ describe('POST /api/stripe/webhook (idempotency)', () => {
   })
 })
 
+describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)', () => {
+  beforeEach(() => {
+    resetInvitations()
+    constructEventMock.mockClear()
+    handleSubscriptionCanceledMock.mockClear()
+    addCuratedFromYelpMock.mockClear()
+    addCuratedManualMock.mockClear()
+    updateCuratedManualMock.mockClear()
+    setCuratedContactEmailMock.mockClear()
+    getCuratedByIdMock.mockReset()
+    sendEmailMock.mockClear()
+    supabaseSingleMock.mockClear()
+  })
+
+  it('sends a welcome email with the dashboard link when payment succeeds', async () => {
+    const invitation = seedInvitation({
+      status: 'pending',
+      business_name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['austin'],
+    })
+    getCuratedByIdMock.mockResolvedValue({
+      id: 'curated-1',
+      name: 'Acme Plumbing',
+      dashboardToken: 'dash-token-123',
+    })
+
+    const event = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_123',
+          subscription: 'sub_test_456',
+          metadata: { invitationToken: invitation.token },
+          customer_details: { email: 'owner@acmeplumbing.test' },
+        },
+      },
+    }
+    constructEventMock.mockReturnValue(event)
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+
+    expect(getCuratedByIdMock).toHaveBeenCalledWith('curated-1')
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock.mock.calls[0][0]).toBe('owner@acmeplumbing.test')
+    expect(sendEmailMock.mock.calls[0][2]).toContain('/dashboard/dash-token-123')
+  })
+
+  it('does not send a welcome email when the curated business has no dashboard token', async () => {
+    const invitation = seedInvitation({
+      status: 'pending',
+      business_name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['austin'],
+    })
+    getCuratedByIdMock.mockResolvedValue({
+      id: 'curated-1',
+      name: 'Acme Plumbing',
+      dashboardToken: undefined,
+    })
+
+    const event = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_123',
+          subscription: 'sub_test_456',
+          metadata: { invitationToken: invitation.token },
+          customer_details: { email: 'owner@acmeplumbing.test' },
+        },
+      },
+    }
+    constructEventMock.mockReturnValue(event)
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+
+  it('does not send a welcome email when there is no contact email to send it to', async () => {
+    const invitation = seedInvitation({
+      status: 'pending',
+      business_name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['austin'],
+    })
+
+    const event = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_123',
+          subscription: 'sub_test_456',
+          metadata: { invitationToken: invitation.token },
+        },
+      },
+    }
+    constructEventMock.mockReturnValue(event)
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(getCuratedByIdMock).not.toHaveBeenCalled()
+    expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('POST /api/stripe/webhook (subscription status handling)', () => {
   beforeEach(() => {
     resetInvitations()

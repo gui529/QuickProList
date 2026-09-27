@@ -149,6 +149,21 @@ export async function POST(req: NextRequest) {
       const contactEmail = session.customer_details?.email
       if (curatedBusinessId && contactEmail) {
         await setCuratedContactEmail(curatedBusinessId, contactEmail)
+
+        // Immediately welcome the newly-paying business with a link to its
+        // stats dashboard (`/dashboard/[dashboard_token]`) — otherwise the
+        // only way it learns the dashboard exists is an admin manually
+        // copying the link from `/admin` and sending it by hand. See #37.
+        const business = await getCuratedById(curatedBusinessId)
+        if (business?.dashboardToken) {
+          const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
+          const dashboardUrl = `${siteUrl}/dashboard/${business.dashboardToken}`
+          await sendEmail(
+            contactEmail,
+            invitation.business_name,
+            `You're live on QuickProList! Track your profile views and clicks anytime from your dashboard: ${dashboardUrl}`
+          )
+        }
       }
     } else if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription
