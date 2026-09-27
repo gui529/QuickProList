@@ -148,7 +148,16 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
           </button>
 
           <p className="text-center text-xs text-slate-500 mt-6">
-            By subscribing, you agree to be featured in QuickProList search results for the selected cities.
+            By subscribing, you agree to be featured in QuickProList search results for the selected cities,
+            and to our{' '}
+            <Link href="/terms" className="underline hover:text-slate-700">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="underline hover:text-slate-700">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </div>
