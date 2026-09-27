@@ -165,7 +165,22 @@ export async function getCuratedByDashboardToken(
     websiteClicks: row.website_clicks,
     directionsClicks: row.directions_clicks,
     searchImpressions: row.search_impressions,
+    websiteUrl: row.website_url,
+    contactEmail: row.contact_email,
+    reviewUrl: row.review_url,
   }
+}
+
+export async function updateCuratedByDashboardToken(
+  token: string,
+  fields: { websiteUrl?: string; contactEmail?: string; reviewUrl?: string }
+): Promise<boolean> {
+  const row = rows.find((r) => r.dashboard_token === token)
+  if (!row) return false
+  if (fields.websiteUrl !== undefined) row.website_url = fields.websiteUrl.trim() || null
+  if (fields.contactEmail !== undefined) row.contact_email = fields.contactEmail.trim() || null
+  if (fields.reviewUrl !== undefined) row.review_url = fields.reviewUrl.trim() || null
+  return true
 }
 
 export async function listAllCurated(): Promise<Business[]> {

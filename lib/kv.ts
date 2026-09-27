@@ -129,6 +129,9 @@ export interface BusinessDashboardData {
   websiteClicks: number
   directionsClicks: number
   searchImpressions: number
+  websiteUrl: string | null
+  contactEmail: string | null
+  reviewUrl: string | null
 }
 
 /**
@@ -161,7 +164,45 @@ export async function getCuratedByDashboardToken(
     websiteClicks: row.website_clicks ?? 0,
     directionsClicks: row.directions_clicks ?? 0,
     searchImpressions: row.search_impressions ?? 0,
+    websiteUrl: row.website_url ?? null,
+    contactEmail: row.contact_email ?? null,
+    reviewUrl: row.review_url ?? null,
   }
+}
+
+export interface DashboardEditableFields {
+  websiteUrl?: string
+  contactEmail?: string
+  reviewUrl?: string
+}
+
+/**
+ * Update the allow-listed self-serve fields (website URL, contact email,
+ * review link) on a curated business, looked up by its `dashboard_token` —
+ * the sole credential the token-secured `/dashboard/[token]` page grants a
+ * subscriber. Deliberately excludes name/category/cities/pricing-adjacent
+ * fields, which stay admin-controlled via `/admin`. Returns `false` (no-op,
+ * nothing mutated) for an unknown token or when Supabase isn't configured,
+ * so the caller can 404 — mirrors `getCuratedByDashboardToken`'s
+ * null-on-miss convention.
+ */
+export async function updateCuratedByDashboardToken(
+  token: string,
+  fields: DashboardEditableFields
+): Promise<boolean> {
+  const supabase = getSupabase()
+  if (!supabase) return false
+  const update: Record<string, unknown> = {}
+  if (fields.websiteUrl !== undefined) update.website_url = fields.websiteUrl.trim() || null
+  if (fields.contactEmail !== undefined) update.contact_email = fields.contactEmail.trim() || null
+  if (fields.reviewUrl !== undefined) update.review_url = fields.reviewUrl.trim() || null
+  const { data, error } = await supabase
+    .from('curated_businesses')
+    .update(update)
+    .eq('dashboard_token', token)
+    .select('id')
+  if (error) throw error
+  return Array.isArray(data) && data.length > 0
 }
 
 export async function listAllCurated(): Promise<Business[]> {

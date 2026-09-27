@@ -3,25 +3,33 @@ import type { Business } from './yelp'
 
 // Mock the Supabase client so we can test lib/kv.ts's real query-building
 // logic (not just the in-memory double) without a live Supabase project.
-const { upsertMock, fromMock, createClientMock, selectState, updateMock } = vi.hoisted(() => {
-  const upsertMock = vi.fn().mockResolvedValue({ error: null })
-  const updateMock = vi.fn().mockReturnValue({
-    eq: vi.fn().mockResolvedValue({ error: null }),
-  })
-  // Mutable holder so tests can control what the chained select().eq().maybeSingle() resolves to.
-  const selectState: { data: Record<string, unknown> | null } = { data: null }
-  const fromMock = vi.fn(() => ({
-    upsert: upsertMock,
-    update: updateMock,
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        maybeSingle: vi.fn().mockImplementation(async () => ({ data: selectState.data })),
+const { upsertMock, fromMock, createClientMock, selectState, updateMock, updateEqMock, updateSelectState } =
+  vi.hoisted(() => {
+    const upsertMock = vi.fn().mockResolvedValue({ error: null })
+    // Mutable holder so tests can control what update(...).eq(...).select(...) resolves to
+    // (used by the update-by-token path, which needs to know how many rows matched).
+    const updateSelectState: { data: Array<{ id: string }> | null } = { data: [{ id: 'curated-1' }] }
+    const updateEqMock = vi.fn().mockReturnValue({
+      error: null,
+      select: vi.fn().mockImplementation(async () => ({ data: updateSelectState.data, error: null })),
+    })
+    const updateMock = vi.fn().mockReturnValue({
+      eq: updateEqMock,
+    })
+    // Mutable holder so tests can control what the chained select().eq().maybeSingle() resolves to.
+    const selectState: { data: Record<string, unknown> | null } = { data: null }
+    const fromMock = vi.fn(() => ({
+      upsert: upsertMock,
+      update: updateMock,
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn().mockImplementation(async () => ({ data: selectState.data })),
+        })),
       })),
-    })),
-  }))
-  const createClientMock = vi.fn(() => ({ from: fromMock }))
-  return { upsertMock, fromMock, createClientMock, selectState, updateMock }
-})
+    }))
+    const createClientMock = vi.fn(() => ({ from: fromMock }))
+    return { upsertMock, fromMock, createClientMock, selectState, updateMock, updateEqMock, updateSelectState }
+  })
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: createClientMock,
@@ -33,6 +41,7 @@ import {
   incrementContactClick,
   getCuratedByDashboardToken,
   getCuratedById,
+  updateCuratedByDashboardToken,
 } from './kv'
 
 function makeBusiness(overrides: Partial<Business> = {}): Business {
@@ -160,6 +169,9 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       website_clicks: 2,
       directions_clicks: 1,
       search_impressions: 25,
+      website_url: 'https://acme-plumbing.example',
+      contact_email: 'owner@acme-plumbing.example',
+      review_url: null,
     }
 
     const result = await getCuratedByDashboardToken('good-token')
@@ -175,6 +187,9 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteClicks: 2,
       directionsClicks: 1,
       searchImpressions: 25,
+      websiteUrl: 'https://acme-plumbing.example',
+      contactEmail: 'owner@acme-plumbing.example',
+      reviewUrl: null,
     })
   })
 
@@ -195,6 +210,9 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteClicks: 0,
       directionsClicks: 0,
       searchImpressions: 0,
+      websiteUrl: null,
+      contactEmail: null,
+      reviewUrl: null,
     })
   })
 
@@ -276,5 +294,58 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
     const result = await getCuratedById('curated-3')
 
     expect(result?.reviewUrl).toBeUndefined()
+  })
+})
+
+describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
+  beforeEach(() => {
+    fromMock.mockClear()
+    updateMock.mockClear()
+    updateEqMock.mockClear()
+    updateSelectState.data = [{ id: 'curated-1' }]
+    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+  })
+
+  it('updates only the allow-listed fields for a valid token', async () => {
+    const result = await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: 'https://example.com',
+      contactEmail: 'owner@example.com',
+    })
+
+    expect(result).toBe(true)
+    expect(updateMock).toHaveBeenCalledWith({
+      website_url: 'https://example.com',
+      contact_email: 'owner@example.com',
+    })
+    expect(updateEqMock).toHaveBeenCalledWith('dashboard_token', 'good-token')
+  })
+
+  it('trims whitespace and stores an empty value as null', async () => {
+    await updateCuratedByDashboardToken('good-token', { reviewUrl: '   ' })
+
+    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+  })
+
+  it('returns false and reports no match for an unknown token', async () => {
+    updateSelectState.data = []
+
+    const result = await updateCuratedByDashboardToken('bogus-token', {
+      websiteUrl: 'https://example.com',
+    })
+
+    expect(result).toBe(false)
+  })
+
+  it('returns false when Supabase is not configured', async () => {
+    delete process.env.SUPABASE_URL
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    const result = await updateCuratedByDashboardToken('any-token', {
+      websiteUrl: 'https://example.com',
+    })
+
+    expect(result).toBe(false)
+    expect(updateMock).not.toHaveBeenCalled()
   })
 })

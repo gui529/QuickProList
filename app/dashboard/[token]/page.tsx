@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getCuratedByDashboardToken } from '@/lib/kv'
 import { listInvitations } from '@/lib/invitations'
 import { deriveStatus, type BusinessReport } from '@/lib/reports'
+import DashboardEditForm from '@/components/DashboardEditForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,13 @@ export default async function BusinessDashboardPage({
           <StatCard label="Website clicks" value={business.websiteClicks} />
           <StatCard label="Directions clicks" value={business.directionsClicks} />
         </div>
+
+        <DashboardEditForm
+          token={token}
+          initialWebsiteUrl={business.websiteUrl ?? ''}
+          initialContactEmail={business.contactEmail ?? ''}
+          initialReviewUrl={business.reviewUrl ?? ''}
+        />
       </main>
     </div>
   )

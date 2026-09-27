@@ -14,6 +14,23 @@ vi.mock('@/lib/invitations', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/invitations')>()
   return { ...actual, listInvitations: listInvitationsMock }
 })
+// `DashboardEditForm` is a client component that uses `useState` — calling it
+// directly via `textOf`'s function-component walk (rather than an actual
+// React render) would hit an "Invalid hook call" outside a real dispatcher,
+// so it's replaced with a plain stand-in that just echoes its props as text.
+vi.mock('@/components/DashboardEditForm', () => ({
+  default: (props: {
+    token: string
+    initialWebsiteUrl: string
+    initialContactEmail: string
+    initialReviewUrl: string
+  }) => (
+    <div>
+      Edit your listing (token: {props.token}, website: {props.initialWebsiteUrl}, email:{' '}
+      {props.initialContactEmail}, review: {props.initialReviewUrl || 'none'})
+    </div>
+  ),
+}))
 
 import DashboardPage from './page'
 import type { BusinessDashboardData } from '@/lib/kv'
@@ -31,6 +48,9 @@ function makeBusiness(overrides: Partial<BusinessDashboardData> = {}): BusinessD
     websiteClicks: 3,
     directionsClicks: 1,
     searchImpressions: 158,
+    websiteUrl: 'https://acme-plumbing.example',
+    contactEmail: 'owner@acme-plumbing.example',
+    reviewUrl: null,
     ...overrides,
   }
 }
@@ -133,5 +153,19 @@ describe('BusinessDashboardPage', () => {
     const result = await DashboardPage({ params: Promise.resolve({ token: 'good-token' }) })
 
     expect(textOf(result)).toContain('Trial')
+  })
+
+  it('renders the self-serve edit form with the business\'s current values', async () => {
+    getCuratedByDashboardTokenMock.mockResolvedValue(
+      makeBusiness({ websiteUrl: 'https://acme-plumbing.example', contactEmail: 'owner@acme-plumbing.example' })
+    )
+
+    const result = await DashboardPage({ params: Promise.resolve({ token: 'good-token' }) })
+    const text = textOf(result)
+
+    expect(text).toContain('Edit your listing')
+    expect(text).toContain('token: good-token')
+    expect(text).toContain('website: https://acme-plumbing.example')
+    expect(text).toContain('email: owner@acme-plumbing.example')
   })
 })
