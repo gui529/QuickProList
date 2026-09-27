@@ -69,6 +69,7 @@ interface CuratedRow {
   website_clicks: number | null
   directions_clicks: number | null
   search_impressions: number | null
+  winback_sent_at: string | null
 }
 
 /**
@@ -439,6 +440,23 @@ export type ContactClickType = 'phone' | 'website' | 'directions'
 
 export async function incrementContactClick(id: string, type: ContactClickType): Promise<void> {
   await incrementCounterColumn(id, `${type}_clicks`)
+}
+
+/**
+ * Mark a curated business as having received its (one-time) win-back email
+ * — sent by `lib/winback.ts` when a business's free trial expired without
+ * ever converting to a paid subscription. Setting `winback_sent_at` makes
+ * later runs of the win-back job skip this business, so re-running it never
+ * sends a second email to the same business.
+ */
+export async function setWinbackSent(id: string): Promise<void> {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase not configured')
+  const { error } = await supabase
+    .from('curated_businesses')
+    .update({ winback_sent_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
 }
 
 export async function uploadBusinessPhoto(

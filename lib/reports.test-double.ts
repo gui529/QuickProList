@@ -71,6 +71,7 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
       phone_clicks: row.phone_clicks ?? 0,
       website_clicks: row.website_clicks ?? 0,
       directions_clicks: row.directions_clicks ?? 0,
+      winback_sent_at: row.winback_sent_at ?? null,
     }
   })
 }

@@ -20,6 +20,7 @@ export interface BusinessReport {
   phone_clicks: number
   website_clicks: number
   directions_clicks: number
+  winback_sent_at: string | null
 }
 
 interface CuratedRow {
@@ -38,6 +39,7 @@ interface CuratedRow {
   phone_clicks: number | null
   website_clicks: number | null
   directions_clicks: number | null
+  winback_sent_at: string | null
 }
 
 function getSupabase() {
@@ -91,7 +93,7 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
     supabase
       .from('curated_businesses')
       .select(
-        'id, name, source, category, cities, created_at, is_trial, trial_ends_at, pro_site_enabled, contact_email, search_impressions, profile_views, phone_clicks, website_clicks, directions_clicks'
+        'id, name, source, category, cities, created_at, is_trial, trial_ends_at, pro_site_enabled, contact_email, search_impressions, profile_views, phone_clicks, website_clicks, directions_clicks, winback_sent_at'
       )
       .order('created_at', { ascending: false }),
     listInvitations(),
@@ -130,6 +132,7 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
       phone_clicks: row.phone_clicks ?? 0,
       website_clicks: row.website_clicks ?? 0,
       directions_clicks: row.directions_clicks ?? 0,
+      winback_sent_at: row.winback_sent_at ?? null,
     }
   })
 }

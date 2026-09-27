@@ -41,6 +41,7 @@ interface CuratedRow {
   search_impressions: number
   contact_email: string | null
   dashboard_token: string | null
+  winback_sent_at: string | null
 }
 
 let rows: CuratedRow[] = []
@@ -82,6 +83,7 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     search_impressions: row.search_impressions ?? 0,
     contact_email: row.contact_email ?? null,
     dashboard_token: row.dashboard_token ?? `dashboard-token-${id}`,
+    winback_sent_at: row.winback_sent_at ?? null,
   }
   rows.push(full)
   return full
@@ -227,6 +229,7 @@ export async function addCuratedFromYelp(
     search_impressions: base?.search_impressions ?? 0,
     contact_email: base?.contact_email ?? null,
     dashboard_token: base?.dashboard_token ?? `dashboard-token-${id}`,
+    winback_sent_at: base?.winback_sent_at ?? null,
   }
   if (existingIdx >= 0) rows[existingIdx] = row
   else rows.push(row)
@@ -263,6 +266,7 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     search_impressions: 0,
     contact_email: null,
     dashboard_token: `dashboard-token-${id}`,
+    winback_sent_at: null,
   })
 }
 
@@ -309,6 +313,12 @@ export async function setCuratedContactEmail(id: string, email: string): Promise
   const row = rows.find((r) => r.id === id)
   if (!row) return
   row.contact_email = email
+}
+
+export async function setWinbackSent(id: string): Promise<void> {
+  const row = rows.find((r) => r.id === id)
+  if (!row) return
+  row.winback_sent_at = new Date().toISOString()
 }
 
 export async function incrementProfileView(id: string): Promise<void> {
