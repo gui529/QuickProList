@@ -55,3 +55,21 @@ export async function createListingRequest(input: ListingRequestInput): Promise<
   if (error || !data) throw new Error('Failed to record listing request')
   return data as ListingRequest
 }
+
+/**
+ * List all "List your business" submissions, most recent first, for the
+ * admin inbox. Returns an empty array (instead of throwing) when Supabase
+ * isn't configured, matching the soft-dependency pattern used elsewhere.
+ */
+export async function listListingRequests(): Promise<ListingRequest[]> {
+  const supabase = getSupabase()
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('business_listing_requests')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error('Failed to list listing requests')
+  return (data ?? []) as ListingRequest[]
+}

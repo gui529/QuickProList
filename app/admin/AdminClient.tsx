@@ -9,13 +9,14 @@ import ShareLinkModal from '@/components/ShareLinkModal'
 import ReviewLinkModal from '@/components/ReviewLinkModal'
 import EnrollmentLinkModal from '@/components/EnrollmentLinkModal'
 import ReportsTab from '@/components/ReportsTab'
+import RequestsTab from '@/components/RequestsTab'
 import TrialModal from '@/components/TrialModal'
 import Link from 'next/link'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
 import type { Business } from '@/lib/yelp'
 import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 
-type Tab = 'curate' | 'yelp' | 'enrollments' | 'reports'
+type Tab = 'curate' | 'yelp' | 'enrollments' | 'reports' | 'requests'
 
 export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   const [tab, setTab] = useState<Tab>('curate')
@@ -193,6 +194,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
           <TabButton active={tab === 'yelp'} onClick={() => setTab('yelp')}>Search Yelp</TabButton>
           <TabButton active={tab === 'enrollments'} onClick={() => setTab('enrollments')}>Invitations</TabButton>
           <TabButton active={tab === 'reports'} onClick={() => setTab('reports')}>Reports</TabButton>
+          <TabButton active={tab === 'requests'} onClick={() => setTab('requests')}>Requests</TabButton>
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <Link
@@ -601,6 +603,8 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
       )}
 
       {tab === 'reports' && <ReportsTab />}
+
+      {tab === 'requests' && <RequestsTab />}
 
       {trialTarget && (
         <TrialModal

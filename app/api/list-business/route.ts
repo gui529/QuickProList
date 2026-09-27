@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createListingRequest } from '@/lib/listing-requests'
+import { createListingRequest, listListingRequests } from '@/lib/listing-requests'
+import { AuthError, requireAdmin } from '@/lib/auth'
 
 interface Submission {
   businessName: string
@@ -47,4 +48,23 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true })
+}
+
+export async function GET(_req: NextRequest) {
+  try {
+    await requireAdmin()
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
+    throw err
+  }
+
+  try {
+    const requests = await listListingRequests()
+    return NextResponse.json({ requests })
+  } catch (err) {
+    console.error('listListingRequests failed:', err)
+    return NextResponse.json({ error: 'Failed to load listing requests' }, { status: 500 })
+  }
 }
