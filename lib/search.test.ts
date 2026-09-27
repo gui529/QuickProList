@@ -1,10 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { Business } from './yelp'
 
-const { getCurated, getCuratedById, normalizeCity } = vi.hoisted(() => ({
+const { getCurated, getCuratedById, normalizeCity, incrementSearchImpression } = vi.hoisted(() => ({
   getCurated: vi.fn(),
   getCuratedById: vi.fn(),
   normalizeCity: (input: string) => input.trim().toLowerCase().split(',')[0].trim(),
+  incrementSearchImpression: vi.fn().mockResolvedValue(undefined),
 }))
 
 const { searchBusinesses, getBusinessById } = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ vi.mock('./kv', () => ({
   getCurated,
   getCuratedById,
   normalizeCity,
+  incrementSearchImpression,
 }))
 
 vi.mock('./yelp', () => ({
@@ -46,6 +48,7 @@ describe('getMergedResults', () => {
     getCuratedById.mockReset()
     searchBusinesses.mockReset()
     getBusinessById.mockReset()
+    incrementSearchImpression.mockReset().mockResolvedValue(undefined)
   })
 
   it('fills results from curated first, then Yelp for the remainder', async () => {
@@ -112,5 +115,18 @@ describe('getMergedResults', () => {
     const occurrences = results.filter((b) => b.id === 'yelp-2')
     expect(occurrences).toHaveLength(1)
     expect(results).toHaveLength(3)
+  })
+
+  it('increments the search-impression counter for curated businesses returned in results, but not Yelp fill-ins', async () => {
+    const curatedId = '11111111-1111-1111-1111-111111111111'
+    const curated = [makeBusiness({ id: curatedId, source: 'manual' })]
+    const yelp = [makeBusiness({ id: 'yelp-1' }), makeBusiness({ id: 'yelp-2' })]
+    getCurated.mockResolvedValue(curated)
+    searchBusinesses.mockResolvedValue(yelp)
+
+    await getMergedResults({ location: 'Austin, TX' }, 'plumbing')
+
+    expect(incrementSearchImpression).toHaveBeenCalledTimes(1)
+    expect(incrementSearchImpression).toHaveBeenCalledWith(curatedId)
   })
 })

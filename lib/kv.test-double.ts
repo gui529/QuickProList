@@ -38,6 +38,7 @@ interface CuratedRow {
   phone_clicks: number
   website_clicks: number
   directions_clicks: number
+  search_impressions: number
   contact_email: string | null
   dashboard_token: string | null
 }
@@ -78,6 +79,7 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     phone_clicks: row.phone_clicks ?? 0,
     website_clicks: row.website_clicks ?? 0,
     directions_clicks: row.directions_clicks ?? 0,
+    search_impressions: row.search_impressions ?? 0,
     contact_email: row.contact_email ?? null,
     dashboard_token: row.dashboard_token ?? `dashboard-token-${id}`,
   }
@@ -206,6 +208,7 @@ export async function addCuratedFromYelp(
     phone_clicks: base?.phone_clicks ?? 0,
     website_clicks: base?.website_clicks ?? 0,
     directions_clicks: base?.directions_clicks ?? 0,
+    search_impressions: base?.search_impressions ?? 0,
     contact_email: base?.contact_email ?? null,
     dashboard_token: base?.dashboard_token ?? `dashboard-token-${id}`,
   }
@@ -241,6 +244,7 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     phone_clicks: 0,
     website_clicks: 0,
     directions_clicks: 0,
+    search_impressions: 0,
     contact_email: null,
     dashboard_token: `dashboard-token-${id}`,
   })
@@ -295,6 +299,12 @@ export async function incrementProfileView(id: string): Promise<void> {
   const row = rows.find((r) => r.id === id)
   if (!row) return
   row.profile_views += 1
+}
+
+export async function incrementSearchImpression(id: string): Promise<void> {
+  const row = rows.find((r) => r.id === id)
+  if (!row) return
+  row.search_impressions += 1
 }
 
 export async function incrementContactClick(id: string, type: ContactClickType): Promise<void> {

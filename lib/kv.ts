@@ -39,6 +39,7 @@ interface CuratedRow {
   phone_clicks: number | null
   website_clicks: number | null
   directions_clicks: number | null
+  search_impressions: number | null
 }
 
 /**
@@ -349,6 +350,17 @@ async function incrementCounterColumn(id: string, column: string): Promise<void>
 
 export async function incrementProfileView(id: string): Promise<void> {
   await incrementCounterColumn(id, 'profile_views')
+}
+
+/**
+ * Bump a curated business's `search_impressions` counter — fired whenever
+ * the business appears in a merged search-results page, regardless of
+ * whether its ProSite is enabled. Unlike `incrementProfileView` (ProSite
+ * page views only), this gives every curated/paying business a non-zero
+ * dashboard stat even if they never enabled ProSite.
+ */
+export async function incrementSearchImpression(id: string): Promise<void> {
+  await incrementCounterColumn(id, 'search_impressions')
 }
 
 export type ContactClickType = 'phone' | 'website' | 'directions'

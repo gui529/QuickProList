@@ -1,5 +1,5 @@
 import { getBusinessById, searchBusinesses, type Business, type SearchLocation } from './yelp'
-import { getCurated, getCuratedById, normalizeCity } from './kv'
+import { getCurated, getCuratedById, incrementSearchImpression, normalizeCity } from './kv'
 import { CATEGORIES } from './categories'
 
 export const MAX_RESULTS = 5
@@ -50,6 +50,15 @@ export async function getMergedResults(
         })
         return [highlight, ...deduped].slice(0, MAX_RESULTS)
       })()
+
+  // Fire-and-forget: record a search-result impression for every curated
+  // (paying) business surfaced here, regardless of whether its ProSite is
+  // enabled — `incrementProfileView` only fires on the /pro/[id] page, which
+  // would otherwise leave a pinned-but-ProSite-less business's dashboard
+  // stuck at all-zero stats forever.
+  for (const b of sliced) {
+    if (isUuid(b.id)) void incrementSearchImpression(b.id)
+  }
 
   return sliced
 }
