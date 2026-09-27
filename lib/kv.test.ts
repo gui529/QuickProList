@@ -375,6 +375,30 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
     expect(updateMock).toHaveBeenCalledWith({ website_url: null })
   })
 
+  it('sanitizes a leading-\\x01-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: '\x01javascript:alert(1)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+  })
+
+  it('sanitizes a leading-\\x00-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: '\x00javascript:alert(1)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+  })
+
+  it('sanitizes a leading-\\x1f-obfuscated javascript: URI in reviewUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      reviewUrl: '\x1fjavascript:alert(1)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+  })
+
   it('still saves a normal https:// URL for websiteUrl and reviewUrl', async () => {
     await updateCuratedByDashboardToken('good-token', {
       websiteUrl: 'https://acme-plumbing.example',
