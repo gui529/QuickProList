@@ -130,3 +130,110 @@ export async function sendEmail(
   if (error) throw new Error(error.message)
   return data?.id ?? ''
 }
+
+export interface DigestStats {
+  searchImpressions: number
+  profileViews: number
+  phoneClicks: number
+  websiteClicks: number
+  directionsClicks: number
+}
+
+const DIGEST_STAT_ROWS: Array<{ key: keyof DigestStats; label: string }> = [
+  { key: 'searchImpressions', label: 'Search appearances' },
+  { key: 'profileViews', label: 'Profile views' },
+  { key: 'phoneClicks', label: 'Phone clicks' },
+  { key: 'websiteClicks', label: 'Website clicks' },
+  { key: 'directionsClicks', label: 'Directions clicks' },
+]
+
+/**
+ * Send a recurring performance-digest email to a subscribed business,
+ * summarizing its own lifetime stats (the same numbers shown on its
+ * `/dashboard/[token]` page). Distinct from `sendEmail` above, which is a
+ * cold-outreach pitch to a *prospective* business — this is a retention
+ * email to an *already-subscribed* one, so it skips the pricing card and
+ * sales CTA entirely.
+ */
+export async function sendDigestEmail(
+  to: string,
+  businessName: string,
+  stats: DigestStats
+): Promise<string> {
+  const from = process.env.RESEND_FROM_EMAIL
+  if (!from) throw new Error('RESEND_FROM_EMAIL not configured')
+
+  const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
+
+  const statRowsHtml = DIGEST_STAT_ROWS.map(
+    ({ key, label }) => `
+        <tr>
+          <td style="padding:10px 0;font-size:15px;color:#334155">${escapeHtml(label)}</td>
+          <td style="padding:10px 0;font-size:20px;font-weight:800;color:#0f172a;text-align:right">${stats[key].toLocaleString()}</td>
+        </tr>`
+  ).join('')
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <div style="max-width:580px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.07)">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:32px 40px">
+      <a href="${siteUrl}" style="text-decoration:none">
+        <div style="display:inline-flex;align-items:center;gap:8px">
+          <div style="width:32px;height:32px;background:#f59e0b;border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <span style="color:#0f172a;font-weight:900;font-size:16px">Q</span>
+          </div>
+          <span style="color:#ffffff;font-weight:700;font-size:18px;letter-spacing:-0.3px">QuickProList</span>
+        </div>
+      </a>
+      <p style="margin:16px 0 0;color:#94a3b8;font-size:13px">Your performance digest</p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 40px">
+      <h1 style="margin:0 0 20px;font-size:22px;font-weight:800;color:#0f172a;line-height:1.2">Hi ${escapeHtml(businessName)}, here's how your listing is doing</h1>
+
+      <table style="width:100%;border-collapse:collapse">
+        ${statRowsHtml}
+      </table>
+
+      <div style="text-align:center;margin:28px 0 8px">
+        <a href="${siteUrl}" style="display:inline-block;background:#f59e0b;color:#0f172a;font-weight:800;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:50px;letter-spacing:-0.2px">
+          View QuickProList →
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px">
+      <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6">
+        You received this because your business has an active QuickProList listing.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`
+
+  const text = [
+    `Hi ${businessName}, here's how your listing is doing:`,
+    '',
+    ...DIGEST_STAT_ROWS.map(({ key, label }) => `${label}: ${stats[key]}`),
+    '',
+    `View QuickProList: ${siteUrl}`,
+  ].join('\n')
+
+  const client = getClient()
+  const { data, error } = await client.emails.send({
+    from,
+    to,
+    subject: `Your QuickProList performance digest — ${businessName}`,
+    html,
+    text,
+  })
+  if (error) throw new Error(error.message)
+  return data?.id ?? ''
+}

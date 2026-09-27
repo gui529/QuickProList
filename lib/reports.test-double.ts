@@ -65,6 +65,12 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
       current_status: deriveStatus(row, invitations),
       actions_count: invitations.length,
       invitations,
+      contact_email: row.contact_email ?? null,
+      search_impressions: row.search_impressions ?? 0,
+      profile_views: row.profile_views ?? 0,
+      phone_clicks: row.phone_clicks ?? 0,
+      website_clicks: row.website_clicks ?? 0,
+      directions_clicks: row.directions_clicks ?? 0,
     }
   })
 }

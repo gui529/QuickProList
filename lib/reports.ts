@@ -14,6 +14,12 @@ export interface BusinessReport {
   current_status: 'paid' | 'trial' | 'expired-trial' | 'pending' | 'canceled' | 'none'
   actions_count: number
   invitations: EnrollmentInvitation[]
+  contact_email: string | null
+  search_impressions: number
+  profile_views: number
+  phone_clicks: number
+  website_clicks: number
+  directions_clicks: number
 }
 
 interface CuratedRow {
@@ -26,6 +32,12 @@ interface CuratedRow {
   is_trial: boolean
   trial_ends_at: string | null
   pro_site_enabled: boolean
+  contact_email: string | null
+  search_impressions: number | null
+  profile_views: number | null
+  phone_clicks: number | null
+  website_clicks: number | null
+  directions_clicks: number | null
 }
 
 function getSupabase() {
@@ -78,7 +90,9 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
   const [{ data: rows, error }, allInvitations] = await Promise.all([
     supabase
       .from('curated_businesses')
-      .select('id, name, source, category, cities, created_at, is_trial, trial_ends_at, pro_site_enabled')
+      .select(
+        'id, name, source, category, cities, created_at, is_trial, trial_ends_at, pro_site_enabled, contact_email, search_impressions, profile_views, phone_clicks, website_clicks, directions_clicks'
+      )
       .order('created_at', { ascending: false }),
     listInvitations(),
   ])
@@ -110,6 +124,12 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
       current_status: deriveStatus(row, invitations),
       actions_count: invitations.length,
       invitations,
+      contact_email: row.contact_email ?? null,
+      search_impressions: row.search_impressions ?? 0,
+      profile_views: row.profile_views ?? 0,
+      phone_clicks: row.phone_clicks ?? 0,
+      website_clicks: row.website_clicks ?? 0,
+      directions_clicks: row.directions_clicks ?? 0,
     }
   })
 }
