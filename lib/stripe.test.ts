@@ -5,7 +5,26 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 vi.mock('./invitations', async () => import('./invitations.test-double'))
 vi.mock('./kv', async () => import('./kv.test-double'))
 
-import { handleSubscriptionCanceled } from './stripe'
+// Stub the Stripe SDK itself so createBillingPortalSession's actual body
+// (retrieve subscription -> extract customer id -> create portal session)
+// is exercised, rather than mocking lib/stripe.ts's own wrapper away.
+const { subscriptionsRetrieveMock, billingPortalSessionsCreateMock } = vi.hoisted(() => ({
+  subscriptionsRetrieveMock: vi.fn(),
+  billingPortalSessionsCreateMock: vi.fn(),
+}))
+
+vi.mock('stripe', () => ({
+  default: vi.fn().mockImplementation(function StripeMock() {
+    return {
+      subscriptions: { retrieve: subscriptionsRetrieveMock },
+      billingPortal: { sessions: { create: billingPortalSessionsCreateMock } },
+    }
+  }),
+}))
+
+process.env.STRIPE_SECRET_KEY = 'sk_test_dummy'
+
+import { handleSubscriptionCanceled, createBillingPortalSession } from './stripe'
 import {
   __reset as resetInvitations,
   __seed as seedInvitation,
@@ -70,5 +89,39 @@ describe('handleSubscriptionCanceled (lib/stripe.ts)', () => {
 
     const results = await getCurated('roofing', 'dallas')
     expect(results.map((b) => b.id)).not.toContain(curated.id)
+  })
+})
+
+describe('createBillingPortalSession (lib/stripe.ts)', () => {
+  beforeEach(() => {
+    subscriptionsRetrieveMock.mockReset()
+    billingPortalSessionsCreateMock.mockReset()
+    billingPortalSessionsCreateMock.mockResolvedValue({ url: 'https://billing.stripe.test/session' })
+  })
+
+  it('retrieves the subscription and creates a portal session with its string customer id', async () => {
+    subscriptionsRetrieveMock.mockResolvedValue({ customer: 'cus_123' })
+
+    const url = await createBillingPortalSession('sub_123', 'https://example.test/dashboard/tok')
+
+    expect(subscriptionsRetrieveMock).toHaveBeenCalledWith('sub_123')
+    expect(billingPortalSessionsCreateMock).toHaveBeenCalledWith({
+      customer: 'cus_123',
+      return_url: 'https://example.test/dashboard/tok',
+    })
+    expect(url).toBe('https://billing.stripe.test/session')
+  })
+
+  it('extracts the customer id from an expanded customer object', async () => {
+    subscriptionsRetrieveMock.mockResolvedValue({ customer: { id: 'cus_456' } })
+
+    const url = await createBillingPortalSession('sub_456', 'https://example.test/dashboard/tok2')
+
+    expect(subscriptionsRetrieveMock).toHaveBeenCalledWith('sub_456')
+    expect(billingPortalSessionsCreateMock).toHaveBeenCalledWith({
+      customer: 'cus_456',
+      return_url: 'https://example.test/dashboard/tok2',
+    })
+    expect(url).toBe('https://billing.stripe.test/session')
   })
 })
