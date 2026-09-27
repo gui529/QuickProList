@@ -327,6 +327,34 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
     expect(updateMock).toHaveBeenCalledWith({ review_url: null })
   })
 
+  it('sanitizes a javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: 'javascript:alert(1)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+  })
+
+  it('sanitizes a javascript: URI in reviewUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      reviewUrl: 'javascript:alert(document.cookie)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+  })
+
+  it('still saves a normal https:// URL for websiteUrl and reviewUrl', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: 'https://acme-plumbing.example',
+      reviewUrl: 'https://g.page/r/abc/review',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({
+      website_url: 'https://acme-plumbing.example',
+      review_url: 'https://g.page/r/abc/review',
+    })
+  })
+
   it('returns false and reports no match for an unknown token', async () => {
     updateSelectState.data = []
 

@@ -14,6 +14,24 @@ export function normalizeCity(input: string): string {
   return input.trim().toLowerCase().split(',')[0].trim()
 }
 
+/**
+ * Only accept http(s) destinations for user-suppliable URL fields
+ * (`websiteUrl`, `reviewUrl`) that end up rendered as a raw anchor `href`
+ * on public pages (`app/pro/[id]/page.tsx`, `components/ReviewLinkModal.tsx`).
+ * A bare domain like `example.com` (no scheme) is left as-is — existing
+ * render sites already prepend `https://` for those. Anything that declares
+ * a non-http(s) scheme (`javascript:`, `data:`, etc.) is dropped rather than
+ * stored, since that scheme would otherwise execute in a visitor's browser.
+ */
+function sanitizeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const schemeMatch = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(trimmed)
+  if (schemeMatch && !/^https?$/i.test(schemeMatch[1])) return null
+  return trimmed
+}
+
 interface CuratedRow {
   id: string
   yelp_id: string | null
@@ -193,9 +211,9 @@ export async function updateCuratedByDashboardToken(
   const supabase = getSupabase()
   if (!supabase) return false
   const update: Record<string, unknown> = {}
-  if (fields.websiteUrl !== undefined) update.website_url = fields.websiteUrl.trim() || null
+  if (fields.websiteUrl !== undefined) update.website_url = sanitizeHttpUrl(fields.websiteUrl)
   if (fields.contactEmail !== undefined) update.contact_email = fields.contactEmail.trim() || null
-  if (fields.reviewUrl !== undefined) update.review_url = fields.reviewUrl.trim() || null
+  if (fields.reviewUrl !== undefined) update.review_url = sanitizeHttpUrl(fields.reviewUrl)
   const { data, error } = await supabase
     .from('curated_businesses')
     .update(update)
