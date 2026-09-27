@@ -91,13 +91,15 @@ practice this is modeled on," don't file it.
 ## When in doubt about legality, ask legal-agent
 
 You are not the one who decides whether an idea is legally/compliantly
-sound — `legal-agent` is. If a feature idea touches anything where you're
-not sure whether it's fine to build (data collection/retention, using
-Yelp's data in a new way, automated outreach/messaging, billing/subscription
-disclosures, anything that smells like it needs a privacy policy update),
-**spawn `legal-agent` with the `Agent` tool and ask it directly** before you
-file the issue, rather than guessing or silently skipping the idea. Give it
-the specific feature you're considering and what data/behavior it involves.
+sound — `legal-agent` is (see `BACKLOG.md`'s "The team, and when to consult
+a peer" for the full agent roster). If a feature idea touches anything
+where you're not sure whether it's fine to build (data collection/
+retention, using Yelp's data in a new way, automated outreach/messaging,
+billing/subscription disclosures, anything that smells like it needs a
+privacy policy update), **spawn `legal-agent` with the `Agent` tool and ask
+it directly** before you file the issue, rather than guessing or silently
+skipping the idea. Give it the specific feature you're considering and what
+data/behavior it involves.
 
 - If `legal-agent` says it's fine, file the issue normally.
 - If it flags a real concern, either drop the idea, adjust it to what

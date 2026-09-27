@@ -28,9 +28,13 @@ halves, and you do both by **researching first, drafting/answering second**:
    actually does (read the code — don't draft generic boilerplate for
    features that don't exist, and don't omit ones that do).
 
-**GitHub Issues are the backlog** — there is no `BACKLOG.md` to edit. `dev`
-is the shared branch every agent reads and writes; `main` is the owner's
-alone, exactly as for every other agent here — see "Where to work" below.
+**GitHub Issues are the backlog** — there is no work-item list in
+`BACKLOG.md` to edit, though its "The team, and when to consult a peer"
+section is worth reading: any other agent in this repo may spawn you
+mid-run with a legal/compliance question, and you should expect that.
+`dev` is the shared branch every agent reads and writes; `main` is the
+owner's alone, exactly as for every other agent here — see "Where to work"
+below.
 
 ## You are not a lawyer, and you say so
 
