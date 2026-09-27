@@ -343,6 +343,38 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
     expect(updateMock).toHaveBeenCalledWith({ review_url: null })
   })
 
+  it('sanitizes a tab-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: 'java\tscript:alert(1)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+  })
+
+  it('sanitizes a newline-obfuscated javascript: URI in reviewUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      reviewUrl: 'java\nscript:alert(document.cookie)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+  })
+
+  it('sanitizes a carriage-return-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: 'java\rscript:alert(1)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+  })
+
+  it('sanitizes a javascript: URI split across multiple embedded control characters to null', async () => {
+    await updateCuratedByDashboardToken('good-token', {
+      websiteUrl: 'j\ta\nv\ra\tscript:alert(1)',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+  })
+
   it('still saves a normal https:// URL for websiteUrl and reviewUrl', async () => {
     await updateCuratedByDashboardToken('good-token', {
       websiteUrl: 'https://acme-plumbing.example',
