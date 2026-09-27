@@ -1,15 +1,24 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { CATEGORIES } from '@/lib/categories'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
 interface Props {
   invitation: EnrollmentInvitation
   token: string
+  /**
+   * The business's `curated_businesses.dashboard_token`, when known — used
+   * to show a direct dashboard link on the success view as a redundant path
+   * alongside the welcome email (email delivery isn't guaranteed: spam
+   * filters, mistyped addresses, etc). `null` when the business hasn't been
+   * linked to a curated row yet, in which case no link is rendered. See #41.
+   */
+  dashboardToken?: string | null
 }
 
-export default function EnrollClient({ invitation, token }: Props) {
+export default function EnrollClient({ invitation, token, dashboardToken }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success] = useState(() => {
@@ -59,6 +68,14 @@ export default function EnrollClient({ invitation, token }: Props) {
           <p className="text-sm text-emerald-600">
             Your monthly subscription of ${invitation.monthly_price.toFixed(2)}/month is now active.
           </p>
+          {dashboardToken && (
+            <Link
+              href={`/dashboard/${dashboardToken}`}
+              className="inline-block mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-colors"
+            >
+              View your dashboard
+            </Link>
+          )}
         </div>
       </div>
     )

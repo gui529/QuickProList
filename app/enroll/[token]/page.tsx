@@ -1,4 +1,5 @@
 import { getInvitationByToken, isInvitationExpired } from '@/lib/invitations'
+import { getCuratedById } from '@/lib/kv'
 import EnrollClient from './EnrollClient'
 
 export default async function EnrollPage({ params }: { params: Promise<{ token: string }> }) {
@@ -27,5 +28,13 @@ export default async function EnrollPage({ params }: { params: Promise<{ token: 
     )
   }
 
-  return <EnrollClient invitation={invitation} token={token} />
+  // Once payment succeeds, `checkout.session.completed` links the invitation
+  // to its `curated_businesses` row — fetch that row's `dashboard_token` so
+  // the success view can offer a direct dashboard link as a redundant path
+  // alongside the welcome email (email delivery isn't guaranteed). See #41.
+  const dashboardToken = invitation.curated_business_id
+    ? (await getCuratedById(invitation.curated_business_id))?.dashboardToken ?? null
+    : null
+
+  return <EnrollClient invitation={invitation} token={token} dashboardToken={dashboardToken} />
 }
