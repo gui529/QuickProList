@@ -30,6 +30,7 @@ function makeBusiness(overrides: Partial<BusinessDashboardData> = {}): BusinessD
     phoneClicks: 7,
     websiteClicks: 3,
     directionsClicks: 1,
+    searchImpressions: 158,
     ...overrides,
   }
 }
@@ -100,6 +101,8 @@ describe('BusinessDashboardPage', () => {
 
     expect(text).toContain('Acme Plumbing')
     expect(text).toContain('Active subscription')
+    expect(text).toContain('Search appearances')
+    expect(text).toContain('158')
     expect(text).toContain('42')
     expect(text).toContain('7')
     expect(text).toContain('3')

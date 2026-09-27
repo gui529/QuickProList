@@ -159,6 +159,7 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       phone_clicks: 4,
       website_clicks: 2,
       directions_clicks: 1,
+      search_impressions: 25,
     }
 
     const result = await getCuratedByDashboardToken('good-token')
@@ -173,6 +174,7 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       phoneClicks: 4,
       websiteClicks: 2,
       directionsClicks: 1,
+      searchImpressions: 25,
     })
   })
 
@@ -192,6 +194,7 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       phoneClicks: 0,
       websiteClicks: 0,
       directionsClicks: 0,
+      searchImpressions: 0,
     })
   })
 

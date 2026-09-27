@@ -78,6 +78,7 @@ export default async function BusinessDashboardPage({
           Lifetime stats
         </span>
         <div className="flex flex-wrap gap-4">
+          <StatCard label="Search appearances" value={business.searchImpressions} />
           <StatCard label="Profile views" value={business.profileViews} />
           <StatCard label="Phone clicks" value={business.phoneClicks} />
           <StatCard label="Website clicks" value={business.websiteClicks} />

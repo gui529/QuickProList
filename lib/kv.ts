@@ -128,6 +128,7 @@ export interface BusinessDashboardData {
   phoneClicks: number
   websiteClicks: number
   directionsClicks: number
+  searchImpressions: number
 }
 
 /**
@@ -159,6 +160,7 @@ export async function getCuratedByDashboardToken(
     phoneClicks: row.phone_clicks ?? 0,
     websiteClicks: row.website_clicks ?? 0,
     directionsClicks: row.directions_clicks ?? 0,
+    searchImpressions: row.search_impressions ?? 0,
   }
 }
 

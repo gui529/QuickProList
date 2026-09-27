@@ -164,6 +164,7 @@ export async function getCuratedByDashboardToken(
     phoneClicks: row.phone_clicks,
     websiteClicks: row.website_clicks,
     directionsClicks: row.directions_clicks,
+    searchImpressions: row.search_impressions,
   }
 }
 
