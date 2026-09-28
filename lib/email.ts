@@ -31,9 +31,16 @@ interface ComplianceFooter {
   headers: Record<string, string>
 }
 
+/** Throws if marketing email can't be sent compliantly; call before doing any per-recipient work. */
+export function assertMarketingEmailConfigured(): void {
+  if (!process.env.MAILING_ADDRESS) {
+    throw new Error('MAILING_ADDRESS not configured (required for marketing email)')
+  }
+}
+
 function marketingCompliance(to: string, reason: string): ComplianceFooter {
-  const address = process.env.MAILING_ADDRESS
-  if (!address) throw new Error('MAILING_ADDRESS not configured (required for marketing email)')
+  assertMarketingEmailConfigured()
+  const address = process.env.MAILING_ADDRESS as string
   const url = buildUnsubscribeUrl(to)
   return {
     html: `${escapeHtml(reason)}<br/>

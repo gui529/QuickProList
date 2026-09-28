@@ -38,7 +38,7 @@ describe('POST /api/resend/webhook', () => {
     expect(addMock).toHaveBeenCalledWith('email', 'a@example.com', 'complaint')
   })
 
-  it('suppresses permanent bounces but not transient ones', async () => {
+  it('suppresses non-transient bounces but not transient ones', async () => {
     verifyMock.mockReturnValue({
       type: 'email.bounced',
       data: { to: ['a@example.com'], bounce: { type: 'Permanent' } },

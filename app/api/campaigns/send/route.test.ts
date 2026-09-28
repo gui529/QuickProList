@@ -12,7 +12,15 @@ vi.mock('@/lib/auth', () => ({
 }))
 vi.mock('@/lib/campaigns', () => ({ recordContact: recordMock, DEFAULT_MESSAGE: 'default' }))
 vi.mock('@/lib/email', () => ({ sendEmail: sendEmailMock }))
-vi.mock('@/lib/invitations', () => ({ createInvitation: vi.fn(async () => 'tok') }))
+const { createInvitationMock, isSuppressedMock } = vi.hoisted(() => ({
+  createInvitationMock: vi.fn(async () => 'tok'),
+  isSuppressedMock: vi.fn<(c: string, v: string) => Promise<boolean>>(async () => false),
+}))
+vi.mock('@/lib/invitations', () => ({ createInvitation: createInvitationMock }))
+vi.mock('@/lib/suppressions', async (orig) => ({
+  ...(await orig<typeof import('@/lib/suppressions')>()),
+  isSuppressed: isSuppressedMock,
+}))
 vi.mock('@/lib/sms', async (orig) => ({
   ...(await orig<typeof import('@/lib/sms')>()),
   sendSms: sendSmsMock,
@@ -34,6 +42,20 @@ describe('POST /api/campaigns/send opt-out handling', () => {
     sendSmsMock.mockReset()
     sendEmailMock.mockReset()
     recordMock.mockClear()
+    createInvitationMock.mockClear()
+    isSuppressedMock.mockReset()
+    isSuppressedMock.mockResolvedValue(false)
+  })
+
+  it('does not create an enrollment invitation for an already-opted-out email', async () => {
+    isSuppressedMock.mockResolvedValue(true)
+    const res = await POST(
+      post({ channel: 'email', businessName: 'Biz', email: 'A@Example.com', category: 'plumbers', city: 'Acworth' })
+    )
+    expect(res.status).toBe(409)
+    expect(isSuppressedMock).toHaveBeenCalledWith('email', 'a@example.com')
+    expect(createInvitationMock).not.toHaveBeenCalled()
+    expect(sendEmailMock).not.toHaveBeenCalled()
   })
 
   it('returns 409 and logs nothing when the email recipient opted out', async () => {

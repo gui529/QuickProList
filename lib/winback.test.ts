@@ -4,7 +4,12 @@ const { sendEmailMock } = vi.hoisted(() => ({
   sendEmailMock: vi.fn().mockResolvedValue('email_123'),
 }))
 
-vi.mock('./email', () => ({ sendEmail: sendEmailMock }))
+const { isSuppressedMock } = vi.hoisted(() => ({ isSuppressedMock: vi.fn<(c: string, v: string) => Promise<boolean>>(async () => false) }))
+vi.mock('./email', () => ({ sendEmail: sendEmailMock, assertMarketingEmailConfigured: vi.fn() }))
+vi.mock('./suppressions', async (orig) => ({
+  ...(await orig<typeof import('./suppressions')>()),
+  isSuppressed: isSuppressedMock,
+}))
 
 // lib/reports.ts hits live Supabase directly; swap it for the in-memory
 // test double (which itself composes lib/kv.test-double +
@@ -140,10 +145,7 @@ describe('sendWinbackEmails (lib/winback.ts)', () => {
     }
     seedCurated({ ...expired, id: 'biz-optout', name: 'Opted Out', contact_email: 'no@example.com' })
     seedCurated({ ...expired, id: 'biz-ok', name: 'Fine Co', contact_email: 'ok@example.com' })
-    sendEmailMock.mockImplementation(async (to: string) => {
-      if (to === 'no@example.com') throw new SuppressedError('email', to)
-      return 'email_123'
-    })
+    isSuppressedMock.mockImplementation(async (_c, v) => v === 'no@example.com')
 
     const results = await sendWinbackEmails()
     expect(results.map((r) => r.businessId)).toEqual(['biz-ok'])
@@ -151,7 +153,20 @@ describe('sendWinbackEmails (lib/winback.ts)', () => {
     sendEmailMock.mockClear()
     expect(await sendWinbackEmails()).toEqual([])
     expect(sendEmailMock).not.toHaveBeenCalled()
-    sendEmailMock.mockReset()
-    sendEmailMock.mockResolvedValue('email_123')
+    isSuppressedMock.mockReset()
+    isSuppressedMock.mockResolvedValue(false)
+  })
+
+  it('also skips when the send itself reports the recipient as suppressed (race)', async () => {
+    seedCurated({
+      id: 'biz-race',
+      name: 'Race Co',
+      category: 'plumbers',
+      is_trial: true,
+      trial_ends_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      contact_email: 'race@example.com',
+    })
+    sendEmailMock.mockRejectedValueOnce(new SuppressedError('email', 'race@example.com'))
+    expect(await sendWinbackEmails()).toEqual([])
   })
 })

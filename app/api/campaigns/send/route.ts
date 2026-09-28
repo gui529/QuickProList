@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AuthError, requireAdmin } from '@/lib/auth'
 import { recordContact, DEFAULT_MESSAGE } from '@/lib/campaigns'
 import { sendSms, normalizePhone, SmsDisabledError } from '@/lib/sms'
-import { SuppressedError } from '@/lib/suppressions'
+import { SuppressedError, isSuppressed, normalizeEmail } from '@/lib/suppressions'
 import { sendEmail } from '@/lib/email'
 import { createInvitation } from '@/lib/invitations'
 
@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
   }
 
   const messageBody = message?.trim() || DEFAULT_MESSAGE
+
+  if (channel === 'email' && (await isSuppressed('email', normalizeEmail(email!)))) {
+    return NextResponse.json(
+      { error: 'Recipient has opted out and cannot be contacted' },
+      { status: 409 }
+    )
+  }
 
   let messageSid: string | undefined
   let status: 'sent' | 'failed' = 'sent'

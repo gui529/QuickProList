@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { addSuppression, normalizeEmail } from '@/lib/suppressions'
 
 /**
- * Resend webhook: permanent bounces and spam complaints go on the
+ * Resend webhook: non-transient bounces and spam complaints go on the
  * do-not-contact list so we never mail those addresses again. In the Resend
  * dashboard subscribe to `email.bounced` and `email.complained`, point it at
  * {SITE_URL}/api/resend/webhook, and set RESEND_WEBHOOK_SECRET.
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   if (event.type === 'email.complained') {
     for (const to of event.data.to) await addSuppression('email', normalizeEmail(to), 'complaint')
-  } else if (event.type === 'email.bounced' && event.data.bounce.type === 'Permanent') {
+  } else if (event.type === 'email.bounced' && event.data.bounce.type !== 'Transient') {
     for (const to of event.data.to) await addSuppression('email', normalizeEmail(to), 'bounce')
   }
   return NextResponse.json({ ok: true })
