@@ -1,5 +1,6 @@
 import { getBusinessReports } from './reports'
 import { sendDigestEmail } from './email'
+import { SuppressedError } from './suppressions'
 
 export interface DigestSendResult {
   businessId: string
@@ -28,13 +29,19 @@ export async function sendPerformanceDigests(): Promise<DigestSendResult[]> {
   const results: DigestSendResult[] = []
   for (const r of eligible) {
     const contactEmail = r.contact_email as string
-    const emailId = await sendDigestEmail(contactEmail, r.name, {
-      searchImpressions: r.search_impressions,
-      profileViews: r.profile_views,
-      phoneClicks: r.phone_clicks,
-      websiteClicks: r.website_clicks,
-      directionsClicks: r.directions_clicks,
-    })
+    let emailId: string
+    try {
+      emailId = await sendDigestEmail(contactEmail, r.name, {
+        searchImpressions: r.search_impressions,
+        profileViews: r.profile_views,
+        phoneClicks: r.phone_clicks,
+        websiteClicks: r.website_clicks,
+        directionsClicks: r.directions_clicks,
+      })
+    } catch (err) {
+      if (err instanceof SuppressedError) continue
+      throw err
+    }
     results.push({ businessId: r.id, contactEmail, emailId })
   }
   return results

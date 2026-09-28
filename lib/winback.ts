@@ -2,6 +2,7 @@ import { getBusinessReports, type BusinessReport } from './reports'
 import { sendEmail } from './email'
 import { createInvitation } from './invitations'
 import { setWinbackSent } from './kv'
+import { SuppressedError } from './suppressions'
 
 export interface WinbackSendResult {
   businessId: string
@@ -59,9 +60,18 @@ export async function sendWinbackEmails(): Promise<WinbackSendResult[]> {
     })
     const enrollUrl = `${siteUrl}/enroll/${token}`
 
-    const emailId = await sendEmail(contactEmail, report.name, composeWinbackMessage(report), {
-      enrollUrl,
-    })
+    let emailId: string
+    try {
+      emailId = await sendEmail(contactEmail, report.name, composeWinbackMessage(report), {
+        enrollUrl,
+      })
+    } catch (err) {
+      if (err instanceof SuppressedError) {
+        await setWinbackSent(report.id)
+        continue
+      }
+      throw err
+    }
     await setWinbackSent(report.id)
     results.push({ businessId: report.id, contactEmail, emailId })
   }

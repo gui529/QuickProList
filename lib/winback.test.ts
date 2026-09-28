@@ -26,6 +26,7 @@ vi.mock('./invitations', async () => {
 })
 
 import { sendWinbackEmails } from './winback'
+import { SuppressedError } from './suppressions'
 import { __reset as resetCurated, __seed as seedCurated, __all as allCurated } from './kv.test-double'
 import { __reset as resetInvitations, __seed as seedInvitation } from './invitations.test-double'
 
@@ -129,5 +130,28 @@ describe('sendWinbackEmails (lib/winback.ts)', () => {
 
     expect(results).toHaveLength(0)
     expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+
+  it('skips an opted-out business, never retries it, and keeps emailing the rest', async () => {
+    const expired = {
+      is_trial: true,
+      trial_ends_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      category: 'plumbers',
+    }
+    seedCurated({ ...expired, id: 'biz-optout', name: 'Opted Out', contact_email: 'no@example.com' })
+    seedCurated({ ...expired, id: 'biz-ok', name: 'Fine Co', contact_email: 'ok@example.com' })
+    sendEmailMock.mockImplementation(async (to: string) => {
+      if (to === 'no@example.com') throw new SuppressedError('email', to)
+      return 'email_123'
+    })
+
+    const results = await sendWinbackEmails()
+    expect(results.map((r) => r.businessId)).toEqual(['biz-ok'])
+
+    sendEmailMock.mockClear()
+    expect(await sendWinbackEmails()).toEqual([])
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    sendEmailMock.mockReset()
+    sendEmailMock.mockResolvedValue('email_123')
   })
 })

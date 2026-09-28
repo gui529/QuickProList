@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AuthError, requireAdmin } from '@/lib/auth'
 import { recordContact, DEFAULT_MESSAGE } from '@/lib/campaigns'
-import { sendSms, normalizePhone } from '@/lib/sms'
+import { sendSms, normalizePhone, SmsDisabledError } from '@/lib/sms'
+import { SuppressedError } from '@/lib/suppressions'
 import { sendEmail } from '@/lib/email'
 import { createInvitation } from '@/lib/invitations'
 
@@ -80,6 +81,20 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Refused sends are not attempts: don't log them as sent/failed contacts.
+    const refusal = (err: unknown) => {
+      if (err instanceof SuppressedError) {
+        return NextResponse.json(
+          { error: 'Recipient has opted out and cannot be contacted' },
+          { status: 409 }
+        )
+      }
+      if (err instanceof SmsDisabledError) {
+        return NextResponse.json({ error: err.message }, { status: 403 })
+      }
+      return null
+    }
+
     if (channel === 'sms') {
       const normalized = normalizePhone(phone!.trim())
       if (!normalized) {
@@ -92,6 +107,8 @@ export async function POST(req: NextRequest) {
       try {
         messageSid = await sendSms(normalized, messageBody)
       } catch (err) {
+        const refused = refusal(err)
+        if (refused) return refused
         status = 'failed'
         errorMessage = err instanceof Error ? err.message : String(err)
       }
@@ -104,6 +121,8 @@ export async function POST(req: NextRequest) {
           enrollUrl,
         })
       } catch (err) {
+        const refused = refusal(err)
+        if (refused) return refused
         status = 'failed'
         errorMessage = err instanceof Error ? err.message : String(err)
       }

@@ -1,4 +1,6 @@
 import { Resend } from 'resend'
+import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
+import { buildUnsubscribeUrl } from './unsubscribe'
 
 function escapeHtml(input: string): string {
   return input
@@ -15,7 +17,37 @@ function getClient() {
   return new Resend(key)
 }
 
+/**
+ * Marks mail the recipient did not ask for. `sendEmail` defaults to
+ * `'marketing'` so a caller that forgets to say gets the stricter behavior.
+ * Use `'transactional'` only for account/billing notices to an existing
+ * subscriber (payment failure, welcome) — those are never suppressed.
+ */
+export type EmailKind = 'marketing' | 'transactional'
+
+interface ComplianceFooter {
+  html: string
+  text: string
+  headers: Record<string, string>
+}
+
+function marketingCompliance(to: string, reason: string): ComplianceFooter {
+  const address = process.env.MAILING_ADDRESS
+  if (!address) throw new Error('MAILING_ADDRESS not configured (required for marketing email)')
+  const url = buildUnsubscribeUrl(to)
+  return {
+    html: `${escapeHtml(reason)}<br/>
+        <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a> &middot; ${escapeHtml(address)}`,
+    text: `\n\n${reason}\nUnsubscribe: ${url}\n${address}`,
+    headers: {
+      'List-Unsubscribe': `<${url}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  }
+}
+
 export interface SendEmailOptions {
+  kind?: EmailKind
   yelpId?: string
   category?: string
   city?: string
@@ -30,6 +62,16 @@ export async function sendEmail(
 ): Promise<string> {
   const from = process.env.RESEND_FROM_EMAIL
   if (!from) throw new Error('RESEND_FROM_EMAIL not configured')
+
+  let compliance: ComplianceFooter | null = null
+  if ((opts.kind ?? 'marketing') === 'marketing') {
+    const normalized = normalizeEmail(to)
+    if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
+    compliance = marketingCompliance(
+      to,
+      'You received this because your business appears on Yelp as a local service provider.'
+    )
+  }
 
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
   const searchUrl =
@@ -110,8 +152,11 @@ export async function sendEmail(
     <!-- Footer -->
     <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px">
       <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6">
-        You received this because your business appears on Yelp as a local service provider.
-        To stop receiving emails like this, simply reply with "unsubscribe" and we'll remove you immediately.
+        ${
+          compliance
+            ? compliance.html
+            : 'You received this because you have a QuickProList listing or account.'
+        }
       </p>
     </div>
 
@@ -125,7 +170,11 @@ export async function sendEmail(
     to,
     subject: `🏠 Feature ${businessName} on QuickProList — $29.99/mo`,
     html,
-    text: body + `\n\n${opts.enrollUrl ? `Get listed here: ${opts.enrollUrl}` : searchUrl ? `See listings in your area: ${searchUrl}` : `Visit us: ${siteUrl}`}`,
+    text:
+      body +
+      `\n\n${opts.enrollUrl ? `Get listed here: ${opts.enrollUrl}` : searchUrl ? `See listings in your area: ${searchUrl}` : `Visit us: ${siteUrl}`}` +
+      (compliance?.text ?? ''),
+    ...(compliance ? { headers: compliance.headers } : {}),
   })
   if (error) throw new Error(error.message)
   return data?.id ?? ''
@@ -162,6 +211,10 @@ export async function sendDigestEmail(
 ): Promise<string> {
   const from = process.env.RESEND_FROM_EMAIL
   if (!from) throw new Error('RESEND_FROM_EMAIL not configured')
+
+  const normalized = normalizeEmail(to)
+  if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
+  const compliance = marketingCompliance(to, 'You received this because your business has an active QuickProList listing.')
 
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
 
@@ -210,7 +263,7 @@ export async function sendDigestEmail(
     <!-- Footer -->
     <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px">
       <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6">
-        You received this because your business has an active QuickProList listing.
+        ${compliance.html}
       </p>
     </div>
 
@@ -224,7 +277,7 @@ export async function sendDigestEmail(
     ...DIGEST_STAT_ROWS.map(({ key, label }) => `${label}: ${stats[key]}`),
     '',
     `View QuickProList: ${siteUrl}`,
-  ].join('\n')
+  ].join('\n') + compliance.text
 
   const client = getClient()
   const { data, error } = await client.emails.send({
@@ -233,6 +286,7 @@ export async function sendDigestEmail(
     subject: `Your QuickProList performance digest — ${businessName}`,
     html,
     text,
+    headers: compliance.headers,
   })
   if (error) throw new Error(error.message)
   return data?.id ?? ''
