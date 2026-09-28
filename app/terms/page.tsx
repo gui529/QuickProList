@@ -137,7 +137,7 @@ export default function TermsPage() {
       <h2>9. Governing law</h2>
       <p>
         These Terms are governed by the laws of{' '}
-        <strong>[OWNER TO FILL — state of governing law]</strong>, without regard to conflict-of-law
+        <strong>the State of Georgia</strong>, without regard to conflict-of-law
         principles. <strong>[NEEDS COUNSEL — venue/arbitration clause, if desired.]</strong>
       </p>
 
