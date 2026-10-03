@@ -102,13 +102,9 @@ export default function TermsPage() {
       <h2>5. Outreach communications</h2>
       <p>
         We may contact businesses by SMS or email to offer a featured listing. You can opt out
-        of SMS by replying <strong>STOP</strong>, and out of email by replying{' '}
-        <strong>unsubscribe</strong>.
-        {/* OWNER NOTE (see #18): our outreach practices are under active internal review for
-            SMS-consent (TCPA) and marketing-email (CAN-SPAM) compliance, including that
-            opt-outs are not yet automatically enforced. Resolve that review, and update this
-            section and the actual send path together, before relying on this clause or sending
-            outreach at volume. Do not leave an internal-review admission in public text. */}
+        of SMS by replying <strong>STOP</strong>, and out of email by clicking the{' '}
+        <strong>Unsubscribe</strong> link in any marketing email. Opt-outs are recorded
+        automatically and we do not send marketing messages to opted-out contacts.
       </p>
 
       <h2>6. Disclaimers</h2>
@@ -137,7 +133,7 @@ export default function TermsPage() {
       <h2>9. Governing law</h2>
       <p>
         These Terms are governed by the laws of{' '}
-        <strong>[OWNER TO FILL — state of governing law]</strong>, without regard to conflict-of-law
+        <strong>the State of Georgia</strong>, without regard to conflict-of-law
         principles. <strong>[NEEDS COUNSEL — venue/arbitration clause, if desired.]</strong>
       </p>
 

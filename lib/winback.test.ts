@@ -4,7 +4,12 @@ const { sendEmailMock } = vi.hoisted(() => ({
   sendEmailMock: vi.fn().mockResolvedValue('email_123'),
 }))
 
-vi.mock('./email', () => ({ sendEmail: sendEmailMock }))
+const { isSuppressedMock } = vi.hoisted(() => ({ isSuppressedMock: vi.fn<(c: string, v: string) => Promise<boolean>>(async () => false) }))
+vi.mock('./email', () => ({ sendEmail: sendEmailMock, assertMarketingEmailConfigured: vi.fn() }))
+vi.mock('./suppressions', async (orig) => ({
+  ...(await orig<typeof import('./suppressions')>()),
+  isSuppressed: isSuppressedMock,
+}))
 
 // lib/reports.ts hits live Supabase directly; swap it for the in-memory
 // test double (which itself composes lib/kv.test-double +
@@ -26,6 +31,7 @@ vi.mock('./invitations', async () => {
 })
 
 import { sendWinbackEmails } from './winback'
+import { SuppressedError } from './suppressions'
 import { __reset as resetCurated, __seed as seedCurated, __all as allCurated } from './kv.test-double'
 import { __reset as resetInvitations, __seed as seedInvitation } from './invitations.test-double'
 
@@ -129,5 +135,38 @@ describe('sendWinbackEmails (lib/winback.ts)', () => {
 
     expect(results).toHaveLength(0)
     expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+
+  it('skips an opted-out business, never retries it, and keeps emailing the rest', async () => {
+    const expired = {
+      is_trial: true,
+      trial_ends_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      category: 'plumbers',
+    }
+    seedCurated({ ...expired, id: 'biz-optout', name: 'Opted Out', contact_email: 'no@example.com' })
+    seedCurated({ ...expired, id: 'biz-ok', name: 'Fine Co', contact_email: 'ok@example.com' })
+    isSuppressedMock.mockImplementation(async (_c, v) => v === 'no@example.com')
+
+    const results = await sendWinbackEmails()
+    expect(results.map((r) => r.businessId)).toEqual(['biz-ok'])
+
+    sendEmailMock.mockClear()
+    expect(await sendWinbackEmails()).toEqual([])
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    isSuppressedMock.mockReset()
+    isSuppressedMock.mockResolvedValue(false)
+  })
+
+  it('also skips when the send itself reports the recipient as suppressed (race)', async () => {
+    seedCurated({
+      id: 'biz-race',
+      name: 'Race Co',
+      category: 'plumbers',
+      is_trial: true,
+      trial_ends_at: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      contact_email: 'race@example.com',
+    })
+    sendEmailMock.mockRejectedValueOnce(new SuppressedError('email', 'race@example.com'))
+    expect(await sendWinbackEmails()).toEqual([])
   })
 })

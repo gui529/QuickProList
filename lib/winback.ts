@@ -1,7 +1,8 @@
 import { getBusinessReports, type BusinessReport } from './reports'
-import { sendEmail } from './email'
+import { assertMarketingEmailConfigured, sendEmail } from './email'
 import { createInvitation } from './invitations'
 import { setWinbackSent } from './kv'
+import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
 
 export interface WinbackSendResult {
   businessId: string
@@ -44,12 +45,17 @@ function composeWinbackMessage(report: BusinessReport): string {
 export async function sendWinbackEmails(): Promise<WinbackSendResult[]> {
   const reports = await getBusinessReports()
   const candidates = findUnconvertedExpiredTrials(reports)
+  if (candidates.length > 0) assertMarketingEmailConfigured()
 
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
 
   const results: WinbackSendResult[] = []
   for (const report of candidates) {
     const contactEmail = report.contact_email as string
+    if (await isSuppressed('email', normalizeEmail(contactEmail))) {
+      await setWinbackSent(report.id)
+      continue
+    }
     const token = await createInvitation({
       businessName: report.name,
       category: report.category,
@@ -59,9 +65,18 @@ export async function sendWinbackEmails(): Promise<WinbackSendResult[]> {
     })
     const enrollUrl = `${siteUrl}/enroll/${token}`
 
-    const emailId = await sendEmail(contactEmail, report.name, composeWinbackMessage(report), {
-      enrollUrl,
-    })
+    let emailId: string
+    try {
+      emailId = await sendEmail(contactEmail, report.name, composeWinbackMessage(report), {
+        enrollUrl,
+      })
+    } catch (err) {
+      if (err instanceof SuppressedError) {
+        await setWinbackSent(report.id)
+        continue
+      }
+      throw err
+    }
     await setWinbackSent(report.id)
     results.push({ businessId: report.id, contactEmail, emailId })
   }

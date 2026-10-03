@@ -117,12 +117,9 @@ export default function PrivacyPage() {
         email to invite them to a paid listing. When we do, we record the business name, phone
         number and/or email address, the message sent, and delivery status in a{' '}
         <code>campaign_contacts</code> table, as a log of who was contacted.
-        {/* OWNER NOTE (see #18): as of this draft, opt-out requests (SMS "STOP" replies, email
-            "unsubscribe" replies) are handled manually and are NOT automatically recorded or
-            checked against before future sends. Do not represent this system as automatically
-            enforcing opt-outs until a suppression list is actually built and wired into the
-            send path; doing so before then would misstate what the code does. Update this
-            paragraph once that's in place. */}
+        We keep a separate do-not-contact list of email addresses and phone numbers that have
+        opted out, bounced, or reported our messages as spam, and check it before every
+        marketing message so we do not contact them again.
       </p>
 
       <h3>2.5 Admin accounts</h3>
@@ -175,11 +172,11 @@ export default function PrivacyPage() {
       <ul>
         <li>
           <strong>Businesses contacted by SMS:</strong> reply <strong>STOP</strong> to any text
-          to opt out of future messages.
+          to opt out of future messages. Your opt-out is recorded automatically.
         </li>
         <li>
-          <strong>Businesses contacted by email:</strong> reply <strong>unsubscribe</strong> to
-          any email to opt out of future messages.
+          <strong>Businesses contacted by email:</strong> click the <strong>Unsubscribe</strong>{' '}
+          link at the bottom of any marketing email. Your opt-out is recorded automatically.
         </li>
         <li>
           <strong>Subscribed businesses:</strong> you can cancel your subscription at any time

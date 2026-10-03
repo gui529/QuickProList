@@ -161,7 +161,8 @@ export async function POST(req: NextRequest) {
           await sendEmail(
             contactEmail,
             invitation.business_name,
-            `You're live on QuickProList! Track your profile views and clicks anytime from your dashboard: ${dashboardUrl}`
+            `You're live on QuickProList! Track your profile views and clicks anytime from your dashboard: ${dashboardUrl}`,
+            { kind: 'transactional' }
           )
         }
       }
@@ -188,7 +189,8 @@ export async function POST(req: NextRequest) {
             await sendEmail(
               business.contactEmail,
               business.name,
-              "We weren't able to process your most recent QuickProList payment. Please update your payment method to keep your listing live."
+              "We weren't able to process your most recent QuickProList payment. Please update your payment method to keep your listing live.",
+              { kind: 'transactional' }
             )
           }
         }

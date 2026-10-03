@@ -8,13 +8,27 @@ vi.mock('resend', () => ({
   },
 }))
 
-import { sendEmail } from './email'
+const isSuppressedMock = vi.hoisted(() => vi.fn(async () => false))
+
+vi.mock('./suppressions', async (orig) => ({
+  ...(await orig<typeof import('./suppressions')>()),
+  isSuppressed: isSuppressedMock,
+}))
+
+import { sendEmail, sendDigestEmail } from './email'
+import { SuppressedError } from './suppressions'
+import { verifyUnsubscribeToken } from './unsubscribe'
 
 describe('sendEmail (lib/email.ts)', () => {
   beforeEach(() => {
     sendMock.mockClear()
     process.env.RESEND_API_KEY = 'test_key'
     process.env.RESEND_FROM_EMAIL = 'noreply@example.com'
+    process.env.MAILING_ADDRESS = '1 Main St, Acworth, GA 30102'
+    process.env.UNSUBSCRIBE_SECRET = 'test-unsub-secret'
+    process.env.SITE_URL = 'https://example.test'
+    isSuppressedMock.mockReset()
+    isSuppressedMock.mockResolvedValue(false)
   })
 
   it('escapes HTML-unsafe characters in businessName and body lines before interpolating into the HTML email', async () => {
@@ -41,5 +55,79 @@ describe('sendEmail (lib/email.ts)', () => {
 
     const call = sendMock.mock.calls[0][0]
     expect(call.text).toContain(body)
+  })
+
+  describe('marketing compliance', () => {
+    it('adds a working one-click unsubscribe link, headers and postal address', async () => {
+      await sendEmail('Owner@Example.com', 'Biz', 'Hello')
+
+      const call = sendMock.mock.calls[0][0] as {
+        html: string
+        text: string
+        headers: Record<string, string>
+      }
+      const listUnsub = call.headers['List-Unsubscribe']
+      const url = listUnsub.slice(1, -1)
+      expect(call.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
+      expect(url.startsWith('https://example.test/api/unsubscribe?token=')).toBe(true)
+      expect(verifyUnsubscribeToken(decodeURIComponent(url.split('token=')[1]))).toBe(
+        'owner@example.com'
+      )
+      expect(call.html).toContain('Unsubscribe')
+      expect(call.html).toContain('1 Main St, Acworth, GA 30102')
+      expect(call.text).toContain(url)
+      expect(call.text).toContain('1 Main St, Acworth, GA 30102')
+    })
+
+    it('refuses to send to a suppressed address (case-insensitive)', async () => {
+      isSuppressedMock.mockResolvedValue(true)
+
+      await expect(sendEmail('Owner@Example.com', 'Biz', 'Hello')).rejects.toBeInstanceOf(
+        SuppressedError
+      )
+      expect(isSuppressedMock).toHaveBeenCalledWith('email', 'owner@example.com')
+      expect(sendMock).not.toHaveBeenCalled()
+    })
+
+    it('refuses to send marketing email when no postal address is configured', async () => {
+      delete process.env.MAILING_ADDRESS
+
+      await expect(sendEmail('owner@example.com', 'Biz', 'Hello')).rejects.toThrow(/MAILING_ADDRESS/)
+      expect(sendMock).not.toHaveBeenCalled()
+    })
+
+    it('does not suppress or require an address for transactional email', async () => {
+      isSuppressedMock.mockResolvedValue(true)
+      delete process.env.MAILING_ADDRESS
+
+      await sendEmail('owner@example.com', 'Biz', 'Payment failed', { kind: 'transactional' })
+
+      expect(isSuppressedMock).not.toHaveBeenCalled()
+      expect(sendMock).toHaveBeenCalledTimes(1)
+      const call = sendMock.mock.calls[0][0] as { headers?: unknown }
+      expect(call.headers).toBeUndefined()
+    })
+
+    it('applies the same suppression and footer to the performance digest', async () => {
+      const stats = {
+        searchImpressions: 1,
+        profileViews: 2,
+        phoneClicks: 3,
+        websiteClicks: 4,
+        directionsClicks: 5,
+      }
+
+      await sendDigestEmail('owner@example.com', 'Biz', stats)
+      const call = sendMock.mock.calls[0][0] as { headers: Record<string, string>; html: string }
+      expect(call.headers['List-Unsubscribe']).toBeDefined()
+      expect(call.html).toContain('Unsubscribe')
+
+      sendMock.mockClear()
+      isSuppressedMock.mockResolvedValue(true)
+      await expect(sendDigestEmail('owner@example.com', 'Biz', stats)).rejects.toBeInstanceOf(
+        SuppressedError
+      )
+      expect(sendMock).not.toHaveBeenCalled()
+    })
   })
 })
