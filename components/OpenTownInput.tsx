@@ -55,26 +55,38 @@ export default function OpenTownInput({ value, onChange, onSubmit, onPick, place
   }
 
   return (
-    <div ref={wrapRef} className="relative flex-1 min-w-0">
-      <input
-        type="text"
-        autoComplete="off"
-        aria-label="Town"
-        placeholder={placeholder ?? 'Choose your town'}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value)
-          setHighlight(0)
+    <div ref={wrapRef} className="relative">
+      <div className="flex h-11 items-center gap-2 rounded-[10px] bg-[rgba(118,118,128,0.12)] px-3">
+        <svg viewBox="0 0 24 24" className="h-[17px] w-[17px] shrink-0 text-[rgba(60,60,67,0.6)]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <input
+          type="text"
+          autoComplete="off"
+          aria-label="Town"
+          placeholder={placeholder ?? 'City'}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value)
+            setHighlight(0)
+            setOpen(true)
+          }}
+          onFocus={(e) => {
+          if (e.currentTarget.dataset.quiet) {
+            delete e.currentTarget.dataset.quiet
+            return
+          }
           setOpen(true)
         }}
-        onFocus={() => setOpen(true)}
-        onKeyDown={handleKey}
-        className="w-full bg-transparent py-3.5 sm:py-4 text-base text-slate-900 placeholder-slate-400 focus:outline-none"
-      />
+          onKeyDown={handleKey}
+          className="min-w-0 flex-1 bg-transparent text-[17px] leading-[22px] text-black placeholder:text-[rgba(60,60,67,0.6)] focus:outline-none"
+        />
+      </div>
       {open && towns.length > 0 && (
         <ul
           aria-label="Towns we serve"
-          className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl ring-1 ring-slate-200 shadow-lg z-30 max-h-64 overflow-y-auto py-1"
+          className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-[10px] bg-white"
         >
           {towns.map((t, i) => (
             <li key={t.slug}>
@@ -83,8 +95,8 @@ export default function OpenTownInput({ value, onChange, onSubmit, onPick, place
                 onMouseEnter={() => setHighlight(i)}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(t.name)}
-                className={`w-full text-left px-4 py-2 text-sm ${
-                  i === highlight ? 'bg-amber-50 text-slate-900' : 'text-slate-700'
+                className={`min-h-11 w-full px-4 text-left text-[17px] leading-[22px] text-black ${
+                  i === highlight ? 'bg-[rgba(118,118,128,0.12)]' : ''
                 }`}
               >
                 {t.name}

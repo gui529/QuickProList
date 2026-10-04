@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { isHomeownerPath } from '@/components/HomeownerShell'
 
 function Logo() {
   return (
@@ -23,6 +24,7 @@ function Logo() {
 
 export default function Navbar() {
   const path = usePathname()
+  if (isHomeownerPath(path)) return null
 
   const links = [
     { href: '/', label: 'Search' },

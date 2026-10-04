@@ -72,7 +72,9 @@ describe('HomePage copy', () => {
   it('does not make trust, vetting, or ranking claims in the empty state', () => {
     render(<HomePage />)
 
-    expect(screen.getByText(/find pros in your city/i)).toBeDefined()
+    expect(screen.getByRole('heading', { name: 'QuickProList' })).toBeDefined()
+    expect(screen.queryByText(/the right hand/i)).toBeNull()
+    expect(screen.queryByText(/find local pros/i)).toBeNull()
     expectNoBannedClaims()
   })
 
@@ -82,9 +84,11 @@ describe('HomePage copy', () => {
 
     await waitFor(() => expect(screen.getByText('Acme Plumbing')).toBeDefined())
 
-    expect(screen.getByRole('heading', { name: '2 Plumbers in Acworth' })).toBeDefined()
+    expect(screen.getByRole('heading', { name: 'Plumbers' })).toBeDefined()
+    expect(screen.getByText('Acworth')).toBeDefined()
     expect(document.body.textContent).not.toMatch(/\btop\b/i)
-    expect(screen.getByText(/12 Yelp reviews/)).toBeDefined()
+    expect(screen.getByText('Plumber · 4.5 (12)')).toBeDefined()
+    expect(screen.queryByText(/featured/i)).toBeNull()
     expectNoBannedClaims()
   })
 })
@@ -125,6 +129,15 @@ describe('HomePage open area', () => {
     await waitFor(() => expect(screen.getByText(/not open there yet/i)).toBeDefined())
     expect(fetch).not.toHaveBeenCalled()
     expect(screen.queryByText(/Plumbers in/)).toBeNull()
+  })
+
+  it('asks for a town when a trade is tapped with the city empty', () => {
+    render(<HomePage />)
+    fireEvent.click(screen.getByRole('button', { name: /plumbers/i }))
+
+    expect(screen.getByText(/choose your town first/i)).toBeDefined()
+    expect(screen.getByRole('heading', { name: 'QuickProList' })).toBeDefined()
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('does not search from a typed town outside the area', () => {

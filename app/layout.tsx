@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import Link from 'next/link'
 import './globals.css'
 import Navbar from '@/components/Navbar'
+import HomeownerShell from '@/components/HomeownerShell'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#fafaf8',
+  themeColor: '#F2F2F7',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -25,17 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Navbar />
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full flex-1 overflow-x-hidden">{children}</main>
-        <footer className="border-t border-gray-200/70 bg-white/60 backdrop-blur-sm">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:h-14 sm:py-0 flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] sm:text-xs text-gray-500">
-            <span>© {new Date().getFullYear()} QuickProList</span>
-            <div className="flex items-center gap-4">
-              <Link href="/privacy" className="hover:text-slate-900 transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
-              <span>Powered by Yelp Fusion</span>
-            </div>
-          </div>
-        </footer>
+        <HomeownerShell>{children}</HomeownerShell>
         <Analytics />
         <SpeedInsights />
       </body>

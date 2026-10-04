@@ -39,7 +39,7 @@ describe('BusinessCard contact-click tracking in search results', () => {
 
     render(<BusinessCard business={business} />)
 
-    fireEvent.click(screen.getByText('555-0100'))
+    fireEvent.click(screen.getByRole('link', { name: 'Call 555-0100' }))
 
     expect(fetch).toHaveBeenCalledWith(
       '/api/pro/11111111-1111-1111-1111-111111111111/click',
@@ -55,7 +55,7 @@ describe('BusinessCard contact-click tracking in search results', () => {
 
     render(<BusinessCard business={business} />)
 
-    fireEvent.click(screen.getByText('555-0100'))
+    fireEvent.click(screen.getByRole('link', { name: 'Call 555-0100' }))
 
     expect(fetch).not.toHaveBeenCalled()
   })
