@@ -7,7 +7,12 @@ export async function GET(req: NextRequest) {
   const next = safeRedirectPath(req.nextUrl.searchParams.get('next'), '/admin')
 
   if (!code) {
-    return NextResponse.redirect(new URL('/login?error=missing_code', req.url))
+    // Supabase reports an expired or already-used link as ?error_code=...&error_description=...
+    const reported =
+      req.nextUrl.searchParams.get('error_code') ??
+      req.nextUrl.searchParams.get('error_description') ??
+      'missing_code'
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(reported)}`, req.url))
   }
 
   // Build the redirect response first so we can attach session cookies directly to it.
