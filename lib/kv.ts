@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Business } from './yelp'
+import type { Business } from './business'
 
 const PHOTO_BUCKET = 'business-photos'
 
@@ -128,6 +128,7 @@ export async function getCurated(category: string, city: string): Promise<Busine
     .from('curated_businesses')
     .select('*')
     .eq('category', category)
+    .eq('source', 'manual')
     .contains('cities', [normalizeCity(city)])
     .is('delisted_at', null)
     .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
@@ -144,6 +145,7 @@ export async function getCuratedInArea(category: string, cities: string[]): Prom
     .from('curated_businesses')
     .select('*')
     .eq('category', category)
+    .eq('source', 'manual')
     .overlaps('cities', cities.map(normalizeCity))
     .is('delisted_at', null)
     .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)

@@ -7,7 +7,7 @@
 //
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
-import type { Business } from './yelp'
+import type { Business } from './business'
 import type { BusinessDashboardData, ContactClickType, ManualBusinessInput } from './kv'
 
 export function normalizeCity(input: string): string {
@@ -138,6 +138,7 @@ export async function getCurated(category: string, city: string): Promise<Busine
     .filter(
       (r) =>
         r.category === category &&
+        r.source === 'manual' &&
         r.cities.includes(normalizeCity(city)) &&
         !r.delisted_at &&
         (!r.trial_ends_at || new Date(r.trial_ends_at).getTime() > now)
@@ -153,6 +154,7 @@ export async function getCuratedInArea(category: string, cities: string[]): Prom
     .filter(
       (r) =>
         r.category === category &&
+        r.source === 'manual' &&
         r.cities.some((c) => wanted.includes(c)) &&
         !r.delisted_at &&
         (!r.trial_ends_at || new Date(r.trial_ends_at).getTime() > now)

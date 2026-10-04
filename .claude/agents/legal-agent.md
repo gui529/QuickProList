@@ -62,7 +62,7 @@ plainly in your output, every time, not just once in this file. Concretely:
 
 1. `git fetch origin && git checkout dev && git pull --ff-only origin dev`.
    Read the code relevant to the question — don't research or draft in a
-   vacuum. For a data-practice question, check `lib/kv.ts`, `lib/yelp.ts`,
+   vacuum. For a data-practice question, check `lib/kv.ts`, `lib/business.ts`,
    `lib/stripe.ts`, and the Supabase schema/migrations for what's actually
    collected/stored/displayed. For an outreach/messaging question, check
    `lib/invitations.ts` and the campaigns code under `app/admin/campaigns`

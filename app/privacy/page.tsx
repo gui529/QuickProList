@@ -65,16 +65,11 @@ export default function PrivacyPage() {
 
       <h3>2.2 Business listings shown in search results</h3>
       <p>
-        Search results combine two sources: (a) businesses we have &quot;curated&quot; —
-        stored in our own database — and (b) live results from the{' '}
-        <strong>Yelp Fusion API</strong>. For curated businesses sourced from Yelp, we store a
-        snapshot of Yelp-provided information (business name, phone, address, photo, rating,
-        review count, and category) in our database, together with the Yelp business ID.
-        {/* OWNER NOTE: our retention posture for this Yelp-sourced snapshot data is under
-            internal review for compliance with Yelp's API terms and may change (e.g. to store
-            only the Yelp business ID long-term and fetch display details live at request time).
-            Do not publish this internal-review status in the public policy text; update this
-            section to reflect the final posture once decided. */}
+        Search results are businesses we enter and store in our own database (name, phone,
+        address, photo, website, category, and the towns they serve). We do not pull live
+        listings from a third-party directory. Older records that were previously copied from
+        Yelp may still be stored until an admin removes them; those records are not shown in
+        homeowner search.
       </p>
       <p>
         If you submit your business through our &quot;List your business&quot; form, we store
@@ -82,17 +77,15 @@ export default function PrivacyPage() {
         message you include, so we can follow up about a listing.
       </p>
       <p>
-        For businesses we add manually (not sourced from Yelp), we store the information the
-        business or our admin team provides directly (name, phone, address, website, and
-        similar listing details).
+        For businesses we add manually, we store the information the business or our admin
+        team provides directly (name, phone, address, website, and similar listing details).
       </p>
 
       <h3>2.3 Business owners who subscribe to a featured listing</h3>
       <p>When a business subscribes to a paid featured listing, we collect and store:</p>
       <ul>
         <li>
-          Listing and enrollment details (business name, category, cities, price, and — if
-          sourced from Yelp — the Yelp snapshot described above) in our{' '}
+          Listing and enrollment details (business name, category, cities, and price) in our{' '}
           <code>enrollment_invitations</code> table.
         </li>
         <li>
@@ -113,7 +106,7 @@ export default function PrivacyPage() {
 
       <h3>2.4 Outreach / campaign contacts</h3>
       <p>
-        We sometimes contact businesses we find on Yelp (or that reach out to us) by SMS or
+        We sometimes contact businesses by SMS or
         email to invite them to a paid listing. When we do, we record the business name, phone
         number and/or email address, the message sent, and delivery status in a{' '}
         <code>campaign_contacts</code> table, as a log of who was contacted.
@@ -146,7 +139,6 @@ export default function PrivacyPage() {
       <h2>4. Who we share information with</h2>
       <p>We share information with the following service providers, each acting on our behalf:</p>
       <ul>
-        <li><strong>Yelp</strong> — source of business search data (we query, not share, your data with Yelp beyond standard API request metadata).</li>
         <li><strong>Stripe</strong> — payment processing and subscription billing.</li>
         <li><strong>Supabase</strong> — our database, file storage (business photos), and authentication provider.</li>
         <li><strong>Twilio</strong> — sends SMS outreach messages on our behalf.</li>
@@ -162,10 +154,9 @@ export default function PrivacyPage() {
       <p>
         We retain curated-listing and enrollment data for as long as a listing is active plus a
         reasonable period after cancellation for billing/records purposes. Campaign contact
-        records are retained as a log of outreach activity.
-        {/* OWNER NOTE: our retention posture for Yelp-sourced data specifically is under
-            internal review; see the note in section 2.2 above. Update this section once that
-            review concludes rather than leaving an internal-review admission in public text. */}
+        records are retained as a log of outreach activity. Older records previously copied
+        from Yelp stay in the database until an admin removes them, and are not shown in
+        homeowner search.
       </p>
 
       <h2>6. Your choices</h2>

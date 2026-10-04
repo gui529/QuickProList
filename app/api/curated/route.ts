@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  addCuratedFromYelp,
   addCuratedManual,
   listAllCurated,
   removeCurated,
@@ -9,7 +8,6 @@ import {
   updateProSiteEnabled,
   updateCuratedManual,
 } from '@/lib/kv'
-import { getBusinessById } from '@/lib/yelp'
 import { AuthError, requireAdmin } from '@/lib/auth'
 
 async function gate(): Promise<NextResponse | null> {
@@ -41,50 +39,32 @@ export async function POST(req: NextRequest) {
   if (denied) return denied
   const body = await req.json()
 
-  if (body.source === 'yelp') {
-    if (!body.business || !body.category || !body.city) {
-      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
-    }
-    try {
-      // Fetch detail endpoint to get website URL (not available in search results)
-      let business = body.business
-      const detail = await getBusinessById(business.id).catch(() => null)
-      if (detail?.websiteUrl) business = { ...business, websiteUrl: detail.websiteUrl }
-      await addCuratedFromYelp(business, body.category, [body.city])
-      return NextResponse.json({ ok: true })
-    } catch (err) {
-      console.error('addCuratedFromYelp failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to save'
-      return NextResponse.json({ error: msg }, { status: 500 })
-    }
+  if (body.source !== 'manual') {
+    return NextResponse.json({ error: 'Only manually entered pros can be added' }, { status: 400 })
   }
 
-  if (body.source === 'manual') {
-    const cities: string[] = Array.isArray(body.cities) ? body.cities : body.city ? [body.city] : []
-    if (!body.name || !body.category || cities.length === 0) {
-      return NextResponse.json({ error: 'name, category, and at least one city are required' }, { status: 400 })
-    }
-    try {
-      await addCuratedManual({
-        name: body.name,
-        phone: body.phone,
-        address: body.address,
-        websiteUrl: body.websiteUrl,
-        reviewUrl: body.reviewUrl,
-        imageUrl: body.imageUrl,
-        category: body.category,
-        cities,
-        categories: body.categories,
-      })
-      return NextResponse.json({ ok: true })
-    } catch (err) {
-      console.error('addCuratedManual failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to save'
-      return NextResponse.json({ error: msg }, { status: 500 })
-    }
+  const cities: string[] = Array.isArray(body.cities) ? body.cities : body.city ? [body.city] : []
+  if (!body.name || !body.category || cities.length === 0) {
+    return NextResponse.json({ error: 'name, category, and at least one city are required' }, { status: 400 })
   }
-
-  return NextResponse.json({ error: 'Invalid source' }, { status: 400 })
+  try {
+    await addCuratedManual({
+      name: body.name,
+      phone: body.phone,
+      address: body.address,
+      websiteUrl: body.websiteUrl,
+      reviewUrl: body.reviewUrl,
+      imageUrl: body.imageUrl,
+      category: body.category,
+      cities,
+      categories: body.categories,
+    })
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('addCuratedManual failed:', err)
+    const msg = err instanceof Error ? err.message : 'Failed to save'
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
 
 export async function PATCH(req: NextRequest) {

@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 interface Props {

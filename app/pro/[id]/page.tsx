@@ -3,28 +3,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getCuratedById, incrementProfileView } from '@/lib/kv'
-import { getBusinessById } from '@/lib/yelp'
-import type { Business, YelpHourPeriod } from '@/lib/yelp'
+import type { Business, HourPeriod } from '@/lib/business'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 export const dynamic = 'force-dynamic'
 
 async function loadBusiness(id: string): Promise<Business | null> {
-  let business: Business | null = await getCuratedById(id)
-  if (!business) {
-    business = await getBusinessById(id).catch(() => null)
-  } else if (business.yelpId) {
-    const yelpFull = await getBusinessById(business.yelpId).catch(() => null)
-    if (yelpFull) {
-      business = {
-        ...business,
-        hours: yelpFull.hours,
-        isOpenNow: yelpFull.isOpenNow,
-        price: yelpFull.price,
-        photos: yelpFull.photos,
-      }
-    }
-  }
+  const business = await getCuratedById(id)
+  if (!business || business.source !== 'manual') return null
   return business
 }
 
@@ -41,8 +27,8 @@ export async function generateMetadata({
 
   const title = `${business.name} | QuickProList`
   const description = business.address
-    ? `${business.name} — local pro serving ${business.address}. View hours, reviews, and contact info on QuickProList.`
-    : `${business.name} — local pro on QuickProList. View hours, reviews, and contact info.`
+    ? `${business.name} — local pro serving ${business.address}. View contact info on QuickProList.`
+    : `${business.name} — local pro on QuickProList. View contact info.`
 
   return {
     title,
@@ -117,10 +103,10 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
     ...(biz.imageUrl ? [biz.imageUrl] : []),
     ...(biz.photos ?? []),
   ].slice(0, 4)
-  const hours: YelpHourPeriod[] = biz.hours ?? []
-  // Yelp day: 0=Mon … 6=Sun; JS getDay(): 0=Sun … 6=Sat
-  const todayYelpDay = (new Date().getDay() + 6) % 7
-  const todayPeriods = hours.filter((p) => p.day === todayYelpDay)
+  const hours: HourPeriod[] = biz.hours ?? []
+  // Stored hours use 0=Mon … 6=Sun; JS getDay() uses 0=Sun … 6=Sat.
+  const todayIndex = (new Date().getDay() + 6) % 7
+  const todayPeriods = hours.filter((p) => p.day === todayIndex)
   const todayHoursStr =
     todayPeriods.length > 0
       ? todayPeriods.map((p) => `${formatTime(p.start)} – ${formatTime(p.end)}`).join(', ')
@@ -353,20 +339,10 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                   <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Rating</div>
                 </div>
               )}
-              {biz.reviewCount != null && (
+              {biz.reviewCount != null && biz.source !== 'manual' && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-1.5 px-5 py-5">
                   <div className="text-3xl font-extrabold text-slate-900 leading-none">{biz.reviewCount.toLocaleString()}</div>
-                  <a
-                    href={biz.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    Reviews on <span className="font-black text-[#FF1A1A]">Yelp</span>
-                    <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M7 17 17 7" /><path d="M8 7h9v9" />
-                    </svg>
-                  </a>
+                  <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Reviews</div>
                 </div>
               )}
               {biz.price && (
@@ -439,7 +415,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
             <div className="rounded-2xl overflow-hidden ring-1 ring-slate-200">
               {DAY_NAMES.map((name, dayIdx) => {
                 const periods = hours.filter((p) => p.day === dayIdx)
-                const isToday = dayIdx === todayYelpDay
+                const isToday = dayIdx === todayIndex
                 const isClosed = periods.length === 0
                 return (
                   <div
@@ -539,20 +515,6 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                   <path d="M7 17 17 7" /><path d="M8 7h9v9" />
                 </svg>
               </TrackedContactLink>
-            )}
-            {biz.url && (
-              <a href={biz.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
-                <div className="h-11 w-11 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-slate-300 flex items-center justify-center flex-shrink-0 transition-colors">
-                  <span className="text-[#FF1A1A] font-black text-sm">Y!</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-slate-400 font-medium mb-0.5">Reviews</p>
-                  <p className="text-slate-900 font-semibold">View on <span className="text-[#FF1A1A] font-black">Yelp</span></p>
-                </div>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M7 17 17 7" /><path d="M8 7h9v9" />
-                </svg>
-              </a>
             )}
           </div>
         </div>

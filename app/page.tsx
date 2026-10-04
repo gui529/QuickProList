@@ -7,7 +7,7 @@ import BusinessCard from '@/components/BusinessCard'
 import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
 import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
 

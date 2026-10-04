@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { Business } from './yelp'
+import type { Business } from './business'
 
 // Mock the Supabase client so we can test lib/kv.ts's real query-building
 // logic (not just the in-memory double) without a live Supabase project.
@@ -71,25 +71,25 @@ describe('addCuratedFromYelp (lib/kv.ts)', () => {
 
   it('stores every city passed in, not just the first, for a multi-city invitation', async () => {
     await addCuratedFromYelp(makeBusiness(), 'plumbing', [
-      'Austin, TX',
-      'Dallas, TX',
-      'Houston, TX',
+      'Acworth, GA',
+      'Kennesaw, GA',
+      'Marietta, GA',
     ])
 
     expect(upsertMock).toHaveBeenCalledTimes(1)
     const payload = upsertMock.mock.calls[0][0]
-    expect(payload.cities).toEqual(['austin', 'dallas', 'houston'])
+    expect(payload.cities).toEqual(['acworth', 'kennesaw', 'marietta'])
   })
 
   it('normalizes and de-dupes city names', async () => {
     await addCuratedFromYelp(makeBusiness(), 'plumbing', [
-      'Austin, TX',
-      'austin,  tx',
-      'Dallas, TX',
+      'Kennesaw, GA',
+      'kennesaw,  ga',
+      'Marietta, GA',
     ])
 
     const payload = upsertMock.mock.calls[0][0]
-    expect(payload.cities).toEqual(['austin', 'dallas'])
+    expect(payload.cities).toEqual(['kennesaw', 'marietta'])
   })
 
   it('throws when no valid city is provided', async () => {

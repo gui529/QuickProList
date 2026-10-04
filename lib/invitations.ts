@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Business } from './yelp'
+import type { Business } from './business'
 
 export interface EnrollmentInvitation {
   id: string

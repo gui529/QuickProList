@@ -4,105 +4,12 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { CATEGORIES } from '@/lib/categories'
 import { CATEGORY_IMAGES } from '@/lib/category-images'
-import CityAutocomplete from './CityAutocomplete'
 import CityMultiSelect from './CityMultiSelect'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 interface BaseProps {
   onClose: () => void
   onSaved: () => void
-}
-
-export function YelpSnapshotModal({
-  business,
-  defaultCity,
-  defaultCategory,
-  onClose,
-  onSaved,
-}: BaseProps & { business: Business; defaultCity: string; defaultCategory: string }) {
-  const [city, setCity] = useState(defaultCity)
-  const [category, setCategory] = useState(defaultCategory)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handleSave() {
-    if (!city.trim()) {
-      setError('City is required')
-      return
-    }
-    setSaving(true)
-    setError('')
-    const res = await fetch('/api/curated', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ source: 'yelp', business, category, city }),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? 'Failed to save')
-      return
-    }
-    onSaved()
-  }
-
-  return (
-    <ModalShell title="Save to Pinned Pros" onClose={onClose}>
-      <div className="flex gap-3 items-center">
-        {business.imageUrl && (
-          <div className="relative h-20 w-20 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-            <Image src={business.imageUrl} alt={business.name} fill className="object-cover" sizes="80px" />
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="font-semibold text-slate-900 truncate">{business.name}</p>
-          <p className="text-xs text-slate-500 truncate">{business.address}</p>
-          {business.rating != null && (
-            <p className="text-xs text-slate-600 mt-0.5">★ {business.rating.toFixed(1)} ({business.reviewCount ?? 0})</p>
-          )}
-        </div>
-      </div>
-
-      <Field label="Category">
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5 bg-white"
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-      </Field>
-
-      <Field label="City">
-        <div className="rounded-xl ring-1 ring-slate-200 px-3 focus-within:ring-2 focus-within:ring-amber-400">
-          <CityAutocomplete
-            value={city}
-            onChange={setCity}
-            placeholder="Acworth, GA"
-            className="w-full bg-transparent py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none"
-          />
-        </div>
-        <p className="text-xs text-slate-500 mt-1">Stored as lowercase first segment (e.g. &quot;acworth&quot;).</p>
-      </Field>
-
-      {error && <p className="text-sm text-rose-600">{error}</p>}
-
-      <ModalActions>
-        <button onClick={onClose} className="px-4 py-2 rounded-xl text-slate-700 hover:bg-slate-100">Cancel</button>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </ModalActions>
-    </ModalShell>
-  )
 }
 
 export function ManualBusinessModal({ onClose, onSaved }: BaseProps) {
@@ -194,11 +101,11 @@ export function ManualBusinessModal({ onClose, onSaved }: BaseProps) {
 
       <Field label="Cities served *">
         <CityMultiSelect value={cities} onChange={setCities} />
-        <p className="text-xs text-slate-500 mt-1">Add every city this pro serves. Each saved as lowercase first segment.</p>
+        <p className="text-xs text-slate-500 mt-1">Acworth, Kennesaw, Marietta, and Woodstock.</p>
       </Field>
 
       <Field label="Phone">
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
+        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(770) 555-1234" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
       </Field>
 
       <Field label="Address">
@@ -272,7 +179,7 @@ export function EditManualBusinessModal({
   business,
   onClose,
   onSaved,
-}: BaseProps & { business: import('@/lib/yelp').Business }) {
+}: BaseProps & { business: Business }) {
   const [name, setName] = useState(business.name)
   const [phone, setPhone] = useState(business.phone ?? '')
   const [address, setAddress] = useState(business.address ?? '')
@@ -359,7 +266,7 @@ export function EditManualBusinessModal({
       </Field>
 
       <Field label="Phone">
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
+        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(770) 555-1234" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
       </Field>
 
       <Field label="Address">

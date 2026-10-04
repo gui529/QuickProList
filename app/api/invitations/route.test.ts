@@ -73,7 +73,7 @@ describe('POST /api/invitations (trial path, multi-city)', () => {
       makeRequest({
         businessName: 'Acme Plumbing',
         category: 'plumbing',
-        cities: ['Austin, TX', 'Dallas, TX', 'Houston, TX'],
+        cities: ['Acworth, GA', 'Kennesaw, GA', 'Marietta, GA'],
         isTrial: true,
         trialDays: 14,
         yelpId: 'yelp-1',
@@ -93,13 +93,13 @@ describe('POST /api/invitations (trial path, multi-city)', () => {
 
     const curated = allCurated()
     expect(curated).toHaveLength(1)
-    expect(curated[0].cities).toEqual(['austin', 'dallas', 'houston'])
+    expect(curated[0].cities).toEqual(['acworth', 'kennesaw', 'marietta'])
 
     expect(createTrialInvitationMock).toHaveBeenCalledTimes(1)
     expect(createTrialInvitationMock.mock.calls[0][0].cities).toEqual([
-      'austin',
-      'dallas',
-      'houston',
+      'acworth',
+      'kennesaw',
+      'marietta',
     ])
   })
 })

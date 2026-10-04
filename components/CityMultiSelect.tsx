@@ -1,72 +1,46 @@
 'use client'
 
-import { useState } from 'react'
-import CityAutocomplete from './CityAutocomplete'
+import { formatTown, OPEN_TOWNS } from '@/lib/open-towns'
 
 interface Props {
   value: string[]
   onChange: (cities: string[]) => void
 }
 
-export default function CityMultiSelect({ value, onChange }: Props) {
-  const [draft, setDraft] = useState('')
+function citySlug(input: string): string {
+  return input.trim().toLowerCase().split(',')[0].trim()
+}
 
-  function addCity(city: string) {
-    const trimmed = city.trim()
-    if (!trimmed) return
-    if (value.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
-      setDraft('')
+export default function CityMultiSelect({ value, onChange }: Props) {
+  function toggle(slug: string, label: string) {
+    const selected = value.some((c) => citySlug(c) === slug)
+    if (selected) {
+      onChange(value.filter((c) => citySlug(c) !== slug))
       return
     }
-    onChange([...value, trimmed])
-    setDraft('')
-  }
-
-  function removeCity(city: string) {
-    onChange(value.filter((c) => c !== city))
+    onChange([...value, label])
   }
 
   return (
-    <div>
-      <div className="rounded-xl ring-1 ring-slate-200 px-3 focus-within:ring-2 focus-within:ring-amber-400 bg-white">
-        <CityAutocomplete
-          value={draft}
-          onChange={(v) => {
-            // When the autocomplete picks a value (sets the full "City, ST"), commit it.
-            // Heuristic: if the value contains a comma and didn't before, treat as picked.
-            if (v.includes(',') && !draft.includes(',')) {
-              addCity(v)
-            } else {
-              setDraft(v)
-            }
-          }}
-          onSubmit={() => addCity(draft)}
-          placeholder="Add a city, e.g. Acworth, GA"
-          className="w-full bg-transparent py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none"
-        />
-      </div>
-      {value.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {value.map((c) => (
-            <span
-              key={c}
-              className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 ring-1 ring-amber-200 text-xs font-medium px-2 py-1 rounded-full"
-            >
-              {c}
-              <button
-                type="button"
-                onClick={() => removeCity(c)}
-                aria-label={`Remove ${c}`}
-                className="hover:text-rose-600"
-              >
-                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
+    <div className="flex flex-wrap gap-2">
+      {OPEN_TOWNS.map((town) => {
+        const selected = value.some((c) => citySlug(c) === town.slug)
+        return (
+          <button
+            key={town.slug}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => toggle(town.slug, formatTown(town))}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium ring-1 transition-colors ${
+              selected
+                ? 'bg-amber-50 text-amber-900 ring-amber-300'
+                : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {town.name}
+          </button>
+        )
+      })}
     </div>
   )
 }
