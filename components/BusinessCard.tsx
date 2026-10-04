@@ -8,17 +8,6 @@ interface Props {
   highlighted?: boolean
 }
 
-function VerifiedBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 px-2 py-0.5 rounded-full">
-      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor">
-        <path d="M12 2 4 6v6c0 5 3.4 9.3 8 10 4.6-.7 8-5 8-10V6l-8-4Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 5.5-5.5 1.4 1.4-6.9 6.9Z" />
-      </svg>
-      Verified pro
-    </span>
-  )
-}
-
 function StarRating({ rating, count }: { rating: number; count: number }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -40,7 +29,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
         })}
       </div>
       <span className="text-sm font-semibold text-slate-900 tabular-nums">{rating.toFixed(1)}</span>
-      <span className="text-xs text-gray-500">({count.toLocaleString()})</span>
+      <span className="text-xs text-gray-500">({count.toLocaleString()} Yelp {count === 1 ? 'review' : 'reviews'})</span>
     </div>
   )
 }
@@ -76,7 +65,7 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
             <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor">
               <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
             </svg>
-            Top pick
+            Featured
           </span>
         )}
       </div>
@@ -100,9 +89,7 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
           </div>
         </div>
 
-        {business.source === 'manual' || business.rating == null ? (
-          <VerifiedBadge />
-        ) : (
+        {business.source !== 'manual' && business.rating != null && (
           <StarRating rating={business.rating} count={business.reviewCount ?? 0} />
         )}
 

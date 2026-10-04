@@ -1,8 +1,9 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
-const { getCuratedByIdMock, incrementContactClickMock } = vi.hoisted(() => ({
+const { getCuratedByIdMock, incrementContactClickMock, sendLeadAlertEmailMock } = vi.hoisted(() => ({
   getCuratedByIdMock: vi.fn(),
   incrementContactClickMock: vi.fn().mockResolvedValue(undefined),
+  sendLeadAlertEmailMock: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('@/lib/kv', async () => {
@@ -13,6 +14,10 @@ vi.mock('@/lib/kv', async () => {
     incrementContactClick: incrementContactClickMock,
   }
 })
+
+vi.mock('@/lib/lead-alerts', () => ({
+  sendLeadAlertEmail: sendLeadAlertEmailMock,
+}))
 
 import { POST } from './route'
 
@@ -32,6 +37,7 @@ describe('POST /api/pro/[id]/click', () => {
   beforeEach(() => {
     getCuratedByIdMock.mockReset()
     incrementContactClickMock.mockClear()
+    sendLeadAlertEmailMock.mockClear()
   })
 
   it('returns 200 and increments the counter for a valid type', async () => {
@@ -41,6 +47,10 @@ describe('POST /api/pro/[id]/click', () => {
 
     expect(res.status).toBe(200)
     expect(incrementContactClickMock).toHaveBeenCalledWith('biz-1', 'phone')
+    expect(sendLeadAlertEmailMock).toHaveBeenCalledWith(
+      { id: 'biz-1', name: 'Acme Plumbing' },
+      'phone'
+    )
   })
 
   it('returns 400 for an invalid type without incrementing', async () => {
@@ -50,6 +60,7 @@ describe('POST /api/pro/[id]/click', () => {
 
     expect(res.status).toBe(400)
     expect(incrementContactClickMock).not.toHaveBeenCalled()
+    expect(sendLeadAlertEmailMock).not.toHaveBeenCalled()
   })
 
   it('returns 404 for an unknown business id without incrementing', async () => {
@@ -59,5 +70,6 @@ describe('POST /api/pro/[id]/click', () => {
 
     expect(res.status).toBe(404)
     expect(incrementContactClickMock).not.toHaveBeenCalled()
+    expect(sendLeadAlertEmailMock).not.toHaveBeenCalled()
   })
 })

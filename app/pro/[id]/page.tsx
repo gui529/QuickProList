@@ -41,8 +41,8 @@ export async function generateMetadata({
 
   const title = `${business.name} | QuickProList`
   const description = business.address
-    ? `${business.name} — trusted local pro serving ${business.address}. View hours, reviews, and contact info on QuickProList.`
-    : `${business.name} — trusted local pro on QuickProList. View hours, reviews, and contact info.`
+    ? `${business.name} — local pro serving ${business.address}. View hours, reviews, and contact info on QuickProList.`
+    : `${business.name} — local pro on QuickProList. View hours, reviews, and contact info.`
 
   return {
     title,
@@ -594,7 +594,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
           </svg>
           Powered by QuickProList
         </Link>
-        <p className="text-white/20 text-xs">Find trusted home service pros in your area</p>
+        <p className="text-white/20 text-xs">Find home service pros in your area</p>
       </footer>
     </div>
   )

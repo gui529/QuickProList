@@ -87,7 +87,7 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
         <div className="bg-white rounded-3xl shadow-lg ring-1 ring-slate-200 p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Get Featured</h1>
-            <p className="text-slate-600">Join QuickProList&apos;s verified pro network</p>
+            <p className="text-slate-600">Get a featured listing on QuickProList</p>
           </div>
 
           <div className="space-y-6 mb-8">

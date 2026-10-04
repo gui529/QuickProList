@@ -136,6 +136,22 @@ export async function getCurated(category: string, city: string): Promise<Busine
   return (data as CuratedRow[]).map(rowToBusiness)
 }
 
+export async function getCuratedInArea(category: string, cities: string[]): Promise<Business[]> {
+  const supabase = getSupabase()
+  if (!supabase) return []
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('curated_businesses')
+    .select('*')
+    .eq('category', category)
+    .overlaps('cities', cities.map(normalizeCity))
+    .is('delisted_at', null)
+    .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
+    .order('created_at', { ascending: true })
+  if (error || !data) return []
+  return (data as CuratedRow[]).map(rowToBusiness)
+}
+
 export async function getCuratedById(id: string): Promise<Business | null> {
   const supabase = getSupabase()
   if (!supabase) return null

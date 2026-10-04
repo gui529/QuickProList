@@ -11,7 +11,7 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export const metadata: Metadata = {
   title: 'QuickProList — Find Local Home Services',
-  description: 'Search for trusted local plumbers, electricians, HVAC, and more in your area.',
+  description: 'Search for local plumbers, electricians, HVAC, and more in your area.',
 }
 
 export const viewport: Viewport = {

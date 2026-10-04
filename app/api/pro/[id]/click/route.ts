@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCuratedById, incrementContactClick, type ContactClickType } from '@/lib/kv'
+import { sendLeadAlertEmail } from '@/lib/lead-alerts'
 
 const VALID_TYPES: ContactClickType[] = ['phone', 'website', 'directions']
 
@@ -31,6 +32,11 @@ export async function POST(
   } catch (err) {
     console.error('incrementContactClick failed:', err)
   }
+
+  // Fire-and-forget: a slow or failed alert must not delay or fail the click.
+  void sendLeadAlertEmail(business, type as ContactClickType).catch((err) => {
+    console.error('sendLeadAlertEmail failed:', err)
+  })
 
   return NextResponse.json({ ok: true })
 }

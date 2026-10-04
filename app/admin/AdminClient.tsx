@@ -170,7 +170,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">Pinned Pros</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            User searches show pinned pros first, with Yelp filling up to 5 results.
+            User searches show pinned pros first, with Yelp filling up to 3 results.
           </p>
         </div>
         <div className="flex items-center gap-3">

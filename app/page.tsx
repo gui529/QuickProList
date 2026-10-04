@@ -4,8 +4,9 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
 import BusinessCard from '@/components/BusinessCard'
-import CityAutocomplete from '@/components/CityAutocomplete'
+import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
+import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
 import type { Business } from '@/lib/yelp'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
@@ -18,7 +19,7 @@ function loadSavedCity(): string {
       localStorage.removeItem(LOCATION_KEY)
       return ''
     }
-    return raw
+    return resolveOpenTown(raw) ? raw : ''
   } catch {
     return ''
   }
@@ -76,8 +77,13 @@ function HomePageInner() {
   async function runSearch(catValue: string, cityValue: string, highlight?: string) {
     setError('')
     setActiveCategory(catValue)
-    setLoading(true)
     setResults([])
+    if (!resolveOpenTown(cityValue)) {
+      setLoading(false)
+      setError(NOT_OPEN_MESSAGE)
+      return
+    }
+    setLoading(true)
     saveCity(cityValue)
 
     const params = new URLSearchParams({ category: catValue, location: cityValue })
@@ -91,7 +97,7 @@ function HomePageInner() {
     if (!res.ok) {
       setError(data.error ?? 'Something went wrong.')
     } else {
-      setResults(data.businesses.slice(0, 5))
+      setResults(data.businesses.slice(0, 3))
       setHighlightId(highlight ?? '')
     }
     setLoading(false)
@@ -101,7 +107,7 @@ function HomePageInner() {
     const trimmed = city.trim()
     if (!trimmed) {
       setActiveCategory(value)
-      setError('Type your city first — we’ll auto-search once you pick one.')
+      setError('Choose your town first — we’ll auto-search once you pick one.')
       cityWrapRef.current?.querySelector('input')?.focus()
       return
     }
@@ -117,10 +123,6 @@ function HomePageInner() {
         <div className="absolute inset-0 grid-dots opacity-60 pointer-events-none" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-16 sm:pt-14 sm:pb-20">
           <div className="flex flex-col items-center text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Trusted local pros
-            </span>
             <h1 className="mt-4 sm:mt-5 text-[28px] leading-[1.15] sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900 max-w-3xl px-2">
               The right hand for every{' '}
               <span className="relative inline-block whitespace-nowrap">
@@ -130,7 +132,7 @@ function HomePageInner() {
               .
             </h1>
             <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-500 max-w-xl px-2">
-              Plumbers, electricians, HVAC and more — find top-rated pros in your city in seconds.
+              Plumbers, electricians, HVAC and more — find pros in your city.
             </p>
 
             <div className="mt-6 sm:mt-8 w-full max-w-xl">
@@ -141,7 +143,7 @@ function HomePageInner() {
                     <circle cx="12" cy="10" r="3" />
                   </svg>
                 </span>
-                <CityAutocomplete
+                <OpenTownInput
                   value={city}
                   onChange={(v) => {
                     setCity(v)
@@ -160,7 +162,7 @@ function HomePageInner() {
                       void runSearch(activeCategory, picked)
                     }
                   }}
-                  placeholder="Start typing your city, e.g. Acworth"
+                  placeholder="Choose your town, e.g. Acworth"
                 />
               </div>
 
@@ -218,11 +220,8 @@ function HomePageInner() {
               <h3 className="text-sm font-semibold text-slate-900">
                 {loading
                   ? 'Searching nearby pros…'
-                  : `Top ${results.length} ${activeCat?.label ?? ''}`}
+                  : `${results.length} ${activeCat?.label ?? ''}${city ? ` in ${city}` : ''}`}
               </h3>
-              {!loading && city && (
-                <span className="text-xs text-slate-500">in {city}</span>
-              )}
             </div>
             {loading ? (
               <div className="flex flex-col gap-4">
@@ -256,9 +255,9 @@ function HomePageInner() {
         {!loading && results.length === 0 && (
           <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
-              { icon: '🛡️', title: 'Verified pros', body: 'Hand-picked, vetted local businesses.' },
-              { icon: '⚡', title: 'Fast results', body: 'Top-matched pros in under a second.' },
-              { icon: '📍', title: 'Local first', body: 'Pinned by city — not algorithmic noise.' },
+              { icon: '🔎', title: 'Find local pros', body: 'Search home-service businesses by city and category.' },
+              { icon: '⚡', title: 'Quick search', body: 'Pick a category to see businesses in your city.' },
+              { icon: '📍', title: 'Local results', body: 'Results are shown for the city you enter.' },
             ].map((f) => (
               <div key={f.title} className="bg-white/70 rounded-2xl ring-1 ring-slate-200 p-5">
                 <div className="text-2xl">{f.icon}</div>
