@@ -51,6 +51,7 @@ function makeBusiness(overrides: Partial<BusinessDashboardData> = {}): BusinessD
     websiteUrl: 'https://acme-plumbing.example',
     contactEmail: 'owner@acme-plumbing.example',
     reviewUrl: null,
+    proSiteEnabled: false,
     ...overrides,
   }
 }
@@ -83,6 +84,19 @@ function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): Enrollme
  * so their rendered output — not just their raw props — is included, since
  * this walks the element tree directly rather than through a renderer.
  */
+function hrefsOf(node: ReactNode): string[] {
+  if (node == null || typeof node === 'boolean') return []
+  if (typeof node === 'string' || typeof node === 'number') return []
+  if (Array.isArray(node)) return node.flatMap(hrefsOf)
+  const el = node as ReactElement<{ children?: ReactNode; href?: string }>
+  const hrefs = typeof el.props?.href === 'string' ? [el.props.href] : []
+  if (typeof el.type === 'function') {
+    return hrefs.concat(hrefsOf((el.type as (props: unknown) => ReactNode)(el.props)))
+  }
+  if (el.props?.children !== undefined) return hrefs.concat(hrefsOf(el.props.children))
+  return hrefs
+}
+
 function textOf(node: ReactNode): string {
   if (node == null || typeof node === 'boolean') return ''
   if (typeof node === 'string' || typeof node === 'number') return String(node)
@@ -153,6 +167,55 @@ describe('BusinessDashboardPage', () => {
     const result = await DashboardPage({ params: Promise.resolve({ token: 'good-token' }) })
 
     expect(textOf(result)).toContain('Trial')
+  })
+
+  it('renders the profile checklist and points unfinished steps at their edit controls', async () => {
+    getCuratedByDashboardTokenMock.mockResolvedValue(
+      makeBusiness({
+        websiteUrl: '',
+        contactEmail: null,
+        reviewUrl: null,
+        proSiteEnabled: false,
+      })
+    )
+
+    const result = await DashboardPage({ params: Promise.resolve({ token: 'good-token' }) })
+    const text = textOf(result)
+    const hrefs = hrefsOf(result)
+
+    expect(text).toContain('Profile completeness')
+    expect(text).toContain('0%')
+    expect(text).toContain('Website')
+    expect(text).toContain('Contact email')
+    expect(text).toContain('Review link')
+    expect(text).toContain('ProSite')
+    expect(text).not.toContain('Photo')
+    expect(text).not.toContain('About')
+    expect(hrefs).toEqual(expect.arrayContaining(['#website-url', '#contact-email', '#review-url']))
+    expect(hrefs).not.toContain('#pro-site')
+  })
+
+  it('marks finished profile steps complete and links only the ones still open', async () => {
+    getCuratedByDashboardTokenMock.mockResolvedValue(
+      makeBusiness({
+        websiteUrl: 'https://acme-plumbing.example',
+        contactEmail: 'owner@acme-plumbing.example',
+        reviewUrl: null,
+        proSiteEnabled: true,
+      })
+    )
+
+    const result = await DashboardPage({ params: Promise.resolve({ token: 'good-token' }) })
+    const text = textOf(result)
+    const hrefs = hrefsOf(result)
+
+    expect(text).toContain('75%')
+    expect(text).toContain('Website, complete')
+    expect(text).toContain('Contact email, complete')
+    expect(text).toContain('ProSite, complete')
+    expect(hrefs).toContain('#review-url')
+    expect(hrefs).not.toContain('#website-url')
+    expect(hrefs).not.toContain('#contact-email')
   })
 
   it('renders the self-serve edit form with the business\'s current values', async () => {
