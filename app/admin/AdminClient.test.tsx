@@ -3,6 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import AdminClient from './AdminClient'
 import type { EnrollmentInvitation } from '@/lib/invitations'
+import type { Business } from '@/lib/yelp'
+
+vi.mock('next/image', () => ({
+  default: () => null,
+}))
 
 function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): EnrollmentInvitation {
   return {
@@ -78,5 +83,66 @@ describe('AdminClient invitations tab badges', () => {
     // The one invitation that's genuinely still pending keeps the amber badge.
     const pendingBadge = screen.getByText('pending')
     expect(pendingBadge.className).toContain('bg-amber-50')
+  })
+})
+
+function makeBusiness(overrides: Partial<Business> & { id: string; name: string }): Business {
+  return {
+    source: 'manual',
+    rating: null,
+    reviewCount: null,
+    phone: '',
+    address: '',
+    imageUrl: '',
+    url: '',
+    categories: [],
+    ...overrides,
+  }
+}
+
+describe('AdminClient profile completeness', () => {
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  it('shows each pinned business\'s profile score so under-activated listings stand out', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: string | URL | Request) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url.startsWith('/api/curated')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              businesses: [
+                makeBusiness({ id: 'empty', name: 'Empty Pro' }),
+                makeBusiness({
+                  id: 'full',
+                  name: 'Full Pro',
+                  imageUrl: 'https://example.test/photo.jpg',
+                  websiteUrl: 'https://full.example',
+                  contactEmail: 'owner@full.example',
+                  reviewUrl: 'https://g.page/r/full/review',
+                  proSiteEnabled: true,
+                }),
+              ],
+            }),
+          } as Response)
+        }
+        return Promise.resolve({ ok: true, json: async () => ({}) } as Response)
+      })
+    )
+
+    render(<AdminClient adminEmail="admin@example.com" />)
+
+    const emptyScore = await screen.findByText('Profile 0%')
+    const fullScore = await screen.findByText('Profile 100%')
+
+    expect(emptyScore.className).toContain('bg-rose-50')
+    expect(emptyScore.getAttribute('title')).toContain('Website')
+    expect(emptyScore.getAttribute('title')).toContain('Photo')
+    expect(fullScore.className).toContain('bg-emerald-50')
+    expect(fullScore.getAttribute('title')).toBe('Profile complete')
   })
 })

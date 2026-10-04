@@ -162,6 +162,7 @@ export interface BusinessDashboardData {
   websiteUrl: string | null
   contactEmail: string | null
   reviewUrl: string | null
+  proSiteEnabled: boolean
 }
 
 /**
@@ -197,6 +198,7 @@ export async function getCuratedByDashboardToken(
     websiteUrl: row.website_url ?? null,
     contactEmail: row.contact_email ?? null,
     reviewUrl: row.review_url ?? null,
+    proSiteEnabled: row.pro_site_enabled ?? false,
   }
 }
 

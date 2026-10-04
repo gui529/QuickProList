@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
 import type { Business } from '@/lib/yelp'
 import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
+import { computeCompleteness } from '@/lib/profile-completeness'
 
 type Tab = 'curate' | 'yelp' | 'enrollments' | 'reports' | 'requests'
 
@@ -231,21 +232,20 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
               </div>
 
               {/* Metadata row */}
-              {(b.cities?.length || b.isTrial) ? (
-                <div className="flex flex-wrap items-center gap-2 px-4 pb-2">
-                  {b.cities && b.cities.length > 0 && (
-                    <>
-                      <span className="text-[11px] text-slate-400 font-medium">Cities:</span>
-                      {b.cities.map((c) => (
-                        <span key={c} className="inline-flex items-center bg-amber-50 text-amber-800 ring-1 ring-amber-200 text-[11px] font-medium px-2 py-0.5 rounded-full">
-                          {c}
-                        </span>
-                      ))}
-                    </>
-                  )}
-                  {b.isTrial && <TrialBadge trialEndsAt={b.trialEndsAt ?? null} />}
-                </div>
-              ) : null}
+              <div className="flex flex-wrap items-center gap-2 px-4 pt-1 pb-2">
+                <ProfileScoreBadge business={b} />
+                {b.cities && b.cities.length > 0 && (
+                  <>
+                    <span className="text-[11px] text-slate-400 font-medium">Cities:</span>
+                    {b.cities.map((c) => (
+                      <span key={c} className="inline-flex items-center bg-amber-50 text-amber-800 ring-1 ring-amber-200 text-[11px] font-medium px-2 py-0.5 rounded-full">
+                        {c}
+                      </span>
+                    ))}
+                  </>
+                )}
+                {b.isTrial && <TrialBadge trialEndsAt={b.trialEndsAt ?? null} />}
+              </div>
 
               {/* Action bar */}
               <div className="flex items-center gap-1 px-3 py-2 border-t border-slate-100 bg-slate-50 flex-wrap">
@@ -643,6 +643,26 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
         />
       )}
     </div>
+  )
+}
+
+function ProfileScoreBadge({ business }: { business: Business }) {
+  const { score, items } = computeCompleteness(business)
+  const missing = items.filter((item) => !item.done).map((item) => item.label)
+  const tone =
+    score >= 100
+      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+      : score >= 50
+        ? 'bg-amber-50 text-amber-800 ring-amber-200'
+        : 'bg-rose-50 text-rose-700 ring-rose-200'
+
+  return (
+    <span
+      title={missing.length > 0 ? `Still needed: ${missing.join(', ')}` : 'Profile complete'}
+      className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ring-1 ${tone}`}
+    >
+      Profile {score}%
+    </span>
   )
 }
 

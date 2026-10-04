@@ -190,6 +190,7 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteUrl: 'https://acme-plumbing.example',
       contactEmail: 'owner@acme-plumbing.example',
       reviewUrl: null,
+      proSiteEnabled: false,
     })
   })
 
