@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchBusinesses, type SearchLocation } from '@/lib/yelp'
 import { CATEGORIES } from '@/lib/categories'
-import { getMergedResults, MAX_RESULTS } from '@/lib/search'
+import { getMergedResults } from '@/lib/search'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       const effectiveTerm =
         term || CATEGORIES.find((c) => c.value === category)?.term || category || ''
       const effectiveCategory = term ? undefined : category
-      const businesses = await searchBusinesses(where, effectiveCategory, effectiveTerm, MAX_RESULTS * 4)
+      const businesses = await searchBusinesses(where, effectiveCategory, effectiveTerm, 20)
       return NextResponse.json({ businesses })
     }
     const businesses = await getMergedResults(where, category!, { highlightId: highlight })

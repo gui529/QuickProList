@@ -65,7 +65,8 @@ describe('getMergedResults', () => {
     const results = await getMergedResults({ location: 'Austin, TX' }, 'plumbing')
 
     expect(results[0].id).toBe('curated-1')
-    expect(results.slice(1).map((b) => b.id)).toEqual(['yelp-1', 'yelp-2', 'yelp-3', 'yelp-4'])
+    expect(results.slice(1).map((b) => b.id)).toEqual(['yelp-1', 'yelp-2'])
+    expect(results).toHaveLength(MAX_RESULTS)
     expect(searchBusinesses).toHaveBeenCalledTimes(1)
   })
 
@@ -100,6 +101,8 @@ describe('getMergedResults', () => {
       makeBusiness({ id: 'yelp-1' }),
       highlighted,
       makeBusiness({ id: 'yelp-3' }),
+      makeBusiness({ id: 'yelp-4' }),
+      makeBusiness({ id: 'yelp-5' }),
     ]
     getCurated.mockResolvedValue(curated)
     searchBusinesses.mockResolvedValue(yelp)
@@ -111,10 +114,10 @@ describe('getMergedResults', () => {
       { highlightId: 'yelp-2' }
     )
 
-    expect(results[0].id).toBe('yelp-2')
+    expect(results.map((b) => b.id)).toEqual(['yelp-2', 'yelp-1', 'yelp-3'])
     const occurrences = results.filter((b) => b.id === 'yelp-2')
     expect(occurrences).toHaveLength(1)
-    expect(results).toHaveLength(3)
+    expect(results).toHaveLength(MAX_RESULTS)
   })
 
   it('increments the search-impression counter for curated businesses returned in results, but not Yelp fill-ins', async () => {

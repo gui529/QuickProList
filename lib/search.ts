@@ -2,7 +2,7 @@ import { getBusinessById, searchBusinesses, type Business, type SearchLocation }
 import { getCurated, getCuratedById, incrementSearchImpression, normalizeCity } from './kv'
 import { CATEGORIES } from './categories'
 
-export const MAX_RESULTS = 5
+export const MAX_RESULTS = 3
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export function isUuid(s: string): boolean {
@@ -12,6 +12,13 @@ export function isUuid(s: string): boolean {
 export async function resolveHighlight(id: string): Promise<Business | null> {
   if (isUuid(id)) return getCuratedById(id)
   return getBusinessById(id)
+}
+
+function isHighlightedBusiness(b: Business, highlight: Business): boolean {
+  if (b.id === highlight.id) return true
+  const highlightYelp = highlight.yelpId ?? (highlight.source === 'yelp' ? highlight.id : undefined)
+  const bYelp = b.yelpId ?? (b.source === 'yelp' ? b.id : undefined)
+  return Boolean(highlightYelp && bYelp && highlightYelp === bYelp)
 }
 
 export async function getMergedResults(
@@ -27,15 +34,22 @@ export async function getMergedResults(
   const curated = city ? await getCurated(category, city) : []
 
   const targetSize = highlight ? MAX_RESULTS - 1 : MAX_RESULTS
+  // Drop the highlight from the fill pool first so dedupe does not leave an
+  // empty slot. It is pinned back into one of the MAX_RESULTS positions below.
+  const curatedForFill = highlight ? curated.filter((b) => !isHighlightedBusiness(b, highlight)) : curated
   let merged: Business[]
 
-  if (curated.length >= targetSize) {
-    merged = curated.slice(0, targetSize)
+  if (curatedForFill.length >= targetSize) {
+    merged = curatedForFill.slice(0, targetSize)
   } else {
     const yelp = await searchBusinesses(where, category, term, MAX_RESULTS)
     const curatedYelpIds = new Set(curated.map((b) => b.yelpId).filter(Boolean) as string[])
-    const yelpFiltered = yelp.filter((b) => !curatedYelpIds.has(b.id))
-    merged = [...curated, ...yelpFiltered.slice(0, targetSize - curated.length)]
+    const yelpFiltered = yelp.filter((b) => {
+      if (curatedYelpIds.has(b.id)) return false
+      if (highlight && isHighlightedBusiness(b, highlight)) return false
+      return true
+    })
+    merged = [...curatedForFill, ...yelpFiltered.slice(0, targetSize - curatedForFill.length)]
   }
 
   const sliced = !highlight

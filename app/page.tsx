@@ -91,7 +91,7 @@ function HomePageInner() {
     if (!res.ok) {
       setError(data.error ?? 'Something went wrong.')
     } else {
-      setResults(data.businesses.slice(0, 5))
+      setResults(data.businesses.slice(0, 3))
       setHighlightId(highlight ?? '')
     }
     setLoading(false)
