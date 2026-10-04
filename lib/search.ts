@@ -1,6 +1,7 @@
 import { getBusinessById, searchBusinesses, type Business, type SearchLocation } from './yelp'
-import { getCurated, getCuratedById, incrementSearchImpression, normalizeCity } from './kv'
+import { getCuratedById, getCuratedInArea, incrementSearchImpression } from './kv'
 import { CATEGORIES } from './categories'
+import { formatTown, openTownSlugs, resolveOpenTown } from './open-towns'
 
 export const MAX_RESULTS = 3
 
@@ -27,11 +28,15 @@ export async function getMergedResults(
   options: { highlightId?: string } = {}
 ): Promise<Business[]> {
   const term = CATEGORIES.find((c) => c.value === category)?.term ?? category
-  const city = 'location' in where ? normalizeCity(where.location) : ''
+  const town = 'location' in where ? resolveOpenTown(where.location) : null
+  if (!town) return []
 
   const highlight = options.highlightId ? await resolveHighlight(options.highlightId) : null
 
-  const curated = city ? await getCurated(category, city) : []
+  // Every opened town shares one pool of curated pros, so a Kennesaw pro can
+  // show for a Marietta search. Yelp is still asked about the searched town only.
+  const curated = await getCuratedInArea(category, openTownSlugs())
+  where = { location: formatTown(town) }
 
   const targetSize = highlight ? MAX_RESULTS - 1 : MAX_RESULTS
   // Drop the highlight from the fill pool first so dedupe does not leave an

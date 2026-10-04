@@ -4,8 +4,9 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
 import BusinessCard from '@/components/BusinessCard'
-import CityAutocomplete from '@/components/CityAutocomplete'
+import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
+import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
 import type { Business } from '@/lib/yelp'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
@@ -18,7 +19,7 @@ function loadSavedCity(): string {
       localStorage.removeItem(LOCATION_KEY)
       return ''
     }
-    return raw
+    return resolveOpenTown(raw) ? raw : ''
   } catch {
     return ''
   }
@@ -76,8 +77,13 @@ function HomePageInner() {
   async function runSearch(catValue: string, cityValue: string, highlight?: string) {
     setError('')
     setActiveCategory(catValue)
-    setLoading(true)
     setResults([])
+    if (!resolveOpenTown(cityValue)) {
+      setLoading(false)
+      setError(NOT_OPEN_MESSAGE)
+      return
+    }
+    setLoading(true)
     saveCity(cityValue)
 
     const params = new URLSearchParams({ category: catValue, location: cityValue })
@@ -101,7 +107,7 @@ function HomePageInner() {
     const trimmed = city.trim()
     if (!trimmed) {
       setActiveCategory(value)
-      setError('Type your city first — we’ll auto-search once you pick one.')
+      setError('Choose your town first — we’ll auto-search once you pick one.')
       cityWrapRef.current?.querySelector('input')?.focus()
       return
     }
@@ -137,7 +143,7 @@ function HomePageInner() {
                     <circle cx="12" cy="10" r="3" />
                   </svg>
                 </span>
-                <CityAutocomplete
+                <OpenTownInput
                   value={city}
                   onChange={(v) => {
                     setCity(v)
@@ -156,7 +162,7 @@ function HomePageInner() {
                       void runSearch(activeCategory, picked)
                     }
                   }}
-                  placeholder="Start typing your city, e.g. Acworth"
+                  placeholder="Choose your town, e.g. Acworth"
                 />
               </div>
 

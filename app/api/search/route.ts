@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { searchBusinesses, type SearchLocation } from '@/lib/yelp'
 import { CATEGORIES } from '@/lib/categories'
 import { getMergedResults } from '@/lib/search'
+import { NOT_OPEN_MESSAGE, formatTown, resolveOpenTown } from '@/lib/open-towns'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function GET(req: NextRequest) {
@@ -20,19 +21,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'category is required' }, { status: 400 })
   }
 
-  let where: SearchLocation
-  if (lat && lng) {
-    const latitude = Number(lat)
-    const longitude = Number(lng)
-    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
-      return NextResponse.json({ error: 'invalid coordinates' }, { status: 400 })
-    }
-    where = { latitude, longitude }
-  } else if (location) {
-    where = { location }
-  } else {
-    return NextResponse.json({ error: 'location or lat/lng is required' }, { status: 400 })
+  if (!location && !(lat && lng)) {
+    return NextResponse.json({ error: 'location is required' }, { status: 400 })
   }
+
+  // Coordinates cannot be tied to an opened town, so only town names are accepted.
+  const town = location ? resolveOpenTown(location) : null
+  if (!town) {
+    return NextResponse.json({ error: NOT_OPEN_MESSAGE, code: 'outside_open_area' }, { status: 400 })
+  }
+  const where: SearchLocation = { location: formatTown(town) }
 
   try {
     if (raw) {

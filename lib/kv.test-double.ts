@@ -146,6 +146,21 @@ export async function getCurated(category: string, city: string): Promise<Busine
     .map(rowToBusiness)
 }
 
+export async function getCuratedInArea(category: string, cities: string[]): Promise<Business[]> {
+  const now = Date.now()
+  const wanted = cities.map(normalizeCity)
+  return rows
+    .filter(
+      (r) =>
+        r.category === category &&
+        r.cities.some((c) => wanted.includes(c)) &&
+        !r.delisted_at &&
+        (!r.trial_ends_at || new Date(r.trial_ends_at).getTime() > now)
+    )
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .map(rowToBusiness)
+}
+
 export async function getCuratedById(id: string): Promise<Business | null> {
   const row = rows.find((r) => r.id === id)
   return row ? rowToBusiness(row) : null
