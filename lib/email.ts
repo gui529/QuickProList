@@ -112,7 +112,7 @@ export async function sendEmail(
           <span style="color:#ffffff;font-weight:700;font-size:18px;letter-spacing:-0.3px">QuickProList</span>
         </div>
       </a>
-      <p style="margin:16px 0 0;color:#94a3b8;font-size:13px">Connecting homeowners with trusted local pros</p>
+      <p style="margin:16px 0 0;color:#94a3b8;font-size:13px">Connecting homeowners with local pros</p>
     </div>
 
     <!-- Body -->

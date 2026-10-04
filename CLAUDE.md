@@ -50,7 +50,7 @@ Required in `.env.local`:
 - `app/api/curated/photo/route.ts` — multipart upload to Supabase Storage (Bearer auth)
 - `app/admin/page.tsx` — two-tab UI: curated list w/ remove, search Yelp to curate, manual-add modal
 - `components/BusinessModal.tsx` — `YelpSnapshotModal` and `ManualBusinessModal`
-- `components/BusinessCard.tsx` — shared card; shows "Verified pro" badge instead of stars when `source === 'manual'`
+- `components/BusinessCard.tsx` — shared card; shows Yelp-labelled star rating only (no rating shown when `source === 'manual'`)
 
 ### Curation
 Admin curates businesses per (category, city). User searches return up to 5 results: curated entries pinned first, Yelp results filling the rest. Cities are normalized to lowercase first segment (e.g. "Austin, TX" → "austin"); curated lookup is exact-match on this. Without Supabase credentials, `getCurated` returns empty and search falls through to live Yelp.

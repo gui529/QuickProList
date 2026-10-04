@@ -117,10 +117,6 @@ function HomePageInner() {
         <div className="absolute inset-0 grid-dots opacity-60 pointer-events-none" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-16 sm:pt-14 sm:pb-20">
           <div className="flex flex-col items-center text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600 shadow-sm backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Trusted local pros
-            </span>
             <h1 className="mt-4 sm:mt-5 text-[28px] leading-[1.15] sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900 max-w-3xl px-2">
               The right hand for every{' '}
               <span className="relative inline-block whitespace-nowrap">
@@ -130,7 +126,7 @@ function HomePageInner() {
               .
             </h1>
             <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-500 max-w-xl px-2">
-              Plumbers, electricians, HVAC and more — find top-rated pros in your city in seconds.
+              Plumbers, electricians, HVAC and more — find pros in your city.
             </p>
 
             <div className="mt-6 sm:mt-8 w-full max-w-xl">
@@ -218,11 +214,8 @@ function HomePageInner() {
               <h3 className="text-sm font-semibold text-slate-900">
                 {loading
                   ? 'Searching nearby pros…'
-                  : `Top ${results.length} ${activeCat?.label ?? ''}`}
+                  : `${results.length} ${activeCat?.label ?? ''}${city ? ` in ${city}` : ''}`}
               </h3>
-              {!loading && city && (
-                <span className="text-xs text-slate-500">in {city}</span>
-              )}
             </div>
             {loading ? (
               <div className="flex flex-col gap-4">
@@ -256,9 +249,9 @@ function HomePageInner() {
         {!loading && results.length === 0 && (
           <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
-              { icon: '🛡️', title: 'Verified pros', body: 'Hand-picked, vetted local businesses.' },
-              { icon: '⚡', title: 'Fast results', body: 'Top-matched pros in under a second.' },
-              { icon: '📍', title: 'Local first', body: 'Pinned by city — not algorithmic noise.' },
+              { icon: '🔎', title: 'Find local pros', body: 'Search home-service businesses by city and category.' },
+              { icon: '⚡', title: 'Quick search', body: 'Pick a category to see businesses in your city.' },
+              { icon: '📍', title: 'Local results', body: 'Results are shown for the city you enter.' },
             ].map((f) => (
               <div key={f.title} className="bg-white/70 rounded-2xl ring-1 ring-slate-200 p-5">
                 <div className="text-2xl">{f.icon}</div>

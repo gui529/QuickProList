@@ -45,12 +45,12 @@ export default function TermsPage() {
         certify, or guarantee the quality, licensing, insurance, or work of any listed business.
         Ratings, reviews, and business details shown for Yelp-sourced results originate from
         Yelp and may not be current or accurate; we are not responsible for their accuracy.
-        Curated and paid featured listings may be shown above other results in search; a
-        &quot;Verified pro&quot; label shown on some listings reflects that the listing was
-        manually added or curated by QuickProList staff, not an independent background check,
-        license verification, or insurance verification of the business.
-        {/* OWNER NOTE / NEEDS COUNSEL (see #19 comment thread): confirm whether "Verified pro"
-            and the pinned placement of paid/curated listings need clearer on-listing
+        Curated and paid featured listings may be shown above other results in search.
+        QuickProList does not perform background checks, license verification, or insurance
+        verification of any listed business.
+        {/* OWNER NOTE / NEEDS COUNSEL (see #19 comment thread, #81): the former on-listing
+            trust label was removed. Confirm whether the pinned placement of paid/curated
+            listings needs clearer on-listing
             disclosure (e.g. a "Featured"/"Sponsored" label) for FTC endorsement/advertising-
             disclosure purposes, separate from this Terms clause. */}
       </p>
