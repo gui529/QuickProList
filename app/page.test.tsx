@@ -145,5 +145,9 @@ describe('HomePage open area', () => {
 
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])).toContain('location=Woodstock')
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])).not.toContain('raw=1')
+    await waitFor(() => expect(screen.getByRole('heading', { name: '0 Plumbers in Woodstock' })).toBeDefined())
+    expect(screen.getByText(/no pros listed in woodstock yet/i)).toBeDefined()
+    expect(document.body.textContent).not.toMatch(/yelp/i)
   })
 })

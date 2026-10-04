@@ -99,10 +99,11 @@ export function ManualBusinessModal({ onClose, onSaved }: BaseProps) {
         </select>
       </Field>
 
-      <Field label="Cities served *">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold text-slate-700">Cities served *</span>
         <CityMultiSelect value={cities} onChange={setCities} />
-        <p className="text-xs text-slate-500 mt-1">Acworth, Kennesaw, Marietta, and Woodstock.</p>
-      </Field>
+        <p className="text-xs text-slate-500">Acworth, Kennesaw, Marietta, and Woodstock.</p>
+      </div>
 
       <Field label="Phone">
         <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(770) 555-1234" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
@@ -261,9 +262,10 @@ export function EditManualBusinessModal({
         </select>
       </Field>
 
-      <Field label="Cities served *">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold text-slate-700">Cities served *</span>
         <CityMultiSelect value={cities} onChange={setCities} />
-      </Field>
+      </div>
 
       <Field label="Phone">
         <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(770) 555-1234" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
