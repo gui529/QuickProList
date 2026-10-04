@@ -141,41 +141,9 @@ describe('getMergedResults', () => {
     expect(incrementSearchImpression).toHaveBeenCalledWith(curatedId)
   })
 
-  it('returns exactly 3 with curated first when several curated businesses overlap the first Yelp page and more matches exist beyond it', async () => {
+  it('fills exactly 3 from later names in one Yelp response when the first three matches are duplicates', async () => {
     const curated = [
       makeBusiness({ id: 'curated-1', source: 'manual', yelpId: 'yelp-1' }),
-      makeBusiness({ id: 'curated-2', source: 'manual', yelpId: 'yelp-2' }),
-    ]
-    const yelp = [
-      makeBusiness({ id: 'yelp-1' }),
-      makeBusiness({ id: 'yelp-2' }),
-      makeBusiness({ id: 'yelp-3' }),
-      makeBusiness({ id: 'yelp-4' }),
-      makeBusiness({ id: 'yelp-5' }),
-    ]
-    getCurated.mockResolvedValue(curated)
-    mockYelpSearch(yelp)
-
-    const results = await getMergedResults({ location: 'Austin, TX' }, 'plumbing')
-
-    expect(searchBusinesses).toHaveBeenCalledWith(
-      { location: 'Austin, TX' },
-      'plumbing',
-      'plumber',
-      MAX_RESULTS
-    )
-    expect(results.map((b) => b.id)).toEqual(['curated-1', 'curated-2', 'yelp-3'])
-    expect(results).toHaveLength(MAX_RESULTS)
-    expect(new Set(results.map((b) => b.id)).size).toBe(results.length)
-  })
-
-  it('returns exactly 3 after dropping a highlighted business and curated duplicates when more Yelp matches exist beyond the first page', async () => {
-    const curated = [
-      makeBusiness({
-        id: '11111111-1111-1111-1111-111111111111',
-        source: 'manual',
-        yelpId: 'yelp-1',
-      }),
       makeBusiness({
         id: '22222222-2222-2222-2222-222222222222',
         source: 'manual',
@@ -186,7 +154,7 @@ describe('getMergedResults', () => {
     const yelp = [
       makeBusiness({ id: 'yelp-1' }),
       makeBusiness({ id: 'yelp-2' }),
-      makeBusiness({ id: 'yelp-3' }),
+      makeBusiness({ id: 'yelp-1' }),
       makeBusiness({ id: 'yelp-4' }),
       makeBusiness({ id: 'yelp-5' }),
     ]
@@ -198,22 +166,33 @@ describe('getMergedResults', () => {
       highlightId: highlighted.id,
     })
 
-    expect(results.map((b) => b.id)).toEqual([highlighted.id, curated[0].id, 'yelp-3'])
+    expect(searchBusinesses).toHaveBeenCalledTimes(1)
+    expect(searchBusinesses.mock.calls[0]).toHaveLength(4)
+    expect(searchBusinesses.mock.calls[0][3]).toBeGreaterThan(MAX_RESULTS)
+    expect(results.map((b) => b.id)).toEqual([highlighted.id, 'curated-1', 'yelp-4'])
     expect(results).toHaveLength(MAX_RESULTS)
-    expect(results.filter((b) => b.id === highlighted.id)).toHaveLength(1)
-    expect(results.filter((b) => b.yelpId === 'yelp-1' || b.id === 'yelp-1')).toHaveLength(1)
+    expect(yelp.slice(0, MAX_RESULTS).map((b) => b.id)).not.toContain('yelp-4')
+    expect(new Set(results.map((b) => b.id)).size).toBe(results.length)
   })
 
-  it('returns fewer than 3 when dedupe leaves fewer real matches, without padding or repeats', async () => {
+  it('returns fewer than 3 when one Yelp response runs out of real matches, without padding or repeats', async () => {
     const curated = [
       makeBusiness({ id: 'curated-1', source: 'manual', yelpId: 'yelp-1' }),
     ]
-    const yelp = [makeBusiness({ id: 'yelp-1' }), makeBusiness({ id: 'yelp-2' })]
+    const yelp = [
+      makeBusiness({ id: 'yelp-1' }),
+      makeBusiness({ id: 'yelp-1' }),
+      makeBusiness({ id: 'yelp-1' }),
+      makeBusiness({ id: 'yelp-2' }),
+    ]
     getCurated.mockResolvedValue(curated)
     mockYelpSearch(yelp)
 
     const results = await getMergedResults({ location: 'Austin, TX' }, 'plumbing')
 
+    expect(searchBusinesses).toHaveBeenCalledTimes(1)
+    expect(searchBusinesses.mock.calls[0]).toHaveLength(4)
+    expect(searchBusinesses.mock.calls[0][3]).toBeGreaterThan(MAX_RESULTS)
     expect(results.map((b) => b.id)).toEqual(['curated-1', 'yelp-2'])
     expect(results.length).toBeLessThan(MAX_RESULTS)
     expect(new Set(results.map((b) => b.id)).size).toBe(results.length)

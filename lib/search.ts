@@ -42,11 +42,17 @@ export async function getMergedResults(
   if (curatedForFill.length >= targetSize) {
     merged = curatedForFill.slice(0, targetSize)
   } else {
-    const yelp = await searchBusinesses(where, category, term, MAX_RESULTS)
+    // One request, past the cap, so a leading run of curated or highlighted
+    // duplicates can be dropped and later names in that same response can
+    // still fill the list. A short remainder stays short — nothing is padded.
+    const yelp = await searchBusinesses(where, category, term, MAX_RESULTS * 2)
     const curatedYelpIds = new Set(curated.map((b) => b.yelpId).filter(Boolean) as string[])
+    const seenYelpIds = new Set<string>()
     const yelpFiltered = yelp.filter((b) => {
       if (curatedYelpIds.has(b.id)) return false
       if (highlight && isHighlightedBusiness(b, highlight)) return false
+      if (seenYelpIds.has(b.id)) return false
+      seenYelpIds.add(b.id)
       return true
     })
     merged = [...curatedForFill, ...yelpFiltered.slice(0, targetSize - curatedForFill.length)]
