@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import BusinessCard from './BusinessCard'
+import { monogramColor } from './contactList'
 import type { Business } from '@/lib/yelp'
 
 function makeBusiness(overrides: Partial<Business> & { id: string }): Business {
@@ -48,6 +49,16 @@ describe('BusinessCard contact-click tracking in search results', () => {
         body: JSON.stringify({ type: 'phone' }),
       })
     )
+  })
+
+  it('paints a stable color behind the initials when there is no photo', () => {
+    const business = makeBusiness({ id: 'yelp-business-1', source: 'yelp', name: 'Marcus Hale' })
+    render(<BusinessCard business={business} />)
+    const initials = screen.getByText('MH')
+    const probe = document.createElement('span')
+    probe.style.backgroundColor = monogramColor('Marcus Hale')
+    expect(initials.style.backgroundColor).toBe(probe.style.backgroundColor)
+    expect(initials.className).toContain('text-white')
   })
 
   it('does not track clicks for plain (non-curated) Yelp search results', () => {

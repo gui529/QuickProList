@@ -7,7 +7,7 @@ import { getCuratedById, incrementProfileView } from '@/lib/kv'
 import { getBusinessById } from '@/lib/yelp'
 import type { Business, YelpHourPeriod } from '@/lib/yelp'
 import TrackedContactLink from '@/components/TrackedContactLink'
-import { contactInitials, ratingSuffix, sentenceTrade } from '@/components/contactList'
+import { contactInitials, monogramColor, ratingSuffix, sentenceTrade } from '@/components/contactList'
 import { CATEGORIES } from '@/lib/categories'
 
 export const dynamic = 'force-dynamic'
@@ -203,7 +203,10 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
           <Image src={biz.imageUrl} alt="" fill className="object-cover" sizes="64px" />
         </span>
       ) : (
-        <span className="mt-4 grid h-16 w-16 place-items-center rounded-full bg-[#E5E5EA] text-[17px] font-semibold text-[rgba(60,60,67,0.6)]">
+        <span
+          className="mt-4 grid h-16 w-16 place-items-center rounded-full text-[17px] font-semibold text-white"
+          style={{ backgroundColor: monogramColor(biz.name) }}
+        >
           {contactInitials(biz.name)}
         </span>
       )}

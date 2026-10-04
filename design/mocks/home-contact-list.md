@@ -70,11 +70,11 @@ Scope every value below to the homeowner path (`/`, `/pro/*`, and the list-your-
 | Page | `#F2F2F7` | Viewport background, edge to edge |
 | Group | `#FFFFFF` | The single inset list |
 | Label | `#000000` | Large title, row name, trade-list label |
-| Secondary | `rgba(60, 60, 67, 0.6)` | Trade, town subtitle, footer, placeholder, monogram letters |
+| Secondary | `rgba(60, 60, 67, 0.6)` | Trade, town subtitle, footer, placeholder |
 | Separator | `rgba(60, 60, 67, 0.29)` | Hairline between rows, 0.5px |
 | Accent | `#007AFF` | Call fill, back control, text links |
-| On accent | `#FFFFFF` | “Call” label |
-| Monogram fill | `#E5E5EA` | 36px circle when there is no photo |
+| On accent | `#FFFFFF` | “Call” label and monogram initials |
+| Monogram fill | Hashed from the name | 36px circle when there is no photo. One of `#007AFF`, `#34C759`, `#FF9500`, `#AF52DE`, `#FF2D55`, `#30B0C7`, `#5856D6`. The same name always maps to the same color. `#E5E5EA` is the loading skeleton only. |
 | Search fill | `rgba(118, 118, 128, 0.12)` | City field |
 | Pressed row | `rgba(118, 118, 128, 0.12)` | Active/hover on a row |
 | Error | `#FF3B30` | The one error line, plus the words |
@@ -152,7 +152,7 @@ Min-height 64px. Horizontal padding 16px. Vertical alignment center. White. Hair
 Leading: a 36px circle.
 
 - If `imageUrl` is non-empty, the photo is cropped into that circle (`object-fit: cover`). It is not a banner.
-- Otherwise two initials, 15px semibold, secondary color, on `#E5E5EA`. Initials are the first letter of the first word and the first letter of the second word. One word uses its first two letters. Uppercase.
+- Otherwise two initials, 15px semibold, white, on the hashed monogram color. Initials are the first letter of the first word and the first letter of the second word. One word uses its first two letters. Uppercase. The pro page uses the same color for that name.
 
 Middle, `min-width: 0`, truncates with ellipsis:
 

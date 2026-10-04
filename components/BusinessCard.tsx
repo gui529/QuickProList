@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import type { Business } from '@/lib/yelp'
 import TrackedContactLink from '@/components/TrackedContactLink'
-import { contactInitials, ratingSuffix } from '@/components/contactList'
+import { contactInitials, monogramColor, ratingSuffix } from '@/components/contactList'
 
 interface Props {
   business: Business
@@ -45,7 +45,10 @@ export default function BusinessCard({ business, trade, highlighted = false, sep
           <Image src={business.imageUrl} alt="" fill className="object-cover" sizes="36px" />
         </span>
       ) : (
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#E5E5EA] text-[15px] font-semibold text-[rgba(60,60,67,0.6)]">
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[15px] font-semibold text-white"
+          style={{ backgroundColor: monogramColor(business.name) }}
+        >
           {initials}
         </span>
       )}
