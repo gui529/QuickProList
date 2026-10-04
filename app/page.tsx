@@ -7,7 +7,7 @@ import BusinessCard from '@/components/BusinessCard'
 import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
 import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
 
@@ -214,7 +214,7 @@ function HomePageInner() {
       </section>
 
       <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-8 sm:mt-10 pb-16 sm:pb-20">
-        {(loading || results.length > 0) && (
+        {(loading || results.length > 0 || (Boolean(activeCategory) && !error)) && (
           <div className="w-full max-w-3xl mx-auto">
             <div className="flex items-baseline justify-between mb-4">
               <h3 className="text-sm font-semibold text-slate-900">
@@ -229,6 +229,10 @@ function HomePageInner() {
                   <div key={i} className="h-40 skeleton rounded-2xl" />
                 ))}
               </div>
+            ) : results.length === 0 ? (
+              <p className="text-sm text-slate-600 text-center py-8 bg-white rounded-2xl ring-1 ring-slate-200">
+                No pros listed{city ? ` in ${city}` : ''} yet.
+              </p>
             ) : (
               <div className="flex flex-col gap-4">
                 {results.map((b) => {
@@ -252,7 +256,7 @@ function HomePageInner() {
           </div>
         )}
 
-        {!loading && results.length === 0 && (
+        {!loading && results.length === 0 && !(activeCategory && !error) && (
           <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
               { icon: '🔎', title: 'Find local pros', body: 'Search home-service businesses by city and category.' },

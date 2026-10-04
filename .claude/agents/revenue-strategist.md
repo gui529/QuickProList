@@ -40,8 +40,8 @@ QuickProList is a local-services directory. Homeowners search for free;
 local businesses (plumbers, electricians, HVAC) pay a monthly subscription
 (default $29.99/mo, see `lib/invitations.ts`, `lib/stripe.ts`,
 `app/api/stripe/*`) for a featured/pinned listing, with a free-trial path.
-Search results come from curated listings plus live Yelp results (`lib/yelp.ts`,
-`lib/search.ts`). Re-read the code on `dev` to confirm — the model may have
+Search results are pros an admin types in (`lib/search.ts`, `lib/kv.ts`).
+Re-read the code on `dev` to confirm — the model may have
 changed since this file was written.
 
 ## Step 1 — Ground yourself in what actually exists

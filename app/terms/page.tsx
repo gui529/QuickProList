@@ -38,14 +38,14 @@ export default function TermsPage() {
 
       <h2>2. What QuickProList is</h2>
       <p>
-        QuickProList is a search directory for local home-service businesses. Search results
-        combine businesses we have separately agreed to feature (&quot;curated&quot; listings)
-        with live results pulled from the Yelp Fusion API. QuickProList is <strong>not</strong>{' '}
+        QuickProList is a search directory for local home-service businesses in Acworth,
+        Kennesaw, Marietta, and Woodstock, Georgia. Search results are businesses entered
+        by QuickProList. QuickProList is <strong>not</strong>{' '}
         a contractor, does not perform home-service work itself, and does not employ, endorse,
         certify, or guarantee the quality, licensing, insurance, or work of any listed business.
-        Ratings, reviews, and business details shown for Yelp-sourced results originate from
-        Yelp and may not be current or accurate; we are not responsible for their accuracy.
-        Curated and paid featured listings may be shown above other results in search.
+        Listing details are provided by the business or entered by QuickProList and may not be
+        current or accurate; we are not responsible for their accuracy.
+        Paid featured listings may be shown in search.
         QuickProList does not perform background checks, license verification, or insurance
         verification of any listed business.
         {/* OWNER NOTE / NEEDS COUNSEL (see #19 comment thread, #81): the former on-listing
@@ -110,8 +110,8 @@ export default function TermsPage() {
       <h2>6. Disclaimers</h2>
       <p>
         THE SITE AND ALL LISTINGS ARE PROVIDED &quot;AS IS&quot; WITHOUT WARRANTIES OF ANY KIND.
-        WE DO NOT WARRANT THE ACCURACY, COMPLETENESS, OR RELIABILITY OF ANY LISTING OR
-        THIRD-PARTY DATA (INCLUDING YELP-SOURCED DATA). YOU ARE SOLELY RESPONSIBLE FOR VETTING
+        WE DO NOT WARRANT THE ACCURACY, COMPLETENESS, OR RELIABILITY OF ANY LISTING.
+        YOU ARE SOLELY RESPONSIBLE FOR VETTING
         ANY BUSINESS YOU CONTACT THROUGH THE SITE.
       </p>
 

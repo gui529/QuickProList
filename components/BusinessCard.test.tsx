@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import BusinessCard from './BusinessCard'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 function makeBusiness(overrides: Partial<Business> & { id: string }): Business {
   return {

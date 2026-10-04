@@ -75,8 +75,27 @@ describe('AdminClient invitations tab badges', () => {
       expect(badge.className).toContain('text-slate-600')
     }
 
+    expect(screen.queryByRole('button', { name: 'Search Yelp' })).toBeNull()
+    expect(screen.getByRole('button', { name: '+ Add Pro' })).toBeDefined()
+
     // The one invitation that's genuinely still pending keeps the amber badge.
     const pendingBadge = screen.getByText('pending')
     expect(pendingBadge.className).toContain('bg-amber-50')
+  })
+
+  it('adds a pro by hand, with a phone field and only the four open towns', () => {
+    render(<AdminClient adminEmail="admin@example.com" />)
+
+    expect(screen.queryByRole('button', { name: 'Search Yelp' })).toBeNull()
+    expect(document.body.textContent).not.toMatch(/search yelp/i)
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Add Pro' }))
+
+    expect(screen.getByRole('heading', { name: /add a business manually/i })).toBeDefined()
+    expect(screen.getByPlaceholderText('(770) 555-1234')).toBeDefined()
+    for (const town of ['Acworth', 'Kennesaw', 'Marietta', 'Woodstock']) {
+      expect(screen.getByRole('button', { name: town })).toBeDefined()
+    }
+    expect(screen.queryByRole('button', { name: 'Atlanta' })).toBeNull()
   })
 })

@@ -11,7 +11,7 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export const metadata: Metadata = {
   title: 'QuickProList — Find Local Home Services',
-  description: 'Search for local plumbers, electricians, HVAC, and more in your area.',
+  description: 'Search for local plumbers, electricians, HVAC, and more in Acworth, Kennesaw, Marietta, and Woodstock.',
 }
 
 export const viewport: Viewport = {
@@ -32,7 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-4">
               <Link href="/privacy" className="hover:text-slate-900 transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
-              <span>Powered by Yelp Fusion</span>
             </div>
           </div>
         </footer>

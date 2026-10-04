@@ -35,18 +35,6 @@ describe('HomePage copy', () => {
         json: async () => ({
           businesses: [
             {
-              id: 'y1',
-              source: 'yelp',
-              name: 'Acme Plumbing',
-              rating: 4.5,
-              reviewCount: 12,
-              phone: '555-0100',
-              address: '1 Main St',
-              imageUrl: '',
-              url: '',
-              categories: [],
-            },
-            {
               id: 'm1',
               source: 'manual',
               name: 'Manual Plumbing',
@@ -54,6 +42,18 @@ describe('HomePage copy', () => {
               reviewCount: null,
               phone: '555-0101',
               address: '2 Main St',
+              imageUrl: '',
+              url: '',
+              categories: [],
+            },
+            {
+              id: 'm2',
+              source: 'manual',
+              name: 'Second Plumbing',
+              rating: null,
+              reviewCount: null,
+              phone: '555-0102',
+              address: '3 Main St',
               imageUrl: '',
               url: '',
               categories: [],
@@ -80,11 +80,13 @@ describe('HomePage copy', () => {
     searchParams = new URLSearchParams({ category: 'plumbing', location: 'Acworth' })
     render(<HomePage />)
 
-    await waitFor(() => expect(screen.getByText('Acme Plumbing')).toBeDefined())
+    await waitFor(() => expect(screen.getByText('Manual Plumbing')).toBeDefined())
 
     expect(screen.getByRole('heading', { name: '2 Plumbers in Acworth' })).toBeDefined()
     expect(document.body.textContent).not.toMatch(/\btop\b/i)
-    expect(screen.getByText(/12 Yelp reviews/)).toBeDefined()
+    expect(document.body.textContent).not.toMatch(/yelp/i)
+    const phone = screen.getByRole('link', { name: '555-0101' })
+    expect(phone.getAttribute('href')).toBe('tel:555-0101')
     expectNoBannedClaims()
   })
 })
@@ -143,5 +145,9 @@ describe('HomePage open area', () => {
 
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
     expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])).toContain('location=Woodstock')
+    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])).not.toContain('raw=1')
+    await waitFor(() => expect(screen.getByRole('heading', { name: '0 Plumbers in Woodstock' })).toBeDefined())
+    expect(screen.getByText(/no pros listed in woodstock yet/i)).toBeDefined()
+    expect(document.body.textContent).not.toMatch(/yelp/i)
   })
 })

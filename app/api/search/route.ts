@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchBusinesses, type SearchLocation } from '@/lib/yelp'
-import { CATEGORIES } from '@/lib/categories'
 import { getMergedResults } from '@/lib/search'
 import { NOT_OPEN_MESSAGE, formatTown, resolveOpenTown } from '@/lib/open-towns'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
@@ -13,11 +11,16 @@ export async function GET(req: NextRequest) {
   const lat = sp.get('lat')
   const lng = sp.get('lng')
   const category = sp.get('category')?.trim()
-  const term = sp.get('term')?.trim()
   const raw = sp.get('raw') === '1'
   const highlight = sp.get('highlight')?.trim() || undefined
 
-  if (!category && !(raw && term)) {
+  // The old raw flag fetched live Yelp results for admin curation. That
+  // integration is gone; reject it instead of searching.
+  if (raw) {
+    return NextResponse.json({ error: 'That search is not available' }, { status: 400 })
+  }
+
+  if (!category) {
     return NextResponse.json({ error: 'category is required' }, { status: 400 })
   }
 
@@ -30,20 +33,16 @@ export async function GET(req: NextRequest) {
   if (!town) {
     return NextResponse.json({ error: NOT_OPEN_MESSAGE, code: 'outside_open_area' }, { status: 400 })
   }
-  const where: SearchLocation = { location: formatTown(town) }
 
   try {
-    if (raw) {
-      const effectiveTerm =
-        term || CATEGORIES.find((c) => c.value === category)?.term || category || ''
-      const effectiveCategory = term ? undefined : category
-      const businesses = await searchBusinesses(where, effectiveCategory, effectiveTerm, 20)
-      return NextResponse.json({ businesses })
-    }
-    const businesses = await getMergedResults(where, category!, { highlightId: highlight })
+    const businesses = await getMergedResults(
+      { location: formatTown(town) },
+      category,
+      { highlightId: highlight }
+    )
     return NextResponse.json({ businesses })
   } catch (err) {
     console.error(err)
-    return NextResponse.json({ error: 'Failed to fetch results' }, { status: 502 })
+    return NextResponse.json({ businesses: [] })
   }
 }
