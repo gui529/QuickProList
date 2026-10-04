@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import BusinessCard from '@/components/BusinessCard'
+import AdminBusinessCard from '@/components/AdminBusinessCard'
 import { CATEGORIES } from '@/lib/categories'
 import { YelpSnapshotModal, ManualBusinessModal, EditManualBusinessModal } from '@/components/BusinessModal'
 import CityAutocomplete from '@/components/CityAutocomplete'
@@ -227,7 +227,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
           {curated.map((b) => (
             <div key={b.id} className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
               <div className="p-0.5">
-                <BusinessCard business={b} />
+                <AdminBusinessCard business={b} />
               </div>
 
               {/* Metadata row */}
@@ -417,7 +417,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
               return (
                 <div key={b.id} className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
                   <div className="p-0.5">
-                    <BusinessCard business={b} />
+                    <AdminBusinessCard business={b} />
                   </div>
                   <div className="flex items-center gap-1 px-3 py-2 border-t border-slate-100 bg-slate-50 flex-wrap">
                     <button
