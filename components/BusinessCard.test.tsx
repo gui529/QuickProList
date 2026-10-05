@@ -58,4 +58,17 @@ describe('BusinessCard contact-click tracking in search results', () => {
     expect(screen.getByText('Business 22222222-2222-2222-2222-222222222222')).toBeDefined()
     expect(document.body.textContent).not.toMatch(/yelp/i)
   })
+
+  it('shows a raw 10-digit US phone as (843) 657-8901 and dials +1 digits', () => {
+    const business = makeBusiness({
+      id: '33333333-3333-3333-3333-333333333333',
+      phone: '8436578901',
+    })
+
+    render(<BusinessCard business={business} />)
+
+    const link = screen.getByRole('link', { name: '(843) 657-8901' })
+    expect(link.getAttribute('href')).toBe('tel:+18436578901')
+    expect(screen.queryByText('8436578901')).toBeNull()
+  })
 })

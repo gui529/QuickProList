@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { CampaignContact } from '@/lib/campaigns'
+import { formatPhoneDisplay } from '@/lib/phone'
 
 export default function CampaignReportsTab() {
   const [contacts, setContacts] = useState<CampaignContact[]>([])
@@ -102,7 +103,7 @@ export default function CampaignReportsTab() {
                 </span>
               </div>
               <div className="text-sm text-slate-700 whitespace-nowrap">
-                {c.channel === 'email' ? c.email : c.phone}
+                {c.channel === 'email' ? c.email : (c.phone ? formatPhoneDisplay(c.phone) : c.phone)}
               </div>
               <div className="text-sm text-slate-500">{c.city ?? '—'}</div>
               <div className="text-sm text-slate-500">{c.category ?? '—'}</div>
