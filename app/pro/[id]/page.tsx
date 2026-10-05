@@ -243,7 +243,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                 >
                   <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
                 </svg>
-                Leave a review
+                See reviews
               </a>
             ) : null}
           </div>
@@ -375,7 +375,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-slate-400 font-medium mb-0.5">Reviews</p>
-                  <p className="text-slate-900 font-semibold">Leave a review</p>
+                  <p className="text-slate-900 font-semibold">See reviews</p>
                 </div>
                 <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M7 17 17 7" /><path d="M8 7h9v9" />

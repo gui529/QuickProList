@@ -30,7 +30,7 @@ export function sanitizeHttpUrl(value: string | null | undefined): string | null
 }
 
 /**
- * Href safe to put on a public "Leave a review" link.
+ * Href safe to put on a public "See reviews" link.
  * Only an http or https URL is returned. Bare domains, `javascript:`, and
  * `tel:` are refused so the review control never replaces a phone link.
  */
