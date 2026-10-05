@@ -6,7 +6,6 @@ const PRIVATE_FIELDS = [
   'contactEmail',
   'isTrial',
   'trialEndsAt',
-  'reviewUrl',
 ] as const
 
 export type PublicBusiness = Omit<Business, (typeof PRIVATE_FIELDS)[number]>

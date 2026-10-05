@@ -46,6 +46,7 @@ const secretBusiness = {
   cities: ['marietta'],
   category: 'plumbing',
   proSiteEnabled: true,
+  reviewUrl: 'https://g.page/r/example/review',
   contactEmail: 'owner@acme.example',
   dashboardToken: 'secret-dash-token',
   isTrial: true,
@@ -73,7 +74,12 @@ describe('GET /api/curated', () => {
     expect(res.status).toBe(200)
     expect(requireAdminMock).not.toHaveBeenCalled()
     expect(body.businesses).toEqual([
-      expect.objectContaining({ id: 'biz-1', name: 'Acme Plumbing', proSiteEnabled: true }),
+      expect.objectContaining({
+        id: 'biz-1',
+        name: 'Acme Plumbing',
+        proSiteEnabled: true,
+        reviewUrl: 'https://g.page/r/example/review',
+      }),
     ])
     expect(JSON.stringify(body)).not.toContain('secret-dash-token')
     expect(JSON.stringify(body)).not.toContain('owner@acme.example')

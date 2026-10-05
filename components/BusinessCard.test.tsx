@@ -71,4 +71,47 @@ describe('BusinessCard contact-click tracking in search results', () => {
     expect(link.getAttribute('href')).toBe('tel:+18436578901')
     expect(screen.queryByText('8436578901')).toBeNull()
   })
+
+  it('shows a Leave a review link when reviewUrl is https, without changing the phone tel link', () => {
+    const business = makeBusiness({
+      id: '44444444-4444-4444-4444-444444444444',
+      phone: '8436578901',
+      reviewUrl: 'https://g.page/r/example/review',
+    })
+
+    render(<BusinessCard business={business} />)
+
+    const review = screen.getByRole('link', { name: 'Leave a review' })
+    expect(review.getAttribute('href')).toBe('https://g.page/r/example/review')
+    expect(review.getAttribute('target')).toBe('_blank')
+    expect(review.getAttribute('rel')).toContain('noopener')
+
+    const phone = screen.getByRole('link', { name: '(843) 657-8901' })
+    expect(phone.getAttribute('href')).toBe('tel:+18436578901')
+  })
+
+  it('does not show a review link when the business has no reviewUrl', () => {
+    const business = makeBusiness({
+      id: '55555555-5555-5555-5555-555555555555',
+    })
+
+    render(<BusinessCard business={business} />)
+
+    expect(screen.queryByRole('link', { name: 'Leave a review' })).toBeNull()
+    expect(screen.getByRole('link', { name: '555-0100' }).getAttribute('href')).toBe('tel:555-0100')
+  })
+
+  it('does not render a javascript: reviewUrl as a link', () => {
+    const business = makeBusiness({
+      id: '66666666-6666-6666-6666-666666666666',
+      phone: '8436578901',
+      reviewUrl: 'javascript:alert(document.cookie)',
+    })
+
+    render(<BusinessCard business={business} />)
+
+    expect(screen.queryByRole('link', { name: 'Leave a review' })).toBeNull()
+    expect(document.querySelector('a[href^="javascript:"]')).toBeNull()
+    expect(screen.getByRole('link', { name: '(843) 657-8901' }).getAttribute('href')).toBe('tel:+18436578901')
+  })
 })

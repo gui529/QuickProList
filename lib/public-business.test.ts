@@ -39,15 +39,16 @@ describe('toPublicBusiness', () => {
       name: 'Acme Plumbing',
       phone: '555-0100',
       websiteUrl: 'https://acme.example',
+      reviewUrl: 'https://reviews.example/secret',
       proSiteEnabled: true,
       cities: ['marietta'],
       category: 'plumbing',
     })
+    expect(result.reviewUrl).toBe('https://reviews.example/secret')
     expect(result).not.toHaveProperty('dashboardToken')
     expect(result).not.toHaveProperty('contactEmail')
     expect(result).not.toHaveProperty('isTrial')
     expect(result).not.toHaveProperty('trialEndsAt')
-    expect(result).not.toHaveProperty('reviewUrl')
     expect(JSON.stringify(result)).not.toContain('secret-dash-token')
     expect(JSON.stringify(result)).not.toContain('owner@acme.example')
   })

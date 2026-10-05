@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getCuratedById, incrementProfileView } from '@/lib/kv'
 import type { Business } from '@/lib/business'
+import { httpUrlHref } from '@/lib/http-url'
 import { toPublicBusiness } from '@/lib/public-business'
 import { formatPhoneDisplay, phoneTelHref } from '@/lib/phone'
 import TrackedContactLink from '@/components/TrackedContactLink'
@@ -57,6 +58,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
   const biz = business as Business
   const phoneLabel = biz.phone ? formatPhoneDisplay(biz.phone) : ''
   const phoneHref = biz.phone ? phoneTelHref(biz.phone) : ''
+  const reviewHref = httpUrlHref(biz.reviewUrl)
   // Fire-and-forget: never block rendering the page over a counter update.
   void incrementProfileView(biz.id)
   const mapsUrl = biz.address
@@ -223,6 +225,27 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                 Visit Website
               </TrackedContactLink>
             )}
+            {reviewHref ? (
+              <a
+                href={reviewHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm bg-white/10 hover:bg-white/20 text-white ring-1 ring-white/20 transition-all"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
+                </svg>
+                Leave a review
+              </a>
+            ) : null}
           </div>
 
         </div>
@@ -343,6 +366,22 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                 </svg>
               </TrackedContactLink>
             )}
+            {reviewHref ? (
+              <a href={reviewHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
+                <div className="h-11 w-11 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-slate-300 flex items-center justify-center flex-shrink-0 transition-colors">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-slate-400 font-medium mb-0.5">Reviews</p>
+                  <p className="text-slate-900 font-semibold">Leave a review</p>
+                </div>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 17 17 7" /><path d="M8 7h9v9" />
+                </svg>
+              </a>
+            ) : null}
             {biz.websiteUrl && (
               <TrackedContactLink businessId={biz.id} clickType="website" href={biz.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
                 <div className="h-11 w-11 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-slate-300 flex items-center justify-center flex-shrink-0 transition-colors">

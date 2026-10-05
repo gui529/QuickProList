@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import type { Business } from '@/lib/business'
+import { httpUrlHref } from '@/lib/http-url'
 import { formatPhoneDisplay, phoneTelHref } from '@/lib/phone'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
@@ -11,6 +12,7 @@ interface Props {
 
 export default function BusinessCard({ business, isFeatured, highlighted = false }: Props) {
   const highlight = isFeatured ?? true
+  const reviewHref = httpUrlHref(business.reviewUrl)
   const ringClass = highlighted
     ? 'ring-2 ring-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.35),0_10px_36px_rgba(245,158,11,0.28)]'
     : highlight
@@ -104,6 +106,19 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
               </svg>
             </TrackedContactLink>
           )}
+          {reviewHref ? (
+            <a
+              href={reviewHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-900 bg-amber-50 hover:bg-amber-100 ring-1 ring-amber-200 px-3 py-1.5 rounded-full transition-colors"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
+              </svg>
+              Leave a review
+            </a>
+          ) : null}
           {business.proSiteEnabled && (
             <a
               href={`/pro/${business.id}`}
