@@ -21,12 +21,13 @@ function Logo() {
   )
 }
 
-export default function Navbar() {
+export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
   const path = usePathname()
 
   const links = [
     { href: '/', label: 'Search' },
     { href: '/admin', label: 'Admin' },
+    ...(isAdmin ? [{ href: '/admin', label: 'Dashboard' }] : []),
   ]
 
   return (
@@ -40,7 +41,7 @@ export default function Navbar() {
             const active = path === href
             return (
               <Link
-                key={href}
+                key={label}
                 href={href}
                 className={`relative px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   active
