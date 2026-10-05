@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { requireAdmin, AuthError } from '@/lib/auth'
 import { createInvitation, createTrialInvitation, listInvitations, deleteInvitation } from '@/lib/invitations'
 import { normalizeCity, addCuratedFromYelp, addCuratedManual } from '@/lib/kv'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 import { errorMessage } from '@/lib/errors'
 
 async function gate(req?: NextRequest): Promise<NextResponse | null> {

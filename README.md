@@ -1,10 +1,10 @@
 # QuickProList
 
 QuickProList is a local-services directory. Visitors search for a category
-of pro (plumber, electrician, etc.) in a city and get a merged list of
-results: businesses QuickProList has manually curated/pinned for that
-(category, city) pair, backed by paid subscriptions, filled out with live
-results from the Yelp Fusion API up to a cap of 5 results per search.
+of pro (plumber, electrician, etc.) in a city and get the businesses an
+admin has added for that (category, city) pair, up to a cap of 3 results
+per search. Search reads only from Supabase; there is no third-party
+listing API.
 
 Paying businesses get a pinned search slot and an optional "ProSite"
 landing page with profile-view and contact-click tracking. Admins manage
@@ -37,14 +37,9 @@ npm test         # run the test suite (vitest)
 Set these in `.env.local` for local development (and in your hosting
 provider's dashboard, e.g. Vercel, for production). Everything is
 optional in the sense that the app degrades gracefully without live
-credentials (e.g. curated lookups return empty and fall through to Yelp,
+credentials (e.g. searches return no pros,
 outbound email/SMS throw only when actually invoked), but each feature
 below requires its corresponding vars to function.
-
-### Yelp
-
-- `YELP_API_KEY` — Yelp Fusion API key (server-side only). Powers live
-  search results in `lib/yelp.ts`.
 
 ### Supabase
 

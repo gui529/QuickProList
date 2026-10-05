@@ -21,7 +21,6 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/kv', () => ({
   getCurated: getCuratedMock,
   listAllCurated: listAllCuratedMock,
-  addCuratedFromYelp: vi.fn(),
   addCuratedManual: vi.fn(),
   removeCurated: vi.fn(),
   updateCuratedCities: vi.fn(),
@@ -29,7 +28,6 @@ vi.mock('@/lib/kv', () => ({
   updateCuratedManual: vi.fn(),
 }))
 
-vi.mock('@/lib/yelp', () => ({ getBusinessById: vi.fn() }))
 
 import { GET } from './route'
 import { AuthError } from '@/lib/auth'

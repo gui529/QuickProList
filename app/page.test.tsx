@@ -84,7 +84,7 @@ describe('HomePage copy', () => {
 
     expect(screen.getByRole('heading', { name: '2 Plumbers in Acworth' })).toBeDefined()
     expect(document.body.textContent).not.toMatch(/\btop\b/i)
-    expect(screen.getByText(/12 Yelp reviews/)).toBeDefined()
+    expect(document.body.textContent).not.toMatch(/yelp/i)
     expectNoBannedClaims()
   })
 })
@@ -134,6 +134,14 @@ describe('HomePage open area', () => {
 
     expect(screen.getByText(/not open there yet/i)).toBeDefined()
     expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('shows a friendly empty state when a search finds no pros', async () => {
+    searchParams = new URLSearchParams({ category: 'homecleaning', location: 'Marietta, GA' })
+    render(<HomePage />)
+
+    await waitFor(() => expect(screen.getByText('No pros found here yet. Check back soon.')).toBeDefined())
+    expect(screen.queryByText(/something went wrong/i)).toBeNull()
   })
 
   it('searches from a typed opened town', async () => {

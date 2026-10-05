@@ -3,29 +3,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getCuratedById, incrementProfileView } from '@/lib/kv'
-import { getBusinessById } from '@/lib/yelp'
-import type { Business, YelpHourPeriod } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 import { toPublicBusiness } from '@/lib/public-business'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 export const dynamic = 'force-dynamic'
 
 async function loadBusiness(id: string): Promise<Business | null> {
-  let business: Business | null = await getCuratedById(id)
-  if (!business) {
-    business = await getBusinessById(id).catch(() => null)
-  } else if (business.yelpId) {
-    const yelpFull = await getBusinessById(business.yelpId).catch(() => null)
-    if (yelpFull) {
-      business = {
-        ...business,
-        hours: yelpFull.hours,
-        isOpenNow: yelpFull.isOpenNow,
-        price: yelpFull.price,
-        photos: yelpFull.photos,
-      }
-    }
-  }
+  const business = await getCuratedById(id)
   return business ? toPublicBusiness(business) : null
 }
 
@@ -42,8 +27,8 @@ export async function generateMetadata({
 
   const title = `${business.name} | QuickProList`
   const description = business.address
-    ? `${business.name} — local pro serving ${business.address}. View hours, reviews, and contact info on QuickProList.`
-    : `${business.name} — local pro on QuickProList. View hours, reviews, and contact info.`
+    ? `${business.name} — local pro serving ${business.address}. View contact info on QuickProList.`
+    : `${business.name} — local pro on QuickProList. View contact info.`
 
   return {
     title,
@@ -56,46 +41,10 @@ export async function generateMetadata({
   }
 }
 
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
-function formatTime(t: string): string {
-  const h = parseInt(t.slice(0, 2), 10)
-  const m = t.slice(2)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  const h12 = h % 12 || 12
-  return `${h12}:${m} ${ampm}`
-}
-
 function deriveCity(address?: string): string | null {
   if (!address) return null
   const parts = address.split(',').map((s) => s.trim()).filter(Boolean)
   return parts.length >= 2 ? parts[parts.length - 2] : null
-}
-
-function StarRating({ rating, count }: { rating: number; count: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center">
-        {[0, 1, 2, 3, 4].map((i) => {
-          const fillPct = Math.max(0, Math.min(1, rating - i)) * 100
-          return (
-            <span key={i} className="relative inline-block h-5 w-5">
-              <svg viewBox="0 0 24 24" className="absolute inset-0 h-5 w-5 text-white/20" fill="currentColor">
-                <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
-              </svg>
-              <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPct}%` }}>
-                <svg viewBox="0 0 24 24" className="h-5 w-5 text-amber-400" fill="currentColor">
-                  <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
-                </svg>
-              </span>
-            </span>
-          )
-        })}
-      </div>
-      <span className="text-white/90 font-semibold">{rating.toFixed(1)}</span>
-      <span className="text-white/50 text-sm">({count.toLocaleString()} reviews)</span>
-    </div>
-  )
 }
 
 export default async function ProSitePage({ params }: { params: Promise<{ id: string }> }) {
@@ -118,17 +67,6 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
     ...(biz.imageUrl ? [biz.imageUrl] : []),
     ...(biz.photos ?? []),
   ].slice(0, 4)
-  const hours: YelpHourPeriod[] = biz.hours ?? []
-  // Yelp day: 0=Mon … 6=Sun; JS getDay(): 0=Sun … 6=Sat
-  const todayYelpDay = (new Date().getDay() + 6) % 7
-  const todayPeriods = hours.filter((p) => p.day === todayYelpDay)
-  const todayHoursStr =
-    todayPeriods.length > 0
-      ? todayPeriods.map((p) => `${formatTime(p.start)} – ${formatTime(p.end)}`).join(', ')
-      : hours.length > 0
-      ? 'Closed today'
-      : null
-
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Hero */}
@@ -212,22 +150,6 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
             {biz.name}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-3 justify-center mb-8">
-            {biz.rating != null && biz.reviewCount != null && (
-              <StarRating rating={biz.rating} count={biz.reviewCount} />
-            )}
-            {biz.price && (
-              <span className="text-sm font-bold text-white/70 bg-white/10 px-2.5 py-1 rounded-md">
-                {biz.price}
-              </span>
-            )}
-            {biz.isOpenNow && (
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30">
-                Open Now
-              </span>
-            )}
-          </div>
-
           <div className="flex flex-wrap gap-3 justify-center">
             {biz.phone && (
               <TrackedContactLink
@@ -300,18 +222,6 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
             )}
           </div>
 
-          {(biz.isOpenNow != null || todayHoursStr) && (
-            <p className="mt-3 text-sm text-white/50">
-              {biz.isOpenNow != null && (
-                <span className={biz.isOpenNow ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
-                  {biz.isOpenNow ? 'Open Now' : 'Closed'}
-                </span>
-              )}
-              {todayHoursStr && (
-                <span>{biz.isOpenNow != null ? ' · ' : ''}{todayHoursStr}</span>
-              )}
-            </p>
-          )}
         </div>
 
         <div className="relative z-10">
@@ -325,61 +235,6 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
           </svg>
         </div>
       </section>
-
-      {/* Stats (real data only) */}
-      {(biz.rating != null || biz.reviewCount != null || biz.price) && (
-        <section className="bg-white px-6 -mt-6 relative z-20">
-          <div className="max-w-3xl mx-auto bg-white rounded-3xl ring-1 ring-slate-200 shadow-xl overflow-hidden">
-            <div className="flex divide-x divide-slate-100">
-              {biz.rating != null && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-1.5 px-5 py-5">
-                  <div className="text-3xl font-extrabold text-slate-900 leading-none">{biz.rating.toFixed(1)}</div>
-                  <div className="flex items-center gap-0.5">
-                    {[0, 1, 2, 3, 4].map((i) => {
-                      const fill = Math.max(0, Math.min(1, biz.rating! - i)) * 100
-                      return (
-                        <span key={i} className="relative inline-block h-4 w-4">
-                          <svg viewBox="0 0 24 24" className="absolute inset-0 h-4 w-4 text-slate-200" fill="currentColor">
-                            <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
-                          </svg>
-                          <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill}%` }}>
-                            <svg viewBox="0 0 24 24" className="h-4 w-4 text-amber-400" fill="currentColor">
-                              <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
-                            </svg>
-                          </span>
-                        </span>
-                      )
-                    })}
-                  </div>
-                  <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Rating</div>
-                </div>
-              )}
-              {biz.reviewCount != null && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-1.5 px-5 py-5">
-                  <div className="text-3xl font-extrabold text-slate-900 leading-none">{biz.reviewCount.toLocaleString()}</div>
-                  <a
-                    href={biz.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    Reviews on <span className="font-black text-[#FF1A1A]">Yelp</span>
-                    <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M7 17 17 7" /><path d="M8 7h9v9" />
-                    </svg>
-                  </a>
-                </div>
-              )}
-              {biz.price && (
-                <div className="flex-1 flex flex-col items-center justify-center gap-1.5 px-5 py-5">
-                  <div className="text-3xl font-extrabold text-slate-900 leading-none">{biz.price}</div>
-                  <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Price Range</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Services */}
       {biz.categories.length > 0 && (
@@ -418,45 +273,6 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                   <Image src={url} alt={`${biz.name} photo ${i + 2}`} fill className="object-cover hover:scale-105 transition-transform duration-500" sizes="(max-width: 640px) 50vw, 33vw" />
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Hours */}
-      {hours.length > 0 && (
-        <section className="bg-white px-6 py-16">
-          <div className="max-w-3xl mx-auto">
-            <span className="inline-block text-xs font-bold tracking-widest uppercase text-slate-400 mb-3">Hours</span>
-            <div className="flex items-center gap-3 mb-8">
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">Business Hours</h2>
-              {biz.isOpenNow && (
-                <span className="inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Open Now
-                </span>
-              )}
-            </div>
-            <div className="rounded-2xl overflow-hidden ring-1 ring-slate-200">
-              {DAY_NAMES.map((name, dayIdx) => {
-                const periods = hours.filter((p) => p.day === dayIdx)
-                const isToday = dayIdx === todayYelpDay
-                const isClosed = periods.length === 0
-                return (
-                  <div
-                    key={name}
-                    className={`flex items-center justify-between px-5 py-4 border-b border-slate-100 last:border-0 ${isToday ? 'bg-amber-50' : 'bg-white'}`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className={`font-semibold w-24 ${isToday ? 'text-amber-700' : 'text-slate-700'}`}>{name}</span>
-                      {isToday && <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Today</span>}
-                    </div>
-                    <span className={`text-sm font-medium text-right ${isClosed ? 'text-slate-300' : isToday ? 'text-amber-700' : 'text-slate-600'}`}>
-                      {isClosed ? 'Closed' : periods.map((p) => `${formatTime(p.start)} – ${formatTime(p.end)}`).join(', ')}
-                    </span>
-                  </div>
-                )
-              })}
             </div>
           </div>
         </section>
@@ -540,20 +356,6 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
                   <path d="M7 17 17 7" /><path d="M8 7h9v9" />
                 </svg>
               </TrackedContactLink>
-            )}
-            {biz.url && (
-              <a href={biz.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-5 px-6 py-5 hover:bg-white transition-colors group">
-                <div className="h-11 w-11 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-slate-300 flex items-center justify-center flex-shrink-0 transition-colors">
-                  <span className="text-[#FF1A1A] font-black text-sm">Y!</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-slate-400 font-medium mb-0.5">Reviews</p>
-                  <p className="text-slate-900 font-semibold">View on <span className="text-[#FF1A1A] font-black">Yelp</span></p>
-                </div>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M7 17 17 7" /><path d="M8 7h9v9" />
-                </svg>
-              </a>
             )}
           </div>
         </div>

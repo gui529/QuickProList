@@ -7,7 +7,8 @@
 //
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
-import type { Business } from './yelp'
+import type { Business } from './business'
+import { normalizeCategory } from './categories'
 import type { BusinessDashboardData, ContactClickType, ManualBusinessInput } from './kv'
 
 export function normalizeCity(input: string): string {
@@ -94,16 +95,11 @@ export function __all(): CuratedRow[] {
   return [...rows]
 }
 
-function reviewUrlFor(row: Pick<CuratedRow, 'source' | 'yelp_id' | 'review_url'>): string | undefined {
-  if (row.review_url) return row.review_url
-  if (row.source === 'yelp' && row.yelp_id) {
-    return `https://www.yelp.com/writeareview/biz/${row.yelp_id}`
-  }
-  return undefined
+function reviewUrlFor(row: Pick<CuratedRow, 'review_url'>): string | undefined {
+  return row.review_url || undefined
 }
 
 function rowToBusiness(row: CuratedRow): Business {
-  const isYelp = row.source === 'yelp'
   const websiteUrl =
     row.website_url && !row.website_url.includes('yelp.com')
       ? row.website_url
@@ -118,7 +114,7 @@ function rowToBusiness(row: CuratedRow): Business {
     phone: row.phone ?? '',
     address: row.address ?? '',
     imageUrl: row.image_url ?? '',
-    url: isYelp && row.yelp_id ? `https://www.yelp.com/biz/${row.yelp_id}` : '',
+    url: '',
     websiteUrl,
     reviewUrl: reviewUrlFor(row),
     categories: row.categories ?? [],
@@ -132,33 +128,27 @@ function rowToBusiness(row: CuratedRow): Business {
   }
 }
 
-export async function getCurated(category: string, city: string): Promise<Business[]> {
+function activeRowsFor(category: string, cities: string[]): CuratedRow[] {
   const now = Date.now()
+  const categoryKey = normalizeCategory(category)
+  const wanted = new Set(cities.map(normalizeCity))
   return rows
     .filter(
       (r) =>
-        r.category === category &&
-        r.cities.includes(normalizeCity(city)) &&
+        normalizeCategory(r.category) === categoryKey &&
+        r.cities.some((c) => wanted.has(normalizeCity(c))) &&
         !r.delisted_at &&
         (!r.trial_ends_at || new Date(r.trial_ends_at).getTime() > now)
     )
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    .map(rowToBusiness)
+}
+
+export async function getCurated(category: string, city: string): Promise<Business[]> {
+  return activeRowsFor(category, [city]).map(rowToBusiness)
 }
 
 export async function getCuratedInArea(category: string, cities: string[]): Promise<Business[]> {
-  const now = Date.now()
-  const wanted = cities.map(normalizeCity)
-  return rows
-    .filter(
-      (r) =>
-        r.category === category &&
-        r.cities.some((c) => wanted.includes(c)) &&
-        !r.delisted_at &&
-        (!r.trial_ends_at || new Date(r.trial_ends_at).getTime() > now)
-    )
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    .map(rowToBusiness)
+  return activeRowsFor(category, cities).map(rowToBusiness)
 }
 
 export async function getCuratedById(id: string): Promise<Business | null> {

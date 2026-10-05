@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Business } from './yelp'
+import type { Business } from './business'
+import { normalizeCategory } from './categories'
 
 const PHOTO_BUCKET = 'business-photos'
 
@@ -12,6 +13,11 @@ function getSupabase() {
 
 export function normalizeCity(input: string): string {
   return input.trim().toLowerCase().split(',')[0].trim()
+}
+
+function matchesArea(row: CuratedRow, categoryKey: string, cityKeys: Set<string>): boolean {
+  if (normalizeCategory(row.category ?? '') !== categoryKey) return false
+  return (row.cities ?? []).some((c) => cityKeys.has(normalizeCity(c)))
 }
 
 /**
@@ -72,26 +78,13 @@ interface CuratedRow {
   winback_sent_at: string | null
 }
 
-/**
- * Derive the "leave us a review" link for a curated business — an explicit
- * `review_url` always wins (the only source for manually-added pros, since
- * there's no Yelp id to derive one from); a Yelp-sourced pro without one
- * falls back to the Yelp write-a-review deep link. Returns `undefined`
- * (never a broken link) when neither is available.
- */
-function reviewUrlFor(row: Pick<CuratedRow, 'source' | 'yelp_id' | 'review_url'>): string | undefined {
-  if (row.review_url) return row.review_url
-  if (row.source === 'yelp' && row.yelp_id) {
-    return `https://www.yelp.com/writeareview/biz/${row.yelp_id}`
-  }
-  return undefined
+/** The explicit `review_url` is the only source of a review link. */
+function reviewUrlFor(row: Pick<CuratedRow, 'review_url'>): string | undefined {
+  return row.review_url || undefined
 }
 
 function rowToBusiness(row: CuratedRow): Business {
-  const isYelp = row.source === 'yelp'
-  // For Yelp businesses, reconstruct the Yelp URL from yelpId.
-  // website_url stores the actual business website (not the Yelp listing).
-  // Old rows may have stored the Yelp URL in website_url — skip those.
+  // Old rows may have stored a Yelp listing URL in website_url — skip those.
   const websiteUrl =
     row.website_url && !row.website_url.includes('yelp.com')
       ? row.website_url
@@ -106,7 +99,7 @@ function rowToBusiness(row: CuratedRow): Business {
     phone: row.phone ?? '',
     address: row.address ?? '',
     imageUrl: row.image_url ?? '',
-    url: isYelp && row.yelp_id ? `https://www.yelp.com/biz/${row.yelp_id}` : '',
+    url: '',
     websiteUrl,
     reviewUrl: reviewUrlFor(row),
     categories: row.categories ?? [],
@@ -120,38 +113,33 @@ function rowToBusiness(row: CuratedRow): Business {
   }
 }
 
-export async function getCurated(category: string, city: string): Promise<Business[]> {
+async function fetchActiveRows(label: string): Promise<CuratedRow[]> {
   const supabase = getSupabase()
   if (!supabase) return []
   const now = new Date().toISOString()
   const { data, error } = await supabase
     .from('curated_businesses')
     .select('*')
-    .eq('category', category)
-    .contains('cities', [normalizeCity(city)])
     .is('delisted_at', null)
     .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
     .order('created_at', { ascending: true })
-  if (error) console.error('getCurated failed:', error)
+  if (error) console.error(`${label} failed:`, error)
   if (error || !data) return []
-  return (data as CuratedRow[]).map(rowToBusiness)
+  return data as CuratedRow[]
+}
+
+export async function getCurated(category: string, city: string): Promise<Business[]> {
+  const categoryKey = normalizeCategory(category)
+  const cityKeys = new Set([normalizeCity(city)])
+  const rows = await fetchActiveRows('getCurated')
+  return rows.filter((r) => matchesArea(r, categoryKey, cityKeys)).map(rowToBusiness)
 }
 
 export async function getCuratedInArea(category: string, cities: string[]): Promise<Business[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
-  const now = new Date().toISOString()
-  const { data, error } = await supabase
-    .from('curated_businesses')
-    .select('*')
-    .eq('category', category)
-    .overlaps('cities', cities.map(normalizeCity))
-    .is('delisted_at', null)
-    .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
-    .order('created_at', { ascending: true })
-  if (error) console.error('getCuratedInArea failed:', error)
-  if (error || !data) return []
-  return (data as CuratedRow[]).map(rowToBusiness)
+  const categoryKey = normalizeCategory(category)
+  const cityKeys = new Set(cities.map(normalizeCity))
+  const rows = await fetchActiveRows('getCuratedInArea')
+  return rows.filter((r) => matchesArea(r, categoryKey, cityKeys)).map(rowToBusiness)
 }
 
 export async function getCuratedById(id: string): Promise<Business | null> {

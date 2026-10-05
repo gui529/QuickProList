@@ -7,7 +7,7 @@ import BusinessCard from '@/components/BusinessCard'
 import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
 import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
 
@@ -31,7 +31,7 @@ function saveCity(city: string) {
 
 function isHighlighted(b: Business, highlightId?: string): boolean {
   if (!highlightId) return false
-  return b.id === highlightId || b.yelpId === highlightId
+  return b.id === highlightId
 }
 
 function HomePageInner() {
@@ -52,6 +52,7 @@ function HomePageInner() {
   const [results, setResults] = useState<Business[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [searched, setSearched] = useState(false)
   const [highlightId, setHighlightId] = useState<string>('')
   const cityWrapRef = useRef<HTMLDivElement>(null)
   const highlightCardRef = useRef<HTMLDivElement>(null)
@@ -76,6 +77,7 @@ function HomePageInner() {
 
   async function runSearch(catValue: string, cityValue: string, highlight?: string) {
     setError('')
+    setSearched(false)
     setActiveCategory(catValue)
     setResults([])
     if (!resolveOpenTown(cityValue)) {
@@ -92,13 +94,18 @@ function HomePageInner() {
     // Update URL bar silently so it's shareable
     window.history.replaceState(null, '', `/?${params.toString()}`)
 
-    const res = await fetch(`/api/search?${params.toString()}`)
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error ?? 'Something went wrong.')
-    } else {
-      setResults(data.businesses.slice(0, 3))
-      setHighlightId(highlight ?? '')
+    try {
+      const res = await fetch(`/api/search?${params.toString()}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Something went wrong.')
+      } else {
+        setResults((data.businesses ?? []).slice(0, 3))
+        setHighlightId(highlight ?? '')
+        setSearched(true)
+      }
+    } catch {
+      setError('Something went wrong.')
     }
     setLoading(false)
   }
@@ -151,6 +158,7 @@ function HomePageInner() {
                     if (!v) {
                       window.history.replaceState(null, '', '/')
                       setResults([])
+                      setSearched(false)
                       setActiveCategory(null)
                     }
                   }}
@@ -252,7 +260,14 @@ function HomePageInner() {
           </div>
         )}
 
-        {!loading && results.length === 0 && (
+        {!loading && searched && results.length === 0 && !error && (
+          <div className="w-full max-w-3xl mx-auto text-center py-12 bg-white rounded-2xl ring-1 ring-slate-200">
+            <p className="text-3xl mb-2">🔎</p>
+            <p className="text-slate-700 font-medium">No pros found here yet. Check back soon.</p>
+          </div>
+        )}
+
+        {!loading && !searched && results.length === 0 && (
           <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {[
               { icon: '🔎', title: 'Find local pros', body: 'Search home-service businesses by city and category.' },

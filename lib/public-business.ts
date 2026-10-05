@@ -1,4 +1,4 @@
-import type { Business } from './yelp'
+import type { Business } from './business'
 
 /** Fields that must never appear in a response a signed-out visitor can read. */
 const PRIVATE_FIELDS = [

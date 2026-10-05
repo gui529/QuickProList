@@ -76,7 +76,7 @@ export async function sendEmail(
     if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
     compliance = marketingCompliance(
       to,
-      'You received this because your business appears on Yelp as a local service provider.'
+      'You received this because your business is a local service provider we think would be a good fit for QuickProList.'
     )
   }
 
