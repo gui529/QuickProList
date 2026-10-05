@@ -7,6 +7,7 @@ import type { Business } from '@/lib/business'
 import { httpUrlHref } from '@/lib/http-url'
 import { toPublicBusiness } from '@/lib/public-business'
 import { formatPhoneDisplay, phoneTelHref } from '@/lib/phone'
+import { storedReviewLabel } from '@/lib/review-label'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,7 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
   const phoneLabel = biz.phone ? formatPhoneDisplay(biz.phone) : ''
   const phoneHref = biz.phone ? phoneTelHref(biz.phone) : ''
   const reviewHref = httpUrlHref(biz.reviewUrl)
+  const reviewLabel = storedReviewLabel(biz.rating, biz.reviewCount)
   // Fire-and-forget: never block rendering the page over a counter update.
   void incrementProfileView(biz.id)
   const mapsUrl = biz.address
@@ -154,6 +156,10 @@ export default async function ProSitePage({ params }: { params: Promise<{ id: st
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-5 max-w-2xl">
             {biz.name}
           </h1>
+
+          {reviewLabel && (
+            <p className="text-white/80 text-lg font-medium mb-8">{reviewLabel}</p>
+          )}
 
           <div className="flex flex-wrap gap-3 justify-center">
             {biz.phone && (

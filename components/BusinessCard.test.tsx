@@ -50,17 +50,7 @@ describe('BusinessCard contact-click tracking in search results', () => {
     )
   })
 
-  it('does not render a Yelp-labelled rating for a legacy yelp-sourced row', () => {
-    const business = makeBusiness({ id: '22222222-2222-2222-2222-222222222222', source: 'yelp', rating: 4.5, reviewCount: 10 })
-
-    render(<BusinessCard business={business} />)
-
-    expect(screen.getByText('Business 22222222-2222-2222-2222-222222222222')).toBeDefined()
-    expect(screen.getByText('4.5 · 10 reviews')).toBeDefined()
-    expect(document.body.textContent).not.toMatch(/yelp/i)
-  })
-
-  it('shows a stored rating and review count as plain text, and keeps See reviews', () => {
+  it('hides a stored rating on the search card so pros are not ranked against each other', () => {
     const business = makeBusiness({
       id: '77777777-7777-7777-7777-777777777777',
       source: 'manual',
@@ -71,34 +61,9 @@ describe('BusinessCard contact-click tracking in search results', () => {
 
     render(<BusinessCard business={business} />)
 
-    expect(screen.getByText('4.8 · 120 reviews')).toBeDefined()
+    expect(screen.queryByText('4.8 · 120 reviews')).toBeNull()
     expect(screen.getByRole('link', { name: 'See reviews' })).toBeDefined()
     expect(document.body.textContent).not.toMatch(/yelp/i)
-    expect(document.querySelector('img[alt*="Google" i]')).toBeNull()
-  })
-
-  it('shows a whole-number rating with one decimal and a singular review', () => {
-    const business = makeBusiness({
-      id: '88888888-8888-8888-8888-888888888888',
-      rating: 5,
-      reviewCount: 1,
-    })
-
-    render(<BusinessCard business={business} />)
-
-    expect(screen.getByText('5.0 · 1 review')).toBeDefined()
-  })
-
-  it('shows a numeric-string rating the way the database returns it', () => {
-    const business = makeBusiness({
-      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-      rating: '5.0' as unknown as number,
-      reviewCount: 7,
-    })
-
-    render(<BusinessCard business={business} />)
-
-    expect(screen.getByText('5.0 · 7 reviews')).toBeDefined()
   })
 
   it('does not show a rating line when rating and review count are missing', () => {

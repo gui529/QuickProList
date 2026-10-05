@@ -86,6 +86,8 @@ describe('HomePage copy', () => {
     expect(screen.getByRole('heading', { name: '2 Plumbers in Acworth' })).toBeDefined()
     expect(document.body.textContent).not.toMatch(/\btop\b/i)
     expect(document.body.textContent).not.toMatch(/yelp/i)
+    expect(document.body.textContent).not.toMatch(/4\.5/)
+    expect(document.body.textContent).not.toMatch(/12 reviews/)
     expectNoBannedClaims()
   })
 })
