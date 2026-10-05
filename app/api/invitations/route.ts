@@ -4,6 +4,7 @@ import { requireAdmin, AuthError } from '@/lib/auth'
 import { createInvitation, createTrialInvitation, listInvitations, deleteInvitation } from '@/lib/invitations'
 import { normalizeCity, addCuratedFromYelp, addCuratedManual } from '@/lib/kv'
 import type { Business } from '@/lib/yelp'
+import { errorMessage } from '@/lib/errors'
 
 async function gate(req?: NextRequest): Promise<NextResponse | null> {
   try {
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     } catch (err) {
       console.error('createTrial failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to start trial'
+      const msg = errorMessage(err, 'Failed to start trial')
       return NextResponse.json({ error: msg }, { status: 500 })
     }
   }
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ token })
   } catch (err) {
     console.error('createInvitation failed:', err)
-    const msg = err instanceof Error ? err.message : 'Failed to create invitation'
+    const msg = errorMessage(err, 'Failed to create invitation')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
@@ -166,7 +167,8 @@ export async function DELETE(req: NextRequest) {
     await deleteInvitation(id)
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to remove'
+    console.error('request failed:', err)
+    const msg = errorMessage(err, 'Failed to remove')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

@@ -124,8 +124,8 @@ export default function PrivacyPage() {
 
       <h3>2.5 Admin accounts</h3>
       <p>
-        QuickProList staff who manage listings and campaigns sign in via Supabase
-        Authentication (email-based) and must be on an internal admin allow-list. This is
+        QuickProList staff who manage listings and campaigns sign in with
+        their Google account (via Google OAuth) and must be on an internal admin allow-list. This is
         separate from any consumer- or business-facing account; consumers do not have login
         accounts on QuickProList today.
       </p>
@@ -148,7 +148,8 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>Yelp</strong> — source of business search data (we query, not share, your data with Yelp beyond standard API request metadata).</li>
         <li><strong>Stripe</strong> — payment processing and subscription billing.</li>
-        <li><strong>Supabase</strong> — our database, file storage (business photos), and authentication provider.</li>
+        <li><strong>Supabase</strong> — our database and file storage (business photos).</li>
+        <li><strong>Google</strong> — sign-in for QuickProList staff (Google OAuth).</li>
         <li><strong>Twilio</strong> — sends SMS outreach messages on our behalf.</li>
         <li><strong>Resend</strong> — sends outreach and transactional emails on our behalf.</li>
         <li><strong>Vercel</strong> — hosting, analytics, and performance monitoring.</li>

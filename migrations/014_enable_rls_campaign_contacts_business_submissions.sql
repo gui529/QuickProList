@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS public.campaign_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.business_submissions ENABLE ROW LEVEL SECURITY;

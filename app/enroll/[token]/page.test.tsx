@@ -59,6 +59,25 @@ describe('EnrollPage (expiration enforcement)', () => {
     expect(textOf(result)).toContain('Link expired')
   })
 
+  it('does not pass private listing fields from stored yelp data to the client', async () => {
+    const invitation = makeInvitation({
+      yelp_data: {
+        name: 'Acme Plumbing',
+        dashboardToken: 'secret-dash-token',
+        contactEmail: 'owner@acme.example',
+      },
+    })
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    const result = await EnrollPage({ params: Promise.resolve({ token: invitation.token }) })
+    const props = (result as ReactElement<{ invitation: EnrollmentInvitation }>).props
+
+    expect(props.invitation.yelp_data).toMatchObject({ name: 'Acme Plumbing' })
+    expect(props.invitation.yelp_data).not.toHaveProperty('dashboardToken')
+    expect(props.invitation.yelp_data).not.toHaveProperty('contactEmail')
+    expect(JSON.stringify(props.invitation.yelp_data)).not.toContain('secret-dash-token')
+  })
+
   it('renders the enrollment flow for a pending invitation still within its window', async () => {
     const invitation = makeInvitation({ expires_at: new Date(Date.now() + 1000 * 60 * 60).toISOString() })
     getInvitationByTokenMock.mockResolvedValue(invitation)

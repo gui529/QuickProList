@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { getCuratedById, incrementProfileView } from '@/lib/kv'
 import { getBusinessById } from '@/lib/yelp'
 import type { Business, YelpHourPeriod } from '@/lib/yelp'
+import { toPublicBusiness } from '@/lib/public-business'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +26,7 @@ async function loadBusiness(id: string): Promise<Business | null> {
       }
     }
   }
-  return business
+  return business ? toPublicBusiness(business) : null
 }
 
 export async function generateMetadata({

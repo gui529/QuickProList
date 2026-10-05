@@ -53,10 +53,44 @@ below requires its corresponding vars to function.
   only). Used by `lib/kv.ts`, `lib/invitations.ts`, `lib/campaigns.ts`,
   `lib/listing-requests.ts`, `lib/reports.ts`, `lib/auth.ts`, and the
   Stripe webhook handler for all database and storage access.
-- `NEXT_PUBLIC_SUPABASE_URL` — same URL, exposed to the browser for the
-  Supabase Auth client (admin magic-link login).
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/publishable key
-  (browser).
+
+Supabase is used only as the database and file storage. Admin login does
+not use Supabase Auth; the `NEXT_PUBLIC_SUPABASE_*` variables are no longer
+needed.
+
+### Admin login (Auth.js + Google)
+
+Admin sign-in uses [Auth.js](https://authjs.dev) (`next-auth` v5) with the
+Google provider only and JWT session cookies. A signed-in Google account is
+an admin only if its email is in the `admins` table (checked with the
+service role key).
+
+- `AUTH_SECRET` — random secret used to sign the session JWT. Generate with
+  `npx auth secret` or `openssl rand -base64 33`.
+- `AUTH_GOOGLE_ID` — Google OAuth client ID.
+- `AUTH_GOOGLE_SECRET` — Google OAuth client secret.
+- `AUTH_TRUST_HOST=true` — optional. Vercel is detected automatically; set it
+  only when self-hosting behind a proxy.
+
+Public pages render without these variables. Without them, `/admin` simply
+redirects to `/login` and the header hides the Dashboard link.
+
+#### Creating the Google OAuth client
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create or
+   select a project, then configure the OAuth consent screen (APIs & Services
+   > OAuth consent screen).
+2. Go to APIs & Services > Credentials > Create credentials > OAuth client
+   ID, and choose application type **Web application**.
+3. Under **Authorized redirect URIs**, add:
+   - `https://www.quickprolist.com/api/auth/callback/google`
+   - `https://home-help-git-dev-gui-costas-projects.vercel.app/api/auth/callback/google`
+   - `http://localhost:3000/api/auth/callback/google` (local dev)
+4. Copy the client ID and secret into `AUTH_GOOGLE_ID` and
+   `AUTH_GOOGLE_SECRET`.
+5. In Vercel (Project Settings > Environment Variables) set `AUTH_SECRET`,
+   `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Production and Preview, then
+   redeploy. The existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` stay.
 
 ### Stripe
 

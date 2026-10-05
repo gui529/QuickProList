@@ -4,6 +4,7 @@ import { CATEGORIES } from '@/lib/categories'
 import { getMergedResults } from '@/lib/search'
 import { NOT_OPEN_MESSAGE, formatTown, resolveOpenTown } from '@/lib/open-towns'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
+import { toPublicBusiness } from '@/lib/public-business'
 
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req)
@@ -38,10 +39,10 @@ export async function GET(req: NextRequest) {
         term || CATEGORIES.find((c) => c.value === category)?.term || category || ''
       const effectiveCategory = term ? undefined : category
       const businesses = await searchBusinesses(where, effectiveCategory, effectiveTerm, 20)
-      return NextResponse.json({ businesses })
+      return NextResponse.json({ businesses: businesses.map(toPublicBusiness) })
     }
     const businesses = await getMergedResults(where, category!, { highlightId: highlight })
-    return NextResponse.json({ businesses })
+    return NextResponse.json({ businesses: businesses.map(toPublicBusiness) })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Failed to fetch results' }, { status: 502 })

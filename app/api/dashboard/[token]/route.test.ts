@@ -74,6 +74,26 @@ describe('PATCH /api/dashboard/[token]', () => {
     expect(updateCuratedByDashboardTokenMock).not.toHaveBeenCalled()
   })
 
+  it('returns a generic message when the database update fails', async () => {
+    const dbError = {
+      message: "Could not find the 'review_url' column of 'curated_businesses' in the schema cache",
+      code: 'PGRST204',
+    }
+    updateCuratedByDashboardTokenMock.mockRejectedValue(dbError)
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await PATCH(
+      makeRequest({ reviewUrl: 'https://g.page/r/example/review' }) as never,
+      makeParams('any-token')
+    )
+    const body = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(body).toEqual({ error: 'Failed to update' })
+    expect(errorSpy).toHaveBeenCalledWith('request failed:', dbError)
+    errorSpy.mockRestore()
+  })
+
   it('returns 400 for invalid JSON', async () => {
     const req = new Request('https://example.test/api/dashboard/good-token', {
       method: 'PATCH',

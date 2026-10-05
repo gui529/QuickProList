@@ -13,7 +13,10 @@ async function renderNav() {
   render(await SiteNav())
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 describe('SiteNav Dashboard link', () => {
   it('shows Dashboard pointing at /admin next to Search and Admin for an admin', async () => {
@@ -37,11 +40,13 @@ describe('SiteNav Dashboard link', () => {
   })
 
   it('hides Dashboard when the auth check fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     authResult = async () => {
-      throw new Error('no supabase env')
+      throw new Error('missing auth env')
     }
     await renderNav()
 
     expect(screen.queryByRole('link', { name: 'Dashboard' })).toBeNull()
+    expect(console.error).toHaveBeenCalled()
   })
 })

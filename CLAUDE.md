@@ -26,8 +26,9 @@ Required in `.env.local`:
 - `YELP_API_KEY` — Yelp Fusion API key (server-side only)
 - `SUPABASE_URL` — Supabase project URL (server-side)
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-side only)
-- `NEXT_PUBLIC_SUPABASE_URL` — same URL, exposed to browser for Auth client
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/publishable key (browser)
+- `AUTH_SECRET` — Auth.js (next-auth v5) JWT signing secret (`npx auth secret`)
+- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth web client credentials
+- `AUTH_TRUST_HOST=true` — only if Auth.js rejects the host (not needed on Vercel)
 
 ## Architecture
 
