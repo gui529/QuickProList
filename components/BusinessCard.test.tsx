@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import BusinessCard from './BusinessCard'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 function makeBusiness(overrides: Partial<Business> & { id: string }): Business {
   return {
@@ -50,13 +50,12 @@ describe('BusinessCard contact-click tracking in search results', () => {
     )
   })
 
-  it('does not track clicks for plain (non-curated) Yelp search results', () => {
-    const business = makeBusiness({ id: 'yelp-business-1', source: 'yelp' })
+  it('does not render a Yelp-labelled rating for a legacy yelp-sourced row', () => {
+    const business = makeBusiness({ id: '22222222-2222-2222-2222-222222222222', source: 'yelp', rating: 4.5, reviewCount: 10 })
 
     render(<BusinessCard business={business} />)
 
-    fireEvent.click(screen.getByText('555-0100'))
-
-    expect(fetch).not.toHaveBeenCalled()
+    expect(screen.getByText('Business 22222222-2222-2222-2222-222222222222')).toBeDefined()
+    expect(document.body.textContent).not.toMatch(/yelp/i)
   })
 })

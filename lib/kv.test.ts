@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { Business } from './yelp'
+import type { Business } from './business'
 
 // Mock the Supabase client so we can test lib/kv.ts's real query-building
 // logic (not just the in-memory double) without a live Supabase project.
@@ -242,7 +242,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
   })
 
-  it('derives the Yelp write-a-review link when no explicit review_url is set', async () => {
+  it('does not derive a Yelp write-a-review link for a legacy yelp row without a review_url', async () => {
     selectState.data = {
       id: 'curated-1',
       source: 'yelp',
@@ -257,7 +257,8 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
 
     const result = await getCuratedById('curated-1')
 
-    expect(result?.reviewUrl).toBe('https://www.yelp.com/writeareview/biz/yelp-biz-1')
+    expect(result?.reviewUrl).toBeUndefined()
+    expect(result?.url).toBe('')
   })
 
   it('returns a stored review_url unchanged for a manual business', async () => {
@@ -278,7 +279,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
     expect(result?.reviewUrl).toBe('https://g.page/r/example/review')
   })
 
-  it('returns undefined (not a broken link) when neither a stored review_url nor a Yelp id exists', async () => {
+  it('returns undefined (not a broken link) when no review_url is stored', async () => {
     selectState.data = {
       id: 'curated-3',
       source: 'manual',

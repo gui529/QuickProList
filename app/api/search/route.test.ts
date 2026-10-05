@@ -1,12 +1,10 @@
 import { NextRequest } from 'next/server'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
-const { getMergedResults, searchBusinesses } = vi.hoisted(() => ({
+const { getMergedResults } = vi.hoisted(() => ({
   getMergedResults: vi.fn(),
-  searchBusinesses: vi.fn(),
 }))
 vi.mock('@/lib/search', () => ({ getMergedResults }))
-vi.mock('@/lib/yelp', () => ({ searchBusinesses }))
 
 import { GET } from './route'
 
@@ -21,7 +19,6 @@ function get(query: string): NextRequest {
 describe('GET /api/search open area', () => {
   beforeEach(() => {
     getMergedResults.mockReset().mockResolvedValue([])
-    searchBusinesses.mockReset().mockResolvedValue([])
   })
 
   it.each(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock', 'Marietta, GA'])('accepts %s', async (location) => {
@@ -39,10 +36,9 @@ describe('GET /api/search open area', () => {
     expect(body.error).toMatch(/not open there yet/i)
     expect(body.businesses).toBeUndefined()
     expect(getMergedResults).not.toHaveBeenCalled()
-    expect(searchBusinesses).not.toHaveBeenCalled()
   })
 
-  it('omits private fields from merged and raw results', async () => {
+  it('omits private fields from results', async () => {
     const secret = {
       id: 'biz-1',
       source: 'manual' as const,
@@ -59,16 +55,12 @@ describe('GET /api/search open area', () => {
       dashboardToken: 'secret-dash-token',
     }
     getMergedResults.mockResolvedValue([secret])
-    searchBusinesses.mockResolvedValue([secret])
 
     const merged = await GET(get('category=plumbing&location=Marietta'))
-    const raw = await GET(get('raw=1&category=plumbing&location=Marietta'))
     const mergedBody = await merged.json()
-    const rawBody = await raw.json()
 
     expect(merged.status).toBe(200)
-    expect(raw.status).toBe(200)
-    for (const body of [mergedBody, rawBody]) {
+    for (const body of [mergedBody]) {
       expect(body.businesses[0]).toMatchObject({ id: 'biz-1', name: 'Acme Plumbing' })
       expect(body.businesses[0]).not.toHaveProperty('dashboardToken')
       expect(body.businesses[0]).not.toHaveProperty('contactEmail')
@@ -77,13 +69,21 @@ describe('GET /api/search open area', () => {
     }
   })
 
-  it('refuses raw Yelp searches and coordinates outside the area', async () => {
-    const raw = await GET(get('raw=1&category=plumbing&location=Atlanta'))
+  it('refuses coordinates outside the area', async () => {
     const coords = await GET(get('category=plumbing&lat=33.7&lng=-84.4'))
 
-    expect(raw.status).toBe(400)
     expect(coords.status).toBe(400)
-    expect(searchBusinesses).not.toHaveBeenCalled()
     expect(getMergedResults).not.toHaveBeenCalled()
+  })
+
+  it('returns a generic 502 without leaking the underlying error', async () => {
+    getMergedResults.mockRejectedValue(new Error('supabase exploded: secret detail'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await GET(get('category=plumbing&location=Marietta'))
+    const body = await res.json()
+
+    expect(res.status).toBe(502)
+    expect(body).toEqual({ error: 'Failed to fetch results' })
   })
 })

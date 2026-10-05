@@ -39,12 +39,12 @@ export default function TermsPage() {
       <h2>2. What QuickProList is</h2>
       <p>
         QuickProList is a search directory for local home-service businesses. Search results
-        combine businesses we have separately agreed to feature (&quot;curated&quot; listings)
-        with live results pulled from the Yelp Fusion API. QuickProList is <strong>not</strong>{' '}
+        show businesses that we have separately agreed to feature (&quot;curated&quot; listings).
+        QuickProList is <strong>not</strong>{' '}
         a contractor, does not perform home-service work itself, and does not employ, endorse,
         certify, or guarantee the quality, licensing, insurance, or work of any listed business.
-        Ratings, reviews, and business details shown for Yelp-sourced results originate from
-        Yelp and may not be current or accurate; we are not responsible for their accuracy.
+        Business details shown in listings may not be current or accurate; we are not
+        responsible for their accuracy.
         Curated and paid featured listings may be shown above other results in search.
         QuickProList does not perform background checks, license verification, or insurance
         verification of any listed business.

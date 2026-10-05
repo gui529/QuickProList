@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Business } from './yelp'
+import type { Business } from './business'
 import { toPublicBusiness } from './public-business'
 
 function business(): Business {
@@ -13,7 +13,7 @@ function business(): Business {
     phone: '555-0100',
     address: '1 Main St, Marietta, GA',
     imageUrl: 'https://example.test/photo.jpg',
-    url: 'https://www.yelp.com/biz/yelp-1',
+    url: '',
     websiteUrl: 'https://acme.example',
     reviewUrl: 'https://reviews.example/secret',
     categories: ['Plumbing'],
@@ -24,9 +24,6 @@ function business(): Business {
     proSiteEnabled: true,
     contactEmail: 'owner@acme.example',
     dashboardToken: 'secret-dash-token',
-    hours: [{ day: 0, start: '0900', end: '1700' }],
-    isOpenNow: true,
-    price: '$$',
     photos: ['https://example.test/2.jpg'],
   }
 }

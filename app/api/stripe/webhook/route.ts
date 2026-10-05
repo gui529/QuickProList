@@ -11,7 +11,7 @@ import {
   updateCuratedManual,
 } from '@/lib/kv'
 import { sendEmail } from '@/lib/email'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 

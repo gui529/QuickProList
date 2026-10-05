@@ -76,7 +76,7 @@ human-driven step this agent never performs.
 1. Implement exactly what the issue's **Acceptance** criterion asks — no
    more, no less. Don't refactor adjacent code you weren't asked to touch.
 2. Verify **offline**. This environment usually has no live `SUPABASE_*`,
-   `STRIPE_*`, `YELP_API_KEY`, `RESEND_*`, or `TWILIO_*` credentials, and
+   `STRIPE_*`, `RESEND_*`, or `TWILIO_*` credentials, and
    outbound network to `quickprolist.com` / `supabase.co` is often blocked.
    Every issue's acceptance criterion is written to be checkable with
    `npm run build`, `npm run lint`, and `npm test` alone. If you need a

@@ -32,7 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-4">
               <Link href="/privacy" className="hover:text-slate-900 transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
-              <span>Powered by Yelp Fusion</span>
             </div>
           </div>
         </footer>

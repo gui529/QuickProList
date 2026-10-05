@@ -1,226 +1,135 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { Business } from './yelp'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
-const { getCuratedInArea, getCuratedById, incrementSearchImpression } = vi.hoisted(() => ({
-  getCuratedInArea: vi.fn(),
-  getCuratedById: vi.fn(),
-  incrementSearchImpression: vi.fn().mockResolvedValue(undefined),
-}))
+vi.mock('./kv', async () => import('./kv.test-double'))
 
-const { searchBusinesses, getBusinessById } = vi.hoisted(() => ({
-  searchBusinesses: vi.fn(),
-  getBusinessById: vi.fn(),
-}))
-
-vi.mock('./kv', () => ({
-  getCuratedInArea,
-  getCuratedById,
-  incrementSearchImpression,
-}))
-
-vi.mock('./yelp', () => ({
-  searchBusinesses,
-  getBusinessById,
-}))
-
+import { __reset, __seed } from './kv.test-double'
 import { getMergedResults, MAX_RESULTS } from './search'
 
-function makeBusiness(overrides: Partial<Business> & { id: string }): Business {
-  return {
-    source: 'yelp',
-    name: `Business ${overrides.id}`,
-    rating: 4.5,
-    reviewCount: 10,
-    phone: '555-0100',
-    address: '123 Main St',
-    imageUrl: '',
-    url: '',
-    categories: [],
-    ...overrides,
-  }
-}
+const fetchMock = vi.fn()
 
-/** Yelp returns at most `limit` businesses from the front of the match list. */
-function mockYelpSearch(matches: Business[]) {
-  searchBusinesses.mockImplementation(
-    async (_where: unknown, _category: unknown, _term: unknown, limit = 20) =>
-      matches.slice(0, limit)
-  )
+beforeEach(() => {
+  __reset()
+  fetchMock.mockReset().mockRejectedValue(new Error('unexpected network request'))
+  vi.stubGlobal('fetch', fetchMock)
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+function yelpRequests(): unknown[] {
+  return fetchMock.mock.calls.filter(([url]) => String(url).includes('yelp'))
 }
 
 describe('getMergedResults', () => {
-  beforeEach(() => {
-    getCuratedInArea.mockReset()
-    getCuratedById.mockReset()
-    searchBusinesses.mockReset()
-    getBusinessById.mockReset()
-    incrementSearchImpression.mockReset().mockResolvedValue(undefined)
+  it('shows a curated cleaner in Marietta, GA and makes no request to Yelp', async () => {
+    const cleaner = __seed({ name: 'Sparkle Cleaners', category: 'homecleaning', cities: ['marietta'] })
+
+    const results = await getMergedResults({ location: 'Marietta, GA' }, 'homecleaning')
+
+    expect(results.map((b) => b.id)).toEqual([cleaner.id])
+    expect(results[0].name).toBe('Sparkle Cleaners')
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(yelpRequests()).toEqual([])
   })
 
-  it('fills results from curated first, then Yelp for the remainder', async () => {
-    const curated = [makeBusiness({ id: 'curated-1', source: 'manual' })]
-    const yelp = [
-      makeBusiness({ id: 'yelp-1' }),
-      makeBusiness({ id: 'yelp-2' }),
-      makeBusiness({ id: 'yelp-3' }),
-      makeBusiness({ id: 'yelp-4' }),
-    ]
-    getCuratedInArea.mockResolvedValue(curated)
-    mockYelpSearch(yelp)
+  it('returns an empty list, not an error, when no pros match', async () => {
+    __seed({ category: 'plumbing', cities: ['marietta'] })
 
-    const results = await getMergedResults({ location: 'Marietta, GA' }, 'plumbing')
-
-    expect(results[0].id).toBe('curated-1')
-    expect(results.slice(1).map((b) => b.id)).toEqual(['yelp-1', 'yelp-2'])
-    expect(results).toHaveLength(MAX_RESULTS)
-    expect(searchBusinesses).toHaveBeenCalledTimes(1)
+    await expect(getMergedResults({ location: 'Marietta, GA' }, 'homecleaning')).resolves.toEqual([])
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('caps merged results at MAX_RESULTS even when Yelp returns more', async () => {
-    const curated: Business[] = []
-    const yelp = Array.from({ length: 10 }, (_, i) => makeBusiness({ id: `yelp-${i}` }))
-    getCuratedInArea.mockResolvedValue(curated)
-    mockYelpSearch(yelp)
+  it.each([
+    ['Marietta, GA', 'homecleaning'],
+    ['marietta', 'HomeCleaning'],
+    ['  Marietta , Georgia ', ' homecleaning '],
+    ['MARIETTA, ga', 'Cleaners'],
+  ])('matches a stored Marietta cleaner for location %j and category %j', async (location, category) => {
+    const cleaner = __seed({ category: 'homecleaning', cities: ['Marietta, GA'] })
 
-    const results = await getMergedResults({ location: 'Marietta, GA' }, 'plumbing')
+    const results = await getMergedResults({ location }, category)
 
-    expect(results).toHaveLength(MAX_RESULTS)
+    expect(results.map((b) => b.id)).toEqual([cleaner.id])
   })
 
-  it('does not call Yelp when curated results already fill the target size', async () => {
-    const curated = Array.from({ length: MAX_RESULTS }, (_, i) =>
-      makeBusiness({ id: `curated-${i}`, source: 'manual' })
-    )
-    getCuratedInArea.mockResolvedValue(curated)
-    searchBusinesses.mockResolvedValue([])
-
-    const results = await getMergedResults({ location: 'Marietta, GA' }, 'plumbing')
-
-    expect(results).toHaveLength(MAX_RESULTS)
-    expect(searchBusinesses).not.toHaveBeenCalled()
-  })
-
-  it('deduplicates highlightId against curated/Yelp results and pins it first', async () => {
-    const highlighted = makeBusiness({ id: 'yelp-2', name: 'Highlighted Pro' })
-    const curated: Business[] = []
-    const yelp = [
-      makeBusiness({ id: 'yelp-1' }),
-      highlighted,
-      makeBusiness({ id: 'yelp-3' }),
-      makeBusiness({ id: 'yelp-4' }),
-      makeBusiness({ id: 'yelp-5' }),
-    ]
-    getCuratedInArea.mockResolvedValue(curated)
-    mockYelpSearch(yelp)
-    getBusinessById.mockResolvedValue(highlighted)
-
-    const results = await getMergedResults(
-      { location: 'Marietta, GA' },
-      'plumbing',
-      { highlightId: 'yelp-2' }
-    )
-
-    expect(results.map((b) => b.id)).toEqual(['yelp-2', 'yelp-1', 'yelp-3'])
-    const occurrences = results.filter((b) => b.id === 'yelp-2')
-    expect(occurrences).toHaveLength(1)
-    expect(results).toHaveLength(MAX_RESULTS)
-  })
-
-  it('increments the search-impression counter for curated businesses returned in results, but not Yelp fill-ins', async () => {
-    const curatedId = '11111111-1111-1111-1111-111111111111'
-    const curated = [makeBusiness({ id: curatedId, source: 'manual' })]
-    const yelp = [makeBusiness({ id: 'yelp-1' }), makeBusiness({ id: 'yelp-2' })]
-    getCuratedInArea.mockResolvedValue(curated)
-    mockYelpSearch(yelp)
-
-    await getMergedResults({ location: 'Marietta, GA' }, 'plumbing')
-
-    expect(incrementSearchImpression).toHaveBeenCalledTimes(1)
-    expect(incrementSearchImpression).toHaveBeenCalledWith(curatedId)
-  })
-
-  it('fills exactly 3 from later names in one Yelp response when the first three matches are duplicates', async () => {
-    const curated = [
-      makeBusiness({ id: 'curated-1', source: 'manual', yelpId: 'yelp-1' }),
-      makeBusiness({
-        id: '22222222-2222-2222-2222-222222222222',
-        source: 'manual',
-        yelpId: 'yelp-2',
-      }),
-    ]
-    const highlighted = curated[1]
-    const yelp = [
-      makeBusiness({ id: 'yelp-1' }),
-      makeBusiness({ id: 'yelp-2' }),
-      makeBusiness({ id: 'yelp-1' }),
-      makeBusiness({ id: 'yelp-4' }),
-      makeBusiness({ id: 'yelp-5' }),
-    ]
-    getCuratedInArea.mockResolvedValue(curated)
-    getCuratedById.mockResolvedValue(highlighted)
-    mockYelpSearch(yelp)
-
-    const results = await getMergedResults({ location: 'Marietta, GA' }, 'plumbing', {
-      highlightId: highlighted.id,
-    })
-
-    expect(searchBusinesses).toHaveBeenCalledTimes(1)
-    expect(searchBusinesses.mock.calls[0]).toHaveLength(4)
-    expect(searchBusinesses.mock.calls[0][3]).toBeGreaterThan(MAX_RESULTS)
-    expect(results.map((b) => b.id)).toEqual([highlighted.id, 'curated-1', 'yelp-4'])
-    expect(results).toHaveLength(MAX_RESULTS)
-    expect(yelp.slice(0, MAX_RESULTS).map((b) => b.id)).not.toContain('yelp-4')
-    expect(new Set(results.map((b) => b.id)).size).toBe(results.length)
-  })
-
-  it('returns fewer than 3 when one Yelp response runs out of real matches, without padding or repeats', async () => {
-    const curated = [
-      makeBusiness({ id: 'curated-1', source: 'manual', yelpId: 'yelp-1' }),
-    ]
-    const yelp = [
-      makeBusiness({ id: 'yelp-1' }),
-      makeBusiness({ id: 'yelp-1' }),
-      makeBusiness({ id: 'yelp-1' }),
-      makeBusiness({ id: 'yelp-2' }),
-    ]
-    getCuratedInArea.mockResolvedValue(curated)
-    mockYelpSearch(yelp)
-
-    const results = await getMergedResults({ location: 'Marietta, GA' }, 'plumbing')
-
-    expect(searchBusinesses).toHaveBeenCalledTimes(1)
-    expect(searchBusinesses.mock.calls[0]).toHaveLength(4)
-    expect(searchBusinesses.mock.calls[0][3]).toBeGreaterThan(MAX_RESULTS)
-    expect(results.map((b) => b.id)).toEqual(['curated-1', 'yelp-2'])
-    expect(results.length).toBeLessThan(MAX_RESULTS)
-    expect(new Set(results.map((b) => b.id)).size).toBe(results.length)
-  })
-
-  it('shows a Kennesaw pro in a Marietta search and asks Yelp once about Marietta only', async () => {
-    const kennesawPro = makeBusiness({
-      id: 'curated-kennesaw',
-      source: 'manual',
-      cities: ['kennesaw'],
-    })
-    getCuratedInArea.mockResolvedValue([kennesawPro])
-    mockYelpSearch([makeBusiness({ id: 'yelp-1' }), makeBusiness({ id: 'yelp-2' }), makeBusiness({ id: 'yelp-3' })])
+  it('shares one pool across opened towns, so a Kennesaw pro shows in a Marietta search', async () => {
+    const pro = __seed({ category: 'plumbing', cities: ['kennesaw'] })
 
     const results = await getMergedResults({ location: 'Marietta' }, 'plumbing')
 
-    expect(getCuratedInArea).toHaveBeenCalledWith('plumbing', ['acworth', 'kennesaw', 'marietta', 'woodstock'])
-    expect(results.map((b) => b.id)).toEqual(['curated-kennesaw', 'yelp-1', 'yelp-2'])
-    expect(searchBusinesses).toHaveBeenCalledTimes(1)
-    expect(searchBusinesses.mock.calls[0][0]).toEqual({ location: 'Marietta, GA' })
+    expect(results.map((b) => b.id)).toEqual([pro.id])
+  })
+
+  it('renders legacy yelp-sourced rows from stored data without a live lookup', async () => {
+    const legacy = __seed({
+      source: 'yelp',
+      yelp_id: 'legacy-yelp-id',
+      name: 'Stored Plumbing',
+      phone: '555-0100',
+      category: 'plumbing',
+      cities: ['marietta'],
+    })
+
+    const results = await getMergedResults({ location: 'Marietta' }, 'plumbing')
+
+    expect(results).toHaveLength(1)
+    expect(results[0]).toMatchObject({ id: legacy.id, name: 'Stored Plumbing', phone: '555-0100' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('caps results at MAX_RESULTS', async () => {
+    for (let i = 0; i < MAX_RESULTS + 3; i++) {
+      __seed({ category: 'plumbing', cities: ['marietta'], name: `Pro ${i}` })
+    }
+
+    const results = await getMergedResults({ location: 'Marietta' }, 'plumbing')
+
+    expect(results).toHaveLength(MAX_RESULTS)
+  })
+
+  it('pins a highlighted pro first without duplicating it', async () => {
+    const pros = Array.from({ length: 4 }, (_, i) =>
+      __seed({
+        id: `00000000-0000-4000-8000-00000000000${i}`,
+        category: 'plumbing',
+        cities: ['marietta'],
+        name: `Pro ${i}`,
+      })
+    )
+
+    const results = await getMergedResults({ location: 'Marietta' }, 'plumbing', {
+      highlightId: pros[2].id,
+    })
+
+    expect(results[0].id).toBe(pros[2].id)
+    expect(results.filter((b) => b.id === pros[2].id)).toHaveLength(1)
+    expect(results).toHaveLength(MAX_RESULTS)
+  })
+
+  it('ignores a non-UUID highlight instead of looking it up elsewhere', async () => {
+    const pro = __seed({ category: 'plumbing', cities: ['marietta'] })
+
+    const results = await getMergedResults({ location: 'Marietta' }, 'plumbing', {
+      highlightId: 'some-old-yelp-id',
+    })
+
+    expect(results.map((b) => b.id)).toEqual([pro.id])
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('skips delisted pros', async () => {
+    __seed({ category: 'plumbing', cities: ['marietta'], delisted_at: new Date().toISOString() })
+
+    await expect(getMergedResults({ location: 'Marietta' }, 'plumbing')).resolves.toEqual([])
   })
 
   it.each(['Smyrna, GA', 'Atlanta, GA', 'Canton', 'Marietta, OH'])(
-    'returns nothing and calls neither curated nor Yelp for %s',
+    'returns nothing for the unopened location %s',
     async (location) => {
-      const results = await getMergedResults({ location }, 'plumbing')
+      __seed({ category: 'plumbing', cities: ['marietta'] })
 
-      expect(results).toEqual([])
-      expect(getCuratedInArea).not.toHaveBeenCalled()
-      expect(searchBusinesses).not.toHaveBeenCalled()
+      await expect(getMergedResults({ location }, 'plumbing')).resolves.toEqual([])
     }
   )
 })

@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 interface Props {
@@ -8,35 +8,8 @@ interface Props {
   highlighted?: boolean
 }
 
-function StarRating({ rating, count }: { rating: number; count: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex items-center">
-        {[0, 1, 2, 3, 4].map((i) => {
-          const fillPct = Math.max(0, Math.min(1, rating - i)) * 100
-          return (
-            <span key={i} className="relative inline-block h-4 w-4">
-              <svg viewBox="0 0 24 24" className="absolute inset-0 h-4 w-4 text-gray-200" fill="currentColor">
-                <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
-              </svg>
-              <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPct}%` }}>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 text-amber-400" fill="currentColor">
-                  <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
-                </svg>
-              </span>
-            </span>
-          )
-        })}
-      </div>
-      <span className="text-sm font-semibold text-slate-900 tabular-nums">{rating.toFixed(1)}</span>
-      <span className="text-xs text-gray-500">({count.toLocaleString()} Yelp {count === 1 ? 'review' : 'reviews'})</span>
-    </div>
-  )
-}
-
 export default function BusinessCard({ business, isFeatured, highlighted = false }: Props) {
-  const isCurated = business.source === 'manual' || !!business.yelpId
-  const highlight = isFeatured ?? isCurated
+  const highlight = isFeatured ?? true
   const ringClass = highlighted
     ? 'ring-2 ring-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.35),0_10px_36px_rgba(245,158,11,0.28)]'
     : highlight
@@ -89,10 +62,6 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
           </div>
         </div>
 
-        {business.source !== 'manual' && business.rating != null && (
-          <StarRating rating={business.rating} count={business.reviewCount ?? 0} />
-        )}
-
         {business.address && (
           <p className="text-sm text-gray-600 truncate flex items-center gap-1.5">
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -105,62 +74,34 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
 
         <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
           {business.phone && (
-            isCurated ? (
-              <TrackedContactLink
-                businessId={business.id}
-                clickType="phone"
-                href={`tel:${business.phone}`}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-3 py-1.5 rounded-full transition-colors max-w-full truncate"
-              >
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
-                </svg>
-                {business.phone}
-              </TrackedContactLink>
-            ) : (
-              <a
-                href={`tel:${business.phone}`}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-3 py-1.5 rounded-full transition-colors max-w-full truncate"
-              >
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
-                </svg>
-                {business.phone}
-              </a>
-            )
+            <TrackedContactLink
+              businessId={business.id}
+              clickType="phone"
+              href={`tel:${business.phone}`}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-3 py-1.5 rounded-full transition-colors max-w-full truncate"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
+              </svg>
+              {business.phone}
+            </TrackedContactLink>
           )}
           {business.websiteUrl && (
-            isCurated ? (
-              <TrackedContactLink
-                businessId={business.id}
-                clickType="website"
-                href={business.websiteUrl.startsWith('http') ? business.websiteUrl : `https://${business.websiteUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Visit website"
-                className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M2 12h20" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              </TrackedContactLink>
-            ) : (
-              <a
-                href={business.websiteUrl.startsWith('http') ? business.websiteUrl : `https://${business.websiteUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Visit website"
-                className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M2 12h20" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              </a>
-            )
+            <TrackedContactLink
+              businessId={business.id}
+              clickType="website"
+              href={business.websiteUrl.startsWith('http') ? business.websiteUrl : `https://${business.websiteUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Visit website"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+            </TrackedContactLink>
           )}
           {business.proSiteEnabled && (
             <a

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 interface Props {
   business: Business

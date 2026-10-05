@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Business } from '@/lib/yelp'
+import type { Business } from '@/lib/business'
 
 interface Props {
   open: boolean
@@ -96,9 +96,7 @@ export default function ReviewLinkModal({ open, onClose, business }: Props) {
           ) : (
             <p className="text-sm text-slate-500">
               No review link available yet.{' '}
-              {business.source === 'manual'
-                ? 'Add a review URL when editing this business.'
-                : 'This business has no Yelp listing to link to.'}
+              Add a review URL when editing this business.
             </p>
           )}
         </div>

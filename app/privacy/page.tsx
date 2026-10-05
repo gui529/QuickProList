@@ -65,11 +65,11 @@ export default function PrivacyPage() {
 
       <h3>2.2 Business listings shown in search results</h3>
       <p>
-        Search results combine two sources: (a) businesses we have &quot;curated&quot; —
-        stored in our own database — and (b) live results from the{' '}
-        <strong>Yelp Fusion API</strong>. For curated businesses sourced from Yelp, we store a
-        snapshot of Yelp-provided information (business name, phone, address, photo, rating,
-        review count, and category) in our database, together with the Yelp business ID.
+        Search results show businesses we have &quot;curated&quot; — stored in our own
+        database. Some older curated listings were originally created from a snapshot of
+        Yelp-provided information (business name, phone, address, photo, rating, review count,
+        and category) stored in our database together with a Yelp business ID; we no longer
+        query Yelp.
         {/* OWNER NOTE: our retention posture for this Yelp-sourced snapshot data is under
             internal review for compliance with Yelp's API terms and may change (e.g. to store
             only the Yelp business ID long-term and fetch display details live at request time).
@@ -113,7 +113,7 @@ export default function PrivacyPage() {
 
       <h3>2.4 Outreach / campaign contacts</h3>
       <p>
-        We sometimes contact businesses we find on Yelp (or that reach out to us) by SMS or
+        We sometimes contact local businesses (or businesses that reach out to us) by SMS or
         email to invite them to a paid listing. When we do, we record the business name, phone
         number and/or email address, the message sent, and delivery status in a{' '}
         <code>campaign_contacts</code> table, as a log of who was contacted.
@@ -146,7 +146,6 @@ export default function PrivacyPage() {
       <h2>4. Who we share information with</h2>
       <p>We share information with the following service providers, each acting on our behalf:</p>
       <ul>
-        <li><strong>Yelp</strong> — source of business search data (we query, not share, your data with Yelp beyond standard API request metadata).</li>
         <li><strong>Stripe</strong> — payment processing and subscription billing.</li>
         <li><strong>Supabase</strong> — our database and file storage (business photos).</li>
         <li><strong>Google</strong> — sign-in for QuickProList staff (Google OAuth).</li>

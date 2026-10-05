@@ -10,3 +10,16 @@ export const CATEGORIES = [
   { label: 'Contractors', value: 'generalcontractors', term: 'contractor', icon: '🏗️' },
   { label: 'Locksmiths', value: 'locksmiths', term: 'locksmith', icon: '🔑' },
 ]
+
+/**
+ * Canonical key for comparing categories case-insensitively and ignoring
+ * surrounding whitespace. Known category labels/terms ("Cleaners",
+ * "home cleaning") resolve to their stored value ("homecleaning").
+ */
+export function normalizeCategory(input: string): string {
+  const key = input.trim().toLowerCase()
+  const known = CATEGORIES.find(
+    (c) => c.value === key || c.label.toLowerCase() === key || c.term.toLowerCase() === key
+  )
+  return known ? known.value : key
+}
