@@ -62,9 +62,10 @@ export default function DashboardEditForm({
       </p>
 
       <div className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5">
+        <label className="flex flex-col gap-1.5 scroll-mt-6" htmlFor="website-url">
           <span className="text-xs font-semibold text-slate-700">Website URL</span>
           <input
+            id="website-url"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
             placeholder="https://"
@@ -72,9 +73,10 @@ export default function DashboardEditForm({
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
+        <label className="flex flex-col gap-1.5 scroll-mt-6" htmlFor="contact-email">
           <span className="text-xs font-semibold text-slate-700">Contact email</span>
           <input
+            id="contact-email"
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
             placeholder="you@example.com"
@@ -82,9 +84,10 @@ export default function DashboardEditForm({
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
+        <label className="flex flex-col gap-1.5 scroll-mt-6" htmlFor="review-url">
           <span className="text-xs font-semibold text-slate-700">Review link</span>
           <input
+            id="review-url"
             value={reviewUrl}
             onChange={(e) => setReviewUrl(e.target.value)}
             placeholder="https://g.page/r/.../review"

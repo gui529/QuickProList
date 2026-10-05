@@ -185,6 +185,7 @@ export async function getCuratedByDashboardToken(
     websiteUrl: row.website_url,
     contactEmail: row.contact_email,
     reviewUrl: row.review_url,
+    proSiteEnabled: row.pro_site_enabled ?? false,
   }
 }
 

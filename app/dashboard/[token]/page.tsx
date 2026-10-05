@@ -4,6 +4,7 @@ import { getCuratedByDashboardToken } from '@/lib/kv'
 import { listInvitations } from '@/lib/invitations'
 import { deriveStatus, type BusinessReport } from '@/lib/reports'
 import DashboardEditForm from '@/components/DashboardEditForm'
+import ProfileCompleteness from '@/components/ProfileCompleteness'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +76,8 @@ export default async function BusinessDashboardPage({
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-10">
+        <ProfileCompleteness business={business} />
+
         <span className="inline-block text-xs font-bold tracking-widest uppercase text-slate-400 mb-4">
           Lifetime stats
         </span>
