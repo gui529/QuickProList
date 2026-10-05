@@ -11,6 +11,7 @@ import {
 } from '@/lib/kv'
 import { getBusinessById } from '@/lib/yelp'
 import { AuthError, requireAdmin } from '@/lib/auth'
+import { errorMessage } from '@/lib/errors'
 
 async function gate(): Promise<NextResponse | null> {
   try {
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     } catch (err) {
       console.error('addCuratedFromYelp failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to save'
+      const msg = errorMessage(err, 'Failed to save')
       return NextResponse.json({ error: msg }, { status: 500 })
     }
   }
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     } catch (err) {
       console.error('addCuratedManual failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to save'
+      const msg = errorMessage(err, 'Failed to save')
       return NextResponse.json({ error: msg }, { status: 500 })
     }
   }
@@ -114,7 +115,8 @@ export async function PATCH(req: NextRequest) {
     }
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to update'
+    console.error('request failed:', err)
+    const msg = errorMessage(err, 'Failed to update')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
@@ -128,7 +130,8 @@ export async function DELETE(req: NextRequest) {
     await removeCurated(id)
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to remove'
+    console.error('request failed:', err)
+    const msg = errorMessage(err, 'Failed to remove')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

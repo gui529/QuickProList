@@ -132,6 +132,7 @@ export async function getCurated(category: string, city: string): Promise<Busine
     .is('delisted_at', null)
     .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
     .order('created_at', { ascending: true })
+  if (error) console.error('getCurated failed:', error)
   if (error || !data) return []
   return (data as CuratedRow[]).map(rowToBusiness)
 }
@@ -148,6 +149,7 @@ export async function getCuratedInArea(category: string, cities: string[]): Prom
     .is('delisted_at', null)
     .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
     .order('created_at', { ascending: true })
+  if (error) console.error('getCuratedInArea failed:', error)
   if (error || !data) return []
   return (data as CuratedRow[]).map(rowToBusiness)
 }

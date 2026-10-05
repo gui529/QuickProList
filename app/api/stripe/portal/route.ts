@@ -3,6 +3,7 @@ import { getCuratedByDashboardToken } from '@/lib/kv'
 import { getInvitationByCuratedBusinessId } from '@/lib/invitations'
 import { createBillingPortalSession } from '@/lib/stripe'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
+import { errorMessage } from '@/lib/errors'
 
 /**
  * Self-serve entry point into the Stripe Billing Portal for a paying
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: portalUrl })
   } catch (err) {
     console.error('billing portal session failed:', err)
-    const msg = err instanceof Error ? err.message : 'Failed to create billing portal session'
+    const msg = errorMessage(err, 'Failed to create billing portal session')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

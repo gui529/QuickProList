@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateCuratedByDashboardToken, type DashboardEditableFields } from '@/lib/kv'
+import { errorMessage } from '@/lib/errors'
 
 /**
  * Self-serve edit endpoint for a subscribed business, gated by nothing but
@@ -38,7 +39,8 @@ export async function PATCH(
     if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to update'
+    console.error('request failed:', err)
+    const msg = errorMessage(err, 'Failed to update')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
