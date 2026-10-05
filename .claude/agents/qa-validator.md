@@ -127,16 +127,17 @@ Do not disable protection to get in.
    - The card shows the business name. It does not show a "Yelp reviews"
      label or a Yelp rating badge. There is no red error banner.
 
-3. **A search with no pros.** An opened town (Acworth, Kennesaw, Marietta,
-   or Woodstock) plus a category that has no listing. If the first
-   category you try shows a pro, try another and record the pair you used.
+3. **A search with no pros.** An opened town (for example Marietta, Smyrna,
+   or Canton — any town in the picker) plus a category that has no listing.
+   If the first category you try shows a pro, try another and record the
+   pair you used.
    - The screen shows exactly "No pros found here yet. Check back soon."
    - That is the friendly empty state, not a red error.
 
 4. **A town outside the open area.** Type a town that is not open (for
    example Bozeman) and click a category.
-   - The screen says QuickProList is not open there yet (the current copy
-     names Acworth, Kennesaw, Marietta, or Woodstock).
+   - The screen says QuickProList is not open there yet. The sentence stays
+     short and points at the town list; it does not name every opened town.
    - It does not show a 502, "Something went wrong", or "Yelp API error".
 
 5. **Desktop and a narrow viewport.** Repeat the Marietta + Cleaners

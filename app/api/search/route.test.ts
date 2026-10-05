@@ -21,14 +21,17 @@ describe('GET /api/search open area', () => {
     getMergedResults.mockReset().mockResolvedValue([])
   })
 
-  it.each(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock', 'Marietta, GA'])('accepts %s', async (location) => {
-    const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
+  it.each(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock', 'Marietta, GA', 'Smyrna', 'Canton', 'Fair Oaks, GA'])(
+    'accepts %s',
+    async (location) => {
+      const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
 
-    expect(res.status).toBe(200)
-    expect(getMergedResults).toHaveBeenCalledTimes(1)
-  })
+      expect(res.status).toBe(200)
+      expect(getMergedResults).toHaveBeenCalledTimes(1)
+    }
+  )
 
-  it.each(['Smyrna, GA', 'Atlanta, GA', 'Canton'])('refuses %s without searching', async (location) => {
+  it.each(['Atlanta, GA', 'Marietta, OH'])('refuses %s without searching', async (location) => {
     const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
     const body = await res.json()
 

@@ -4,15 +4,34 @@ export interface OpenTown {
 }
 
 /**
- * Single source of truth for the opened area: Kennesaw and the towns within
- * about 10 miles. To open another town, add it here — nothing else changes.
- * `slug` matches how curated businesses store cities (see `normalizeCity`).
+ * Single source of truth for the opened area around Kennesaw.
+ * Acworth, Kennesaw, Marietta, and Woodstock are within about 10 miles.
+ * The other towns are farther — about 15–40 minutes away. The owner asked
+ * to open all of them, and every opened town shares one listing pool.
+ * To open another town, add it here — nothing else changes.
+ * `slug` matches how `resolveOpenTown` and `normalizeCity` compare input
+ * (lowercase first segment, spaces kept), so "Fair Oaks" matches `fair oaks`.
  */
 export const OPEN_TOWNS: readonly OpenTown[] = [
   { name: 'Acworth', slug: 'acworth' },
   { name: 'Kennesaw', slug: 'kennesaw' },
   { name: 'Marietta', slug: 'marietta' },
   { name: 'Woodstock', slug: 'woodstock' },
+  { name: 'Emerson', slug: 'emerson' },
+  { name: 'Fair Oaks', slug: 'fair oaks' },
+  { name: 'Holly Springs', slug: 'holly springs' },
+  { name: 'Smyrna', slug: 'smyrna' },
+  { name: 'Vinings', slug: 'vinings' },
+  { name: 'Cartersville', slug: 'cartersville' },
+  { name: 'Canton', slug: 'canton' },
+  { name: 'Dallas', slug: 'dallas' },
+  { name: 'Roswell', slug: 'roswell' },
+  { name: 'Powder Springs', slug: 'powder springs' },
+  { name: 'Hiram', slug: 'hiram' },
+  { name: 'Austell', slug: 'austell' },
+  { name: 'Mableton', slug: 'mableton' },
+  { name: 'Ball Ground', slug: 'ball ground' },
+  { name: 'Alpharetta', slug: 'alpharetta' },
 ]
 
 export const OPEN_AREA_STATE = 'GA'
@@ -39,10 +58,4 @@ export function formatTown(town: OpenTown): string {
   return `${town.name}, ${OPEN_AREA_STATE}`
 }
 
-export function listOpenTownNames(): string {
-  const names = OPEN_TOWNS.map((t) => t.name)
-  if (names.length <= 1) return names.join('')
-  return `${names.slice(0, -1).join(', ')}, or ${names[names.length - 1]}`
-}
-
-export const NOT_OPEN_MESSAGE = `QuickProList is not open there yet. Try ${listOpenTownNames()}.`
+export const NOT_OPEN_MESSAGE = 'QuickProList is not open there yet. Choose a town from the list.'

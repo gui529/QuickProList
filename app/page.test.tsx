@@ -14,6 +14,7 @@ vi.mock('next/image', () => ({
 }))
 
 import HomePage from './page'
+import { OPEN_TOWNS } from '@/lib/open-towns'
 
 const BANNED = [/trusted/i, /verified/i, /vetted/i, /hand-?picked/i, /top-?rated/i]
 
@@ -108,17 +109,16 @@ describe('HomePage open area', () => {
     const offered = within(screen.getByRole('list', { name: /towns/i }))
       .getAllByRole('button')
       .map((b) => b.textContent)
-    expect(offered).toEqual(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock'])
-    for (const closed of ['Smyrna', 'Canton', 'Atlanta']) {
-      expect(document.body.textContent).not.toContain(closed)
-    }
+    expect(offered).toEqual(OPEN_TOWNS.map((t) => t.name))
+    expect(offered).toEqual(expect.arrayContaining(['Smyrna', 'Canton', 'Fair Oaks', 'Alpharetta']))
+    expect(document.body.textContent).not.toContain('Atlanta')
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Atl' } })
     expect(screen.queryByRole('list', { name: /towns/i })).toBeNull()
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it.each(['Smyrna', 'Atlanta, GA'])('shows "not open there yet" for %s and does not search', async (town) => {
+  it.each(['Atlanta, GA'])('shows "not open there yet" for %s and does not search', async (town) => {
     searchParams = new URLSearchParams({ category: 'plumbing', location: town })
     render(<HomePage />)
 
@@ -129,7 +129,7 @@ describe('HomePage open area', () => {
 
   it('does not search from a typed town outside the area', () => {
     render(<HomePage />)
-    fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Smyrna' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Atlanta' } })
     fireEvent.click(screen.getByRole('button', { name: /plumbers/i }))
 
     expect(screen.getByText(/not open there yet/i)).toBeDefined()
@@ -144,12 +144,16 @@ describe('HomePage open area', () => {
     expect(screen.queryByText(/something went wrong/i)).toBeNull()
   })
 
-  it('searches from a typed opened town', async () => {
-    render(<HomePage />)
-    fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Woodstock' } })
-    fireEvent.click(screen.getByRole('button', { name: /plumbers/i }))
+  it.each(['Woodstock', 'Smyrna', 'Canton', 'Fair Oaks'])(
+    'searches from the typed opened town %s',
+    async (town) => {
+      render(<HomePage />)
+      fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: town } })
+      fireEvent.click(screen.getByRole('button', { name: /plumbers/i }))
 
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
-    expect(String((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])).toContain('location=Woodstock')
-  })
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+      const url = String((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0])
+      expect(new URL(url, 'http://localhost').searchParams.get('location')).toBe(town)
+    }
+  )
 })
