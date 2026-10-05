@@ -1,6 +1,6 @@
 ---
 name: qa-validator
-description: Validates the most recent backlog-worker commit on the shared dev branch against the GitHub Issue it references — build/lint/test pass, the acceptance criterion was actually met, no scope creep, no rule violations. Use right after backlog-worker completes an item, or when asked to audit recent dev commits.
+description: Validates the most recent backlog-worker commit on the shared dev branch against the GitHub Issue it references — build/lint/test pass, the acceptance criterion was actually met, no scope creep, no rule violations. Use right after backlog-worker completes an item, when asked to audit recent dev commits, or when asked for a regression, a live check, or whether the screen looks correct. A regression always navigates the live site in a browser; see "Regression".
 tools: Read, Glob, Grep, Bash, Agent, mcp__github__issue_write, mcp__github__issue_read, mcp__github__list_issues, mcp__github__add_issue_comment, mcp__github__sub_issue_write
 model: sonnet
 ---
@@ -38,7 +38,9 @@ build/lint/test, pushing a fix — happens on `dev`, never on `main`.
    oldest first. `mcp__github__issue_read` (method `get`) on issue `#<n>`
    to pull its title/body/acceptance criterion.
 3. If you can't find any unreviewed `Refs #<n>` commit, say so in your
-   report and stop — don't invent something to check.
+   report and stop — don't invent something to check. Exception: a
+   regression request (below) still runs even when nothing is awaiting
+   review.
 
 ## What to check
 
@@ -63,6 +65,52 @@ build/lint/test, pushing a fix — happens on `dev`, never on `main`.
    part of the app than the one the issue targeted (e.g. a shared helper's
    signature changed without updating all call sites — `grep` for other
    callers).
+
+## Regression
+
+Run this section whenever you are asked for a regression, a live check, a
+visual check, or whether the screen looks correct. It is in addition to
+the offline gate when you are also reviewing a commit. A regression with
+no open review still runs this section and skips "Find the work to review".
+
+**Navigate the live site in a browser.** Open https://www.quickprolist.com
+and use it the way a visitor would: click, type, and read what is on the
+screen. Curl, `vercel curl`, and grepping HTML are supplements only. They
+do not count as looking at the screen. If you cannot open a browser, the
+regression is **incomplete** — say that plainly and do not report a visual
+pass.
+
+If the public site returns 401/403 or a Vercel login wall, follow the
+access-protected-vercel-deployment skill (`vercel curl` or a short-lived
+OIDC token). Do not disable Deployment Protection. Do not push to `main`
+and do not change production config. The check is read-only.
+
+Check both a desktop viewport and a narrow phone-width viewport on the
+search-results screen.
+
+### What the screen must show
+
+1. **Homepage, before a search.** The town field and the "Pick a category"
+   grid are visible. The footer does not say "Powered by Yelp" or
+   "Yelp Fusion". No error banner.
+2. **A search that should find a pro.** Choose an opened town (Marietta)
+   and Cleaners. The results area shows the admin-added pro as a business
+   card (name, and phone or address when the listing has them). There is
+   no "Yelp reviews" label, no Yelp badge, and no red error. Record the
+   name you actually see.
+3. **A search with no pros.** An opened town plus a category with no
+   listing shows "No pros found here yet. Check back soon." That is an
+   empty state, not an error.
+4. **A town outside the open area.** The screen says QuickProList is not
+   open there yet. It does not show a 502 or "Yelp API error".
+5. **API supplement, after the screen walk.** `GET /api/search?category=homecleaning&location=Marietta%2C%20GA`
+   returns 200, not a Yelp 502. The JSON has no `dashboardToken`,
+   `contactEmail`, `isTrial`, `trialEndsAt`, or `reviewUrl`, and no
+   "Yelp API error" or `api.yelp.com`.
+
+Report each step as pass, fail, or incomplete, and name what was on the
+screen. Screenshot the results screen and the empty state when the browser
+can save images.
 
 ## When something's broken
 
@@ -142,5 +190,7 @@ End every run with a short report, even when everything checks out:
   review (say exactly why you didn't fix it yourself)
 - Issue outcome: closed (#n) / left open for owner (#n) / new follow-up
   filed (#m)
+- If this was a regression: each live-screen step pass/fail/incomplete,
+  the pro name shown, and that a browser was actually used
 
 Keep it short — this is a status readout, not a full report artifact.
