@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getInvitationByToken, isInvitationExpired } from '@/lib/invitations'
 import { createCheckoutSession } from '@/lib/stripe'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
-import { errorMessage } from '@/lib/errors'
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
@@ -48,7 +47,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ checkoutUrl })
   } catch (err) {
     console.error('checkout failed:', err)
-    const msg = errorMessage(err, 'Failed to create checkout')
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create checkout' }, { status: 500 })
   }
 }

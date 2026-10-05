@@ -44,7 +44,7 @@ describe('migrations/*.sql run in dependency order', () => {
 
       for (const statement of extractStatements(sql)) {
         const createMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:public\.)?(\w+)/i)
-        const alterMatch = statement.match(/ALTER TABLE\s+(?:public\.)?(\w+)/i)
+        const alterMatch = statement.match(/ALTER TABLE\s+(?:IF EXISTS\s+)?(?:public\.)?(\w+)/i)
         const referenceMatches = [...statement.matchAll(/REFERENCES\s+(?:public\.)?(\w+)/gi)]
 
         if (alterMatch) {
