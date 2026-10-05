@@ -66,51 +66,94 @@ build/lint/test, pushing a fix — happens on `dev`, never on `main`.
    signature changed without updating all call sites — `grep` for other
    callers).
 
-## Regression
+## Regression test plan
 
-Run this section whenever you are asked for a regression, a live check, a
-visual check, or whether the screen looks correct. It is in addition to
-the offline gate when you are also reviewing a commit. A regression with
-no open review still runs this section and skips "Find the work to review".
+Run this plan whenever you are asked for a regression, a live check, a
+visual check, or whether the screen looks correct. It is mandatory for
+those requests. It is **in addition to** the offline build/lint/test gate
+when you are also reviewing a commit. Normal issue review (rebuild, lint,
+test, and diff review on `dev`) stays as written above and does not by
+itself satisfy a regression. A regression with no open review still runs
+this plan and skips "Find the work to review".
 
-**Navigate the live site in a browser.** Open https://www.quickprolist.com
-and use it the way a visitor would: click, type, and read what is on the
-screen. Curl, `vercel curl`, and grepping HTML are supplements only. They
-do not count as looking at the screen. If you cannot open a browser, the
-regression is **incomplete** — say that plainly and do not report a visual
-pass.
+### How to run it
 
-If the public site returns 401/403 or a Vercel login wall, follow the
-access-protected-vercel-deployment skill (`vercel curl` or a short-lived
-OIDC token). Do not disable Deployment Protection. Do not push to `main`
-and do not change production config. The check is read-only.
+Open the live site in a real browser and walk it as a visitor. Prefer
+https://www.quickprolist.com. Use the browser tooling you actually have:
+the `computerUse` subagent, or a browser automation tool (Chrome,
+Playwright, or the equivalent) that loads the page, types, clicks, and
+reads rendered text. The walk is:
 
-Check both a desktop viewport and a narrow phone-width viewport on the
-search-results screen.
+1. Open the homepage.
+2. Type or select a town in the Town field.
+3. Click a category.
+4. Read what is on the screen (heading, cards, empty state, or error).
+
+Do that for each scenario below. Check the search-results screen at a
+desktop width (about 1280px) and again at a narrow phone width (about
+390px). Save screenshots under `/opt/cursor/artifacts` when that directory
+exists.
+
+Curl, `vercel curl`, and grepping raw HTML are an API supplement only.
+They do not count as looking at the screen. **If you cannot open a
+browser and complete the walk, the regression fails (it is incomplete).**
+Say that plainly. Do not report a visual pass from HTML or curl alone.
+
+The check is read-only. Do not push to `main`. Do not change production
+config, Deployment Protection, or env vars. If the public site returns
+401/403 or a Vercel login wall, follow the
+access-protected-vercel-deployment skill so the browser can load the page.
+Do not disable protection to get in.
 
 ### What the screen must show
 
-1. **Homepage, before a search.** The town field and the "Pick a category"
-   grid are visible. The footer does not say "Powered by Yelp" or
-   "Yelp Fusion". No error banner.
-2. **A search that should find a pro.** Choose an opened town (Marietta)
-   and Cleaners. The results area shows the admin-added pro as a business
-   card (name, and phone or address when the listing has them). There is
-   no "Yelp reviews" label, no Yelp badge, and no red error. Record the
-   name you actually see.
-3. **A search with no pros.** An opened town plus a category with no
-   listing shows "No pros found here yet. Check back soon." That is an
-   empty state, not an error.
-4. **A town outside the open area.** The screen says QuickProList is not
-   open there yet. It does not show a 502 or "Yelp API error".
-5. **API supplement, after the screen walk.** `GET /api/search?category=homecleaning&location=Marietta%2C%20GA`
+1. **Homepage, before a search.**
+   - Heading includes "The right hand for every home project".
+   - The town field is visible (label "Town").
+   - "Pick a category" and the category grid are visible (Plumbers through
+     Locksmiths, including Cleaners).
+   - Before any search, the feature cards are visible: "Find local pros",
+     "Quick search", "Local results".
+   - The footer does not say "Powered by Yelp" or "Yelp Fusion". No Yelp
+     branding anywhere on the page. No error banner.
+
+2. **A search that should find a pro.** Type or select Marietta, then
+   click Cleaners.
+   - The results heading looks like "N Cleaners in Marietta".
+   - The screen shows the curated pro as a business card. The expected
+     name is "Ella's cleaning" unless live data has changed — then record
+     the name you actually see (a curly apostrophe still counts as that
+     listing).
+   - The card shows the business name. It does not show a "Yelp reviews"
+     label or a Yelp rating badge. There is no red error banner.
+
+3. **A search with no pros.** An opened town (Acworth, Kennesaw, Marietta,
+   or Woodstock) plus a category that has no listing. If the first
+   category you try shows a pro, try another and record the pair you used.
+   - The screen shows exactly "No pros found here yet. Check back soon."
+   - That is the friendly empty state, not a red error.
+
+4. **A town outside the open area.** Type a town that is not open (for
+   example Bozeman) and click a category.
+   - The screen says QuickProList is not open there yet (the current copy
+     names Acworth, Kennesaw, Marietta, or Woodstock).
+   - It does not show a 502, "Something went wrong", or "Yelp API error".
+
+5. **Desktop and a narrow viewport.** Repeat the Marietta + Cleaners
+   results screen at about 390px wide. The business name is still readable.
+   The card can stack vertically. The page does not hide the name off-screen.
+
+6. **API spot-check, after the screen walk. This does not replace steps
+   1–5.** `GET /api/search?category=homecleaning&location=Marietta,%20GA`
    returns 200, not a Yelp 502. The JSON has no `dashboardToken`,
    `contactEmail`, `isTrial`, `trialEndsAt`, or `reviewUrl`, and no
-   "Yelp API error" or `api.yelp.com`.
+   "Yelp API error" or `api.yelp.com`. A town outside the area returns the
+   not-open JSON, not a 502.
 
-Report each step as pass, fail, or incomplete, and name what was on the
-screen. Screenshot the results screen and the empty state when the browser
-can save images.
+Report each step as pass, fail, or incomplete, and quote what was on the
+screen. Include screenshot paths when you saved any. Name the browser
+tooling you used. If the browser never opened, the outcome is fail /
+incomplete, not pass.
 
 ## When something's broken
 
