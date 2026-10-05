@@ -56,7 +56,61 @@ describe('BusinessCard contact-click tracking in search results', () => {
     render(<BusinessCard business={business} />)
 
     expect(screen.getByText('Business 22222222-2222-2222-2222-222222222222')).toBeDefined()
+    expect(screen.getByText('4.5 · 10 reviews')).toBeDefined()
     expect(document.body.textContent).not.toMatch(/yelp/i)
+  })
+
+  it('shows a stored rating and review count as plain text, and keeps Leave a review', () => {
+    const business = makeBusiness({
+      id: '77777777-7777-7777-7777-777777777777',
+      source: 'manual',
+      rating: 4.8,
+      reviewCount: 120,
+      reviewUrl: 'https://g.page/r/example/review',
+    })
+
+    render(<BusinessCard business={business} />)
+
+    expect(screen.getByText('4.8 · 120 reviews')).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Leave a review' })).toBeDefined()
+    expect(document.body.textContent).not.toMatch(/yelp/i)
+    expect(document.querySelector('img[alt*="Google" i]')).toBeNull()
+  })
+
+  it('shows a whole-number rating with one decimal and a singular review', () => {
+    const business = makeBusiness({
+      id: '88888888-8888-8888-8888-888888888888',
+      rating: 5,
+      reviewCount: 1,
+    })
+
+    render(<BusinessCard business={business} />)
+
+    expect(screen.getByText('5.0 · 1 review')).toBeDefined()
+  })
+
+  it('shows a numeric-string rating the way the database returns it', () => {
+    const business = makeBusiness({
+      id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      rating: '5.0' as unknown as number,
+      reviewCount: 7,
+    })
+
+    render(<BusinessCard business={business} />)
+
+    expect(screen.getByText('5.0 · 7 reviews')).toBeDefined()
+  })
+
+  it('does not show a rating line when rating and review count are missing', () => {
+    const business = makeBusiness({
+      id: '99999999-9999-9999-9999-999999999999',
+      rating: null,
+      reviewCount: null,
+    })
+
+    render(<BusinessCard business={business} />)
+
+    expect(document.body.textContent).not.toMatch(/reviews?/i)
   })
 
   it('shows a raw 10-digit US phone as (843) 657-8901 and dials +1 digits', () => {

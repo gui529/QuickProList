@@ -10,9 +10,23 @@ interface Props {
   highlighted?: boolean
 }
 
+/** Plain stored rating, e.g. "4.8 · 120 reviews". No provider name or logo. */
+function storedReviewLabel(rating: number | null, reviewCount: number | null): string | null {
+  const ratingValue = rating == null ? NaN : Number(rating)
+  const countValue = reviewCount == null ? NaN : Number(reviewCount)
+  const hasRating = Number.isFinite(ratingValue)
+  const hasCount = Number.isFinite(countValue)
+  if (!hasRating && !hasCount) return null
+  const ratingText = hasRating ? ratingValue.toFixed(1) : null
+  const countText = hasCount ? `${countValue} ${countValue === 1 ? 'review' : 'reviews'}` : null
+  if (ratingText && countText) return `${ratingText} · ${countText}`
+  return ratingText ?? countText
+}
+
 export default function BusinessCard({ business, isFeatured, highlighted = false }: Props) {
   const highlight = isFeatured ?? true
   const reviewHref = httpUrlHref(business.reviewUrl)
+  const reviewLabel = storedReviewLabel(business.rating, business.reviewCount)
   const ringClass = highlighted
     ? 'ring-2 ring-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.35),0_10px_36px_rgba(245,158,11,0.28)]'
     : highlight
@@ -64,6 +78,10 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
             </div>
           </div>
         </div>
+
+        {reviewLabel && (
+          <p className="text-sm text-slate-700">{reviewLabel}</p>
+        )}
 
         {business.address && (
           <p className="text-sm text-gray-600 truncate flex items-center gap-1.5">
