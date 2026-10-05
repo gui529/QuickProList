@@ -7,7 +7,7 @@ export const { handlers, auth } = NextAuth({
   pages: { signIn: '/login', error: '/login' },
   callbacks: {
     signIn({ profile }) {
-      return profile?.email_verified !== false
+      return profile?.email_verified === true
     },
     session({ session, token }) {
       if (session.user && token.sub) session.user.id = token.sub

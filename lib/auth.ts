@@ -9,12 +9,15 @@ function serviceClient() {
 }
 
 async function isAdminEmail(email: string | undefined | null): Promise<boolean> {
-  if (!email) return false
+  const wanted = email?.trim().toLowerCase()
+  if (!wanted) return false
   const sb = serviceClient()
   if (!sb) return false
-  const { data, error } = await sb.from('admins').select('email').eq('email', email).maybeSingle()
+  // Compare in code rather than with ilike/pattern matching, where `%` and `_`
+  // in an email would act as wildcards.
+  const { data, error } = await sb.from('admins').select('email')
   if (error) console.error('admins lookup failed', error.message)
-  return !!data
+  return (data ?? []).some((row) => row.email?.trim().toLowerCase() === wanted)
 }
 
 export interface AdminSession {

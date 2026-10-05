@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 let session: { user?: { email?: string | null; id?: string } } | null = null
 let configured = true
 const authMock = vi.fn(async () => session)
-let adminRow: { email: string } | null = null
-const eq = vi.fn()
+let adminRows: { email: string }[] = []
+const select = vi.fn()
 
 vi.mock('./auth-config', () => ({
   auth: () => authMock(),
@@ -13,12 +13,10 @@ vi.mock('./auth-config', () => ({
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
     from: (table: string) => ({
-      select: () => ({
-        eq: (col: string, val: string) => {
-          eq(table, col, val)
-          return { maybeSingle: async () => ({ data: adminRow, error: null }) }
-        },
-      }),
+      select: async (cols: string) => {
+        select(table, cols)
+        return { data: adminRows, error: null }
+      },
     }),
   }),
 }))
@@ -28,9 +26,9 @@ import { getAdminSession, requireAdmin, AuthError } from './auth'
 beforeEach(() => {
   session = null
   configured = true
-  adminRow = null
+  adminRows = []
   authMock.mockClear()
-  eq.mockClear()
+  select.mockClear()
   process.env.SUPABASE_URL = 'https://x.supabase.co'
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service'
 })
@@ -38,14 +36,14 @@ beforeEach(() => {
 describe('getAdminSession', () => {
   it('returns the Google subject as userId for an email in admins', async () => {
     session = { user: { email: 'admin@example.com', id: 'google-sub-1' } }
-    adminRow = { email: 'admin@example.com' }
+    adminRows = [{ email: 'admin@example.com' }]
     expect(await getAdminSession()).toEqual({ email: 'admin@example.com', userId: 'google-sub-1' })
-    expect(eq).toHaveBeenCalledWith('admins', 'email', 'admin@example.com')
+    expect(select).toHaveBeenCalledWith('admins', 'email')
   })
 
   it('falls back to the email when there is no subject', async () => {
     session = { user: { email: 'admin@example.com' } }
-    adminRow = { email: 'admin@example.com' }
+    adminRows = [{ email: 'admin@example.com' }]
     expect((await getAdminSession())?.userId).toBe('admin@example.com')
   })
 
@@ -61,7 +59,7 @@ describe('getAdminSession', () => {
   it('is null without calling Auth.js when auth env is missing', async () => {
     configured = false
     session = { user: { email: 'admin@example.com' } }
-    adminRow = { email: 'admin@example.com' }
+    adminRows = [{ email: 'admin@example.com' }]
     expect(await getAdminSession()).toBeNull()
     expect(authMock).not.toHaveBeenCalled()
   })
@@ -73,10 +71,34 @@ describe('getAdminSession', () => {
   })
 })
 
+describe('admin email matching', () => {
+  it('matches case-insensitively when the admins row is capitalised', async () => {
+    session = { user: { email: 'owner@example.com', id: 's' } }
+    adminRows = [{ email: 'Owner@Example.com' }]
+    expect(await getAdminSession()).toMatchObject({ email: 'owner@example.com' })
+  })
+
+  it('matches when the signed-in email is capitalised or padded', async () => {
+    session = { user: { email: '  OWNER@example.com ', id: 's' } }
+    adminRows = [{ email: 'owner@example.com' }]
+    expect(await getAdminSession()).not.toBeNull()
+  })
+
+  it.each(['owner_example.com', 'owner@example.co', 'owner%', '%@example.com', 'owner@example.com.evil.io'])(
+    'does not treat lookalike %s as an admin',
+    async (email) => {
+      session = { user: { email, id: 's' } }
+      adminRows = [{ email: 'owner@example.com' }]
+      expect(await getAdminSession()).toBeNull()
+      await expect(requireAdmin()).rejects.toMatchObject({ status: 403 })
+    },
+  )
+})
+
 describe('requireAdmin', () => {
   it('resolves for an admin', async () => {
     session = { user: { email: 'admin@example.com', id: 'sub' } }
-    adminRow = { email: 'admin@example.com' }
+    adminRows = [{ email: 'admin@example.com' }]
     expect(await requireAdmin()).toEqual({ email: 'admin@example.com', userId: 'sub' })
   })
 
