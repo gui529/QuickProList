@@ -12,7 +12,8 @@ async function isAdminEmail(email: string | undefined | null): Promise<boolean> 
   if (!email) return false
   const sb = serviceClient()
   if (!sb) return false
-  const { data } = await sb.from('admins').select('email').eq('email', email).maybeSingle()
+  const { data, error } = await sb.from('admins').select('email').eq('email', email).maybeSingle()
+  if (error) console.error('admins lookup failed', error.message)
   return !!data
 }
 

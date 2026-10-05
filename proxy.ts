@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(req: NextRequest) {
-  const res = NextResponse.next()
+  let res = NextResponse.next({ request: req })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,6 +17,12 @@ export async function proxy(req: NextRequest) {
           return req.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          // Refreshed tokens must be visible to Server Components rendering this same
+          // request (via the request cookies) and persisted in the browser (via the response).
+          for (const { name, value } of cookiesToSet) {
+            req.cookies.set(name, value)
+          }
+          res = NextResponse.next({ request: req })
           for (const { name, value, options } of cookiesToSet) {
             res.cookies.set({ name, value, ...options })
           }
@@ -25,19 +31,31 @@ export async function proxy(req: NextRequest) {
     }
   )
 
+  // Do not run code between createServerClient and getUser(): getUser() revalidates
+  // the token with Supabase and triggers the refresh that setAll persists.
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  const { pathname } = req.nextUrl
+  const isAdminPath = pathname === '/admin' || pathname.startsWith('/admin/')
+
+  if (!user && isAdminPath) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    url.search = ''
+    const redirect = NextResponse.redirect(url)
+    for (const cookie of res.cookies.getAll()) {
+      redirect.cookies.set(cookie)
+    }
+    return redirect
   }
 
   return res
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
