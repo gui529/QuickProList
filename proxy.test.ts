@@ -1,121 +1,86 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-type Cookie = { name: string; value: string; options?: object }
-type CookieAdapter = { getAll: () => { name: string; value: string }[]; setAll: (c: Cookie[]) => void }
+let session: { user: { email: string } } | null = null
+let configured = true
 
-const getUser = vi.fn()
-let adapter: CookieAdapter | undefined
+vi.mock('@supabase/supabase-js', () => {
+  throw new Error('proxy must not import Supabase')
+})
 
-vi.mock('@supabase/ssr', () => ({
-  createServerClient: (_url: string, _key: string, opts: { cookies: CookieAdapter }) => {
-    adapter = opts.cookies
-    return { auth: { getUser } }
-  },
+vi.mock('@/lib/auth-config', () => ({
+  isAuthConfigured: () => configured,
+  auth: (handler: (req: NextRequest & { auth: unknown }) => Response) => (req: NextRequest) =>
+    handler(Object.assign(req, { auth: session })),
 }))
 
 import { proxy, config } from './proxy'
 
-function req(path: string, cookie?: string) {
-  return new NextRequest(`https://quickprolist.example${path}`, {
-    headers: cookie ? { cookie } : {},
-  })
+function req(path: string) {
+  return new NextRequest(`https://quickprolist.example${path}`)
 }
 
 function matches(path: string) {
-  return config.matcher.some((source) => new RegExp(`^${source}$`).test(path))
-}
-
-function signedInWithRefresh() {
-  getUser.mockImplementation(async () => {
-    adapter?.setAll([{ name: 'sb-access', value: 'fresh-token', options: { path: '/' } }])
-    return { data: { user: { id: 'u1', email: 'admin@example.com' } } }
-  })
+  return config.matcher.some((source) => new RegExp(`^${source.replace('/:path*', '(?:/.*)?')}$`).test(path))
 }
 
 describe('proxy matcher', () => {
-  it.each(['/', '/search', '/pro/abc', '/admin', '/admin/campaigns', '/login', '/auth/callback', '/api/search'])(
-    'refreshes the session on %s',
+  it.each(['/admin', '/admin/campaigns'])('runs on %s', (path) => {
+    expect(matches(path)).toBe(true)
+  })
+
+  it.each(['/', '/search', '/pro/abc', '/login', '/api/search', '/api/auth/session', '/administrators'])(
+    'skips %s',
     (path) => {
-      expect(matches(path)).toBe(true)
+      expect(matches(path)).toBe(false)
     }
   )
-
-  it.each([
-    '/_next/static/chunks/app.js',
-    '/_next/image',
-    '/favicon.ico',
-    '/logo.svg',
-    '/hero.png',
-    '/photos/a.jpg',
-    '/photos/a.jpeg',
-    '/anim.gif',
-    '/photos/a.webp',
-  ])('skips static asset %s', (path) => {
-    expect(matches(path)).toBe(false)
-  })
 })
 
 describe('proxy', () => {
   beforeEach(() => {
-    getUser.mockReset()
-    adapter = undefined
-  })
-
-  it('admin with an expired token: refreshed cookie reaches the request (for the header) and the response (for the browser) on /', async () => {
-    signedInWithRefresh()
-    const res = await proxy(req('/', 'sb-access=expired-token'))
-
-    expect(res.headers.get('location')).toBeNull()
-    expect(res.headers.get('set-cookie')).toMatch(/sb-access=fresh-token/)
-    expect(res.headers.get('x-middleware-request-cookie')).toMatch(/sb-access=fresh-token/)
-    expect(res.headers.get('x-middleware-request-cookie')).not.toMatch(/expired-token/)
-  })
-
-  it('lets a signed-in admin through to /admin without redirecting', async () => {
-    signedInWithRefresh()
-    const res = await proxy(req('/admin'))
-    expect(res.headers.get('location')).toBeNull()
-    expect(res.headers.get('set-cookie')).toMatch(/sb-access=fresh-token/)
-  })
-
-  it('does not redirect a signed-out visitor on /', async () => {
-    getUser.mockResolvedValue({ data: { user: null } })
-    const res = await proxy(req('/'))
-    expect(res.headers.get('location')).toBeNull()
-    expect(res.status).toBe(200)
-  })
-
-  it('does not redirect a signed-out visitor on other public pages', async () => {
-    getUser.mockResolvedValue({ data: { user: null } })
-    for (const path of ['/search', '/login', '/pro/abc', '/api/search', '/administrators']) {
-      const res = await proxy(req(path))
-      expect(res.headers.get('location'), path).toBeNull()
-    }
+    session = null
+    configured = true
   })
 
   it('redirects a signed-out visitor on /admin to /login', async () => {
-    getUser.mockResolvedValue({ data: { user: null } })
     const res = await proxy(req('/admin'))
     expect(res.status).toBe(307)
     const loc = new URL(res.headers.get('location')!)
     expect(loc.origin).toBe('https://quickprolist.example')
     expect(loc.pathname).toBe('/login')
+    expect(loc.search).toBe('')
   })
 
   it('redirects a signed-out visitor on /admin sub-paths to /login', async () => {
-    getUser.mockResolvedValue({ data: { user: null } })
     const res = await proxy(req('/admin/campaigns'))
     expect(new URL(res.headers.get('location')!).pathname).toBe('/login')
   })
 
-  it('keeps refreshed cookies on the /login redirect when the refresh token was rejected', async () => {
-    getUser.mockImplementation(async () => {
-      adapter?.setAll([{ name: 'sb-access', value: '', options: { path: '/', maxAge: 0 } }])
-      return { data: { user: null } }
-    })
-    const res = await proxy(req('/admin', 'sb-access=dead'))
+  it('lets a signed-in user through to /admin without redirecting', async () => {
+    session = { user: { email: 'admin@example.com' } }
+    const res = await proxy(req('/admin'))
+    expect(res.headers.get('location')).toBeNull()
+    expect(res.status).toBe(200)
+  })
+
+  it('does not redirect signed-out visitors on public pages', async () => {
+    for (const path of ['/', '/search', '/login', '/pro/abc', '/api/search', '/administrators']) {
+      const res = await proxy(req(path))
+      expect(res.headers.get('location'), path).toBeNull()
+    }
+  })
+
+  it('keeps public pages working when auth env is missing', async () => {
+    configured = false
+    const res = await proxy(req('/'))
+    expect(res.headers.get('location')).toBeNull()
+    expect(res.status).toBe(200)
+  })
+
+  it('sends /admin to /login when auth env is missing', async () => {
+    configured = false
+    const res = await proxy(req('/admin'))
     expect(new URL(res.headers.get('location')!).pathname).toBe('/login')
-    expect(res.headers.get('set-cookie')).toMatch(/sb-access=;/)
   })
 })

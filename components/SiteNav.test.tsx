@@ -42,7 +42,7 @@ describe('SiteNav Dashboard link', () => {
   it('hides Dashboard when the auth check fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     authResult = async () => {
-      throw new Error('no supabase env')
+      throw new Error('missing auth env')
     }
     await renderNav()
 

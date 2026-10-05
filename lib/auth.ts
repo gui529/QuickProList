@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getServerSupabase } from './supabase/server'
+import { auth, isAuthConfigured } from './auth-config'
 
 function serviceClient() {
   const url = process.env.SUPABASE_URL
@@ -19,17 +19,23 @@ async function isAdminEmail(email: string | undefined | null): Promise<boolean> 
 
 export interface AdminSession {
   email: string
+  /** Google account subject (stable id), falling back to the email. */
   userId: string
 }
 
+async function signedInUser(): Promise<{ email: string; userId: string } | null> {
+  if (!isAuthConfigured()) return null
+  const session = await auth()
+  const email = session?.user?.email
+  if (!email) return null
+  return { email, userId: session.user?.id || email }
+}
+
 export async function getAdminSession(): Promise<AdminSession | null> {
-  const supabase = await getServerSupabase()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user || !user.email) return null
+  const user = await signedInUser()
+  if (!user) return null
   if (!(await isAdminEmail(user.email))) return null
-  return { email: user.email, userId: user.id }
+  return user
 }
 
 export class AuthError extends Error {
@@ -39,11 +45,8 @@ export class AuthError extends Error {
 }
 
 export async function requireAdmin(): Promise<AdminSession> {
-  const supabase = await getServerSupabase()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user || !user.email) throw new AuthError(401, 'Not signed in')
+  const user = await signedInUser()
+  if (!user) throw new AuthError(401, 'Not signed in')
   if (!(await isAdminEmail(user.email))) throw new AuthError(403, 'Not an admin')
-  return { email: user.email, userId: user.id }
+  return user
 }

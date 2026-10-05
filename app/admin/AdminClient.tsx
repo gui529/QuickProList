@@ -12,7 +12,7 @@ import ReportsTab from '@/components/ReportsTab'
 import RequestsTab from '@/components/RequestsTab'
 import TrialModal from '@/components/TrialModal'
 import Link from 'next/link'
-import { getBrowserSupabase } from '@/lib/supabase/browser'
+import { signOut } from 'next-auth/react'
 import type { Business } from '@/lib/yelp'
 import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 
@@ -104,9 +104,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   }
 
   async function handleSignOut() {
-    const supabase = getBrowserSupabase()
-    await supabase.auth.signOut()
-    window.location.href = '/login'
+    await signOut({ redirectTo: '/login' })
   }
 
   const [copiedDashboardId, setCopiedDashboardId] = useState<string | null>(null)

@@ -12,17 +12,9 @@ describe('loginErrorMessage', () => {
     expect(loginErrorMessage('not_an_admin')).toMatch(/not on the admin list/i)
   })
 
-  it('explains a missing code', () => {
-    expect(loginErrorMessage('missing_code')).toMatch(/incomplete/i)
-  })
-
-  it('explains expired links', () => {
-    expect(loginErrorMessage('otp_expired')).toMatch(/expired/i)
-    expect(loginErrorMessage('Email link is invalid or has expired')).toMatch(/expired/i)
-  })
-
-  it('explains a link opened in a different browser', () => {
-    expect(loginErrorMessage('PKCE code verifier not found in storage')).toMatch(/same browser/i)
+  it('explains Auth.js error codes', () => {
+    expect(loginErrorMessage('AccessDenied')).toMatch(/not approved/i)
+    expect(loginErrorMessage('Configuration')).toMatch(/not configured/i)
   })
 
   it('shows unknown errors, truncated', () => {
