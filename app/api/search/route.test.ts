@@ -42,6 +42,41 @@ describe('GET /api/search open area', () => {
     expect(searchBusinesses).not.toHaveBeenCalled()
   })
 
+  it('omits private fields from merged and raw results', async () => {
+    const secret = {
+      id: 'biz-1',
+      source: 'manual' as const,
+      name: 'Acme Plumbing',
+      rating: null,
+      reviewCount: null,
+      phone: '555-0100',
+      address: '1 Main St',
+      imageUrl: '',
+      url: '',
+      categories: ['Plumbing'],
+      proSiteEnabled: true,
+      contactEmail: 'owner@acme.example',
+      dashboardToken: 'secret-dash-token',
+    }
+    getMergedResults.mockResolvedValue([secret])
+    searchBusinesses.mockResolvedValue([secret])
+
+    const merged = await GET(get('category=plumbing&location=Marietta'))
+    const raw = await GET(get('raw=1&category=plumbing&location=Marietta'))
+    const mergedBody = await merged.json()
+    const rawBody = await raw.json()
+
+    expect(merged.status).toBe(200)
+    expect(raw.status).toBe(200)
+    for (const body of [mergedBody, rawBody]) {
+      expect(body.businesses[0]).toMatchObject({ id: 'biz-1', name: 'Acme Plumbing' })
+      expect(body.businesses[0]).not.toHaveProperty('dashboardToken')
+      expect(body.businesses[0]).not.toHaveProperty('contactEmail')
+      expect(JSON.stringify(body)).not.toContain('secret-dash-token')
+      expect(JSON.stringify(body)).not.toContain('owner@acme.example')
+    }
+  })
+
   it('refuses raw Yelp searches and coordinates outside the area', async () => {
     const raw = await GET(get('raw=1&category=plumbing&location=Atlanta'))
     const coords = await GET(get('category=plumbing&lat=33.7&lng=-84.4'))

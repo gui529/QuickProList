@@ -12,6 +12,7 @@ import {
 import { getBusinessById } from '@/lib/yelp'
 import { AuthError, requireAdmin } from '@/lib/auth'
 import { errorMessage } from '@/lib/errors'
+import { toPublicBusiness } from '@/lib/public-business'
 
 async function gate(): Promise<NextResponse | null> {
   try {
@@ -30,9 +31,11 @@ export async function GET(req: NextRequest) {
   const category = sp.get('category')
   const city = sp.get('city')
   if (category && city) {
-    const businesses = await getCurated(category, city)
+    const businesses = (await getCurated(category, city)).map(toPublicBusiness)
     return NextResponse.json({ businesses })
   }
+  const denied = await gate()
+  if (denied) return denied
   const businesses = await listAllCurated()
   return NextResponse.json({ businesses })
 }
