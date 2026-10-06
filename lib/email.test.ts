@@ -89,11 +89,24 @@ describe('sendEmail (lib/email.ts)', () => {
       expect(sendMock).not.toHaveBeenCalled()
     })
 
-    it('refuses to send marketing email when no postal address is configured', async () => {
+    it('sends marketing email without a postal address and still includes unsubscribe', async () => {
       delete process.env.MAILING_ADDRESS
 
-      await expect(sendEmail('owner@example.com', 'Biz', 'Hello')).rejects.toThrow(/MAILING_ADDRESS/)
-      expect(sendMock).not.toHaveBeenCalled()
+      await sendEmail('owner@example.com', 'Biz', 'Hello')
+
+      expect(sendMock).toHaveBeenCalledTimes(1)
+      const call = sendMock.mock.calls[0][0] as {
+        html: string
+        text: string
+        headers: Record<string, string>
+      }
+      expect(call.headers['List-Unsubscribe']).toMatch(/^<https:\/\/example\.test\/api\/unsubscribe\?token=/)
+      expect(call.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
+      expect(call.html).toContain('Unsubscribe')
+      expect(call.html).not.toContain('&middot;')
+      expect(call.text).toContain('Unsubscribe:')
+      expect(call.html).not.toContain('1 Main St')
+      expect(call.text).not.toContain('1 Main St')
     })
 
     it('does not suppress or require an address for transactional email', async () => {

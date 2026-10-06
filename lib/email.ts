@@ -31,21 +31,26 @@ interface ComplianceFooter {
   headers: Record<string, string>
 }
 
-/** Throws if marketing email can't be sent compliantly; call before doing any per-recipient work. */
+/**
+ * Call before per-recipient marketing work. A postal address is optional.
+ * Unsubscribe still has to be configured or the send throws when the link is built.
+ */
 export function assertMarketingEmailConfigured(): void {
-  if (!process.env.MAILING_ADDRESS) {
-    throw new Error('MAILING_ADDRESS not configured (required for marketing email)')
+  if (!process.env.UNSUBSCRIBE_SECRET && !process.env.CRON_SECRET) {
+    throw new Error('UNSUBSCRIBE_SECRET (or CRON_SECRET) not configured')
   }
 }
 
 function marketingCompliance(to: string, reason: string): ComplianceFooter {
   assertMarketingEmailConfigured()
-  const address = process.env.MAILING_ADDRESS as string
+  const address = process.env.MAILING_ADDRESS?.trim()
   const url = buildUnsubscribeUrl(to)
+  const addressHtml = address ? ` &middot; ${escapeHtml(address)}` : ''
+  const addressText = address ? `\n${address}` : ''
   return {
     html: `${escapeHtml(reason)}<br/>
-        <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a> &middot; ${escapeHtml(address)}`,
-    text: `\n\n${reason}\nUnsubscribe: ${url}\n${address}`,
+        <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>${addressHtml}`,
+    text: `\n\n${reason}\nUnsubscribe: ${url}${addressText}`,
     headers: {
       'List-Unsubscribe': `<${url}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
