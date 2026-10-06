@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { CATEGORIES } from '@/lib/categories'
 import { CATEGORY_IMAGES } from '@/lib/category-images'
 import CityMultiSelect from './CityMultiSelect'
+import { ProPhotoPicker } from './PhotoCropper'
 import type { Business } from '@/lib/business'
 
 interface BaseProps {
@@ -25,27 +26,6 @@ export function ManualBusinessModal({ onClose, onSaved }: BaseProps) {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    setError('')
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await fetch('/api/curated/photo', {
-      method: 'POST',
-      body: formData,
-    })
-    setUploading(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? 'Upload failed')
-      return
-    }
-    const { url } = await res.json()
-    setImageUrl(url)
-  }
 
   async function handleSave() {
     if (!name.trim() || cities.length === 0) {
@@ -120,44 +100,18 @@ export function ManualBusinessModal({ onClose, onSaved }: BaseProps) {
         <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Plumbing, Emergency Service" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
       </Field>
 
-      <Field label="Photo">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            {(imageUrl || selectedDefaultImage) && (
-              <div className="relative h-16 w-16 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-                <Image src={imageUrl || selectedDefaultImage!} alt="preview" fill className="object-cover" sizes="64px" />
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              disabled={uploading}
-              className="text-sm text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 hover:file:bg-slate-200 file:text-sm file:font-medium"
-            />
-            {uploading && <span className="text-xs text-slate-500">Uploading…</span>}
-          </div>
-          {!imageUrl && (
-            <div>
-              <p className="text-xs text-slate-500 mb-1.5">Or pick a default:</p>
-              <div className="flex gap-2 flex-wrap">
-                {(CATEGORY_IMAGES[category] ?? []).map((url) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => setSelectedDefaultImage(url === selectedDefaultImage ? null : url)}
-                    className={`relative h-14 w-14 rounded-lg overflow-hidden ring-2 transition-all ${
-                      selectedDefaultImage === url ? 'ring-amber-400' : 'ring-transparent hover:ring-slate-300'
-                    }`}
-                  >
-                    <Image src={url} alt="default option" fill className="object-cover" sizes="56px" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </Field>
+      <PhotoControls
+        imageUrl={imageUrl}
+        selectedDefaultImage={selectedDefaultImage}
+        category={category}
+        onUploaded={(url) => {
+          setImageUrl(url)
+          setSelectedDefaultImage(null)
+        }}
+        onToggleDefault={(url) => setSelectedDefaultImage(url === selectedDefaultImage ? null : url)}
+        onError={setError}
+        onUploading={setUploading}
+      />
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
 
@@ -193,24 +147,6 @@ export function EditManualBusinessModal({
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    setError('')
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await fetch('/api/curated/photo', { method: 'POST', body: formData })
-    setUploading(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? 'Upload failed')
-      return
-    }
-    const { url } = await res.json()
-    setImageUrl(url)
-  }
 
   async function handleSave() {
     if (!name.trim() || cities.length === 0) {
@@ -286,44 +222,18 @@ export function EditManualBusinessModal({
         <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="Plumbing, Emergency Service" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
       </Field>
 
-      <Field label="Photo">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            {(imageUrl || selectedDefaultImage) && (
-              <div className="relative h-16 w-16 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-                <Image src={imageUrl || selectedDefaultImage!} alt="preview" fill className="object-cover" sizes="64px" />
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              disabled={uploading}
-              className="text-sm text-slate-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 hover:file:bg-slate-200 file:text-sm file:font-medium"
-            />
-            {uploading && <span className="text-xs text-slate-500">Uploading…</span>}
-          </div>
-          {!imageUrl && (
-            <div>
-              <p className="text-xs text-slate-500 mb-1.5">Or pick a default:</p>
-              <div className="flex gap-2 flex-wrap">
-                {(CATEGORY_IMAGES[category] ?? []).map((url) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => setSelectedDefaultImage(url === selectedDefaultImage ? null : url)}
-                    className={`relative h-14 w-14 rounded-lg overflow-hidden ring-2 transition-all ${
-                      selectedDefaultImage === url ? 'ring-amber-400' : 'ring-transparent hover:ring-slate-300'
-                    }`}
-                  >
-                    <Image src={url} alt="default option" fill className="object-cover" sizes="56px" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </Field>
+      <PhotoControls
+        imageUrl={imageUrl}
+        selectedDefaultImage={selectedDefaultImage}
+        category={category}
+        onUploaded={(url) => {
+          setImageUrl(url)
+          setSelectedDefaultImage(null)
+        }}
+        onToggleDefault={(url) => setSelectedDefaultImage(url === selectedDefaultImage ? null : url)}
+        onError={setError}
+        onUploading={setUploading}
+      />
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
 
@@ -357,6 +267,64 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
           </button>
         </div>
         <div className="p-5 flex flex-col gap-4">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function PhotoControls({
+  imageUrl,
+  selectedDefaultImage,
+  category,
+  onUploaded,
+  onToggleDefault,
+  onError,
+  onUploading,
+}: {
+  imageUrl: string
+  selectedDefaultImage: string | null
+  category: string
+  onUploaded: (url: string) => void
+  onToggleDefault: (url: string) => void
+  onError: (message: string) => void
+  onUploading: (uploading: boolean) => void
+}) {
+  const [cropping, setCropping] = useState(false)
+  const preview = imageUrl || selectedDefaultImage
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-semibold text-slate-700">Photo</span>
+      <div className="flex flex-col gap-2">
+        {preview && (
+          <div className="relative h-16 w-16 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+            <Image src={preview} alt="preview" fill className="object-cover" sizes="64px" />
+          </div>
+        )}
+        <ProPhotoPicker
+          onUploaded={onUploaded}
+          onError={onError}
+          onUploading={onUploading}
+          onCroppingChange={setCropping}
+        />
+        {!imageUrl && !cropping && (
+          <div>
+            <p className="text-xs text-slate-500 mb-1.5">Or pick a default:</p>
+            <div className="flex gap-2 flex-wrap">
+              {(CATEGORY_IMAGES[category] ?? []).map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => onToggleDefault(url)}
+                  className={`relative h-14 w-14 rounded-lg overflow-hidden ring-2 transition-all ${
+                    selectedDefaultImage === url ? 'ring-amber-400' : 'ring-transparent hover:ring-slate-300'
+                  }`}
+                >
+                  <Image src={url} alt="default option" fill className="object-cover" sizes="56px" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
