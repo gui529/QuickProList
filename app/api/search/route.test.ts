@@ -21,14 +21,17 @@ describe('GET /api/search open area', () => {
     getMergedResults.mockReset().mockResolvedValue([])
   })
 
-  it.each(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock', 'Marietta, GA'])('accepts %s', async (location) => {
-    const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
+  it.each(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock', 'Marietta, GA', 'Smyrna', 'Canton', 'Fair Oaks, GA'])(
+    'accepts %s',
+    async (location) => {
+      const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
 
-    expect(res.status).toBe(200)
-    expect(getMergedResults).toHaveBeenCalledTimes(1)
-  })
+      expect(res.status).toBe(200)
+      expect(getMergedResults).toHaveBeenCalledTimes(1)
+    }
+  )
 
-  it.each(['Smyrna, GA', 'Atlanta, GA', 'Canton'])('refuses %s without searching', async (location) => {
+  it.each(['Atlanta, GA', 'Marietta, OH'])('refuses %s without searching', async (location) => {
     const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
     const body = await res.json()
 
@@ -51,8 +54,11 @@ describe('GET /api/search open area', () => {
       url: '',
       categories: ['Plumbing'],
       proSiteEnabled: true,
+      reviewUrl: 'https://g.page/r/example/review',
       contactEmail: 'owner@acme.example',
       dashboardToken: 'secret-dash-token',
+      isTrial: true,
+      trialEndsAt: '2099-01-01T00:00:00.000Z',
     }
     getMergedResults.mockResolvedValue([secret])
 
@@ -61,9 +67,15 @@ describe('GET /api/search open area', () => {
 
     expect(merged.status).toBe(200)
     for (const body of [mergedBody]) {
-      expect(body.businesses[0]).toMatchObject({ id: 'biz-1', name: 'Acme Plumbing' })
+      expect(body.businesses[0]).toMatchObject({
+        id: 'biz-1',
+        name: 'Acme Plumbing',
+        reviewUrl: 'https://g.page/r/example/review',
+      })
       expect(body.businesses[0]).not.toHaveProperty('dashboardToken')
       expect(body.businesses[0]).not.toHaveProperty('contactEmail')
+      expect(body.businesses[0]).not.toHaveProperty('isTrial')
+      expect(body.businesses[0]).not.toHaveProperty('trialEndsAt')
       expect(JSON.stringify(body)).not.toContain('secret-dash-token')
       expect(JSON.stringify(body)).not.toContain('owner@acme.example')
     }

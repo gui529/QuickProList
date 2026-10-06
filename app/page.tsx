@@ -126,7 +126,7 @@ function HomePageInner() {
 
   return (
     <div className="-mx-4 sm:-mx-6 -mt-6 sm:-mt-8">
-      <section className="relative hero-bg overflow-hidden">
+      <section className="relative z-20 hero-bg">
         <div className="absolute inset-0 grid-dots opacity-60 pointer-events-none" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-16 sm:pt-14 sm:pb-20">
           <div className="flex flex-col items-center text-center">

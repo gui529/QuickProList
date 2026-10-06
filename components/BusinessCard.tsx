@@ -1,5 +1,7 @@
 import Image from 'next/image'
 import type { Business } from '@/lib/business'
+import { httpUrlHref } from '@/lib/http-url'
+import { formatPhoneDisplay, phoneTelHref } from '@/lib/phone'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 interface Props {
@@ -10,6 +12,7 @@ interface Props {
 
 export default function BusinessCard({ business, isFeatured, highlighted = false }: Props) {
   const highlight = isFeatured ?? true
+  const reviewHref = httpUrlHref(business.reviewUrl)
   const ringClass = highlighted
     ? 'ring-2 ring-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.35),0_10px_36px_rgba(245,158,11,0.28)]'
     : highlight
@@ -77,13 +80,13 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
             <TrackedContactLink
               businessId={business.id}
               clickType="phone"
-              href={`tel:${business.phone}`}
+              href={phoneTelHref(business.phone)}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-3 py-1.5 rounded-full transition-colors max-w-full truncate"
             >
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
               </svg>
-              {business.phone}
+              {formatPhoneDisplay(business.phone)}
             </TrackedContactLink>
           )}
           {business.websiteUrl && (
@@ -103,6 +106,19 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
               </svg>
             </TrackedContactLink>
           )}
+          {reviewHref ? (
+            <a
+              href={reviewHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-900 bg-amber-50 hover:bg-amber-100 ring-1 ring-amber-200 px-3 py-1.5 rounded-full transition-colors"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
+              </svg>
+              See reviews
+            </a>
+          ) : null}
           {business.proSiteEnabled && (
             <a
               href={`/pro/${business.id}`}

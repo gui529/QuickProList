@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { ListingRequest } from '@/lib/listing-requests'
+import { formatPhoneDisplay } from '@/lib/phone'
 
 function formatDate(ts: string): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -64,7 +65,7 @@ export default function RequestsTab() {
               <div className="text-sm text-slate-600">
                 <p>{r.contact_name}</p>
                 <p className="text-xs text-slate-500">{r.email}</p>
-                {r.phone && <p className="text-xs text-slate-500">{r.phone}</p>}
+                {r.phone && <p className="text-xs text-slate-500">{formatPhoneDisplay(r.phone)}</p>}
               </div>
               <div className="text-sm text-slate-600">
                 <p className="capitalize">{r.category}</p>
