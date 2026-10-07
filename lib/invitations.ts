@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
 import type { Business } from './business'
+import { isDatabaseConfigured, query } from './db'
 
 export interface EnrollmentInvitation {
   id: string
@@ -20,11 +20,8 @@ export interface EnrollmentInvitation {
   trial_ends_at: string | null
 }
 
-function getSupabase() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key)
+function asInvitation(row: EnrollmentInvitation): EnrollmentInvitation {
+  return { ...row, monthly_price: Number(row.monthly_price) }
 }
 
 export interface CreateInvitationInput {
@@ -46,21 +43,24 @@ export interface CreateInvitationInput {
 }
 
 export async function createInvitation(input: CreateInvitationInput): Promise<string> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-
-  const { data, error } = await supabase.from('enrollment_invitations').insert({
-    business_name: input.businessName,
-    yelp_id: input.yelpId || null,
-    yelp_data: input.yelpData || null,
-    category: input.category,
-    cities: input.cities,
-    monthly_price: input.monthlyPrice,
-    curated_business_id: input.curatedBusinessId || null,
-  }).select('token').single()
-
-  if (error || !data) throw new Error('Failed to create invitation')
-  return data.token
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  const rows = await query<{ token: string }>(
+    `INSERT INTO enrollment_invitations (
+       business_name, yelp_id, yelp_data, category, cities, monthly_price, curated_business_id
+     ) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7)
+     RETURNING token`,
+    [
+      input.businessName,
+      input.yelpId || null,
+      input.yelpData ? JSON.stringify(input.yelpData) : null,
+      input.category,
+      input.cities,
+      input.monthlyPrice,
+      input.curatedBusinessId || null,
+    ]
+  )
+  if (!rows[0]) throw new Error('Failed to create invitation')
+  return rows[0].token
 }
 
 /**
@@ -78,17 +78,12 @@ export function isInvitationExpired(invitation: EnrollmentInvitation): boolean {
 }
 
 export async function getInvitationByToken(token: string): Promise<EnrollmentInvitation | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from('enrollment_invitations')
-    .select('*')
-    .eq('token', token)
-    .maybeSingle()
-
-  if (error || !data) return null
-  return data as EnrollmentInvitation
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<EnrollmentInvitation>(
+    'SELECT * FROM enrollment_invitations WHERE token = $1',
+    [token]
+  )
+  return rows[0] ? asInvitation(rows[0]) : null
 }
 
 export async function markInvitationPaid(
@@ -97,63 +92,42 @@ export async function markInvitationPaid(
   subscriptionId: string,
   curatedBusinessId: string
 ): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-
-  const { error } = await supabase
-    .from('enrollment_invitations')
-    .update({
-      status: 'paid',
-      stripe_session_id: sessionId,
-      stripe_subscription_id: subscriptionId,
-      curated_business_id: curatedBusinessId,
-    })
-    .eq('token', token)
-
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET status = 'paid', stripe_session_id = $2, stripe_subscription_id = $3, curated_business_id = $4
+     WHERE token = $1`,
+    [token, sessionId, subscriptionId, curatedBusinessId]
+  )
 }
 
 export async function listInvitations(): Promise<EnrollmentInvitation[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from('enrollment_invitations')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error || !data) return []
-  return data as EnrollmentInvitation[]
+  if (!isDatabaseConfigured()) return []
+  const rows = await query<EnrollmentInvitation>(
+    'SELECT * FROM enrollment_invitations ORDER BY created_at DESC'
+  )
+  return rows.map(asInvitation)
 }
 
 export async function listPaidInvitations(): Promise<EnrollmentInvitation[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from('enrollment_invitations')
-    .select('*')
-    .in('status', ['paid', 'canceled'])
-    .order('created_at', { ascending: false })
-
-  if (error || !data) return []
-  return data as EnrollmentInvitation[]
+  if (!isDatabaseConfigured()) return []
+  const rows = await query<EnrollmentInvitation>(
+    `SELECT * FROM enrollment_invitations
+     WHERE status IN ('paid', 'canceled')
+     ORDER BY created_at DESC`
+  )
+  return rows.map(asInvitation)
 }
 
 export async function getInvitationBySubscriptionId(
   subscriptionId: string
 ): Promise<EnrollmentInvitation | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from('enrollment_invitations')
-    .select('*')
-    .eq('stripe_subscription_id', subscriptionId)
-    .maybeSingle()
-
-  if (error || !data) return null
-  return data as EnrollmentInvitation
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<EnrollmentInvitation>(
+    'SELECT * FROM enrollment_invitations WHERE stripe_subscription_id = $1',
+    [subscriptionId]
+  )
+  return rows[0] ? asInvitation(rows[0]) : null
 }
 
 /**
@@ -161,39 +135,29 @@ export async function getInvitationBySubscriptionId(
  * used by the Stripe Billing Portal route to find the `stripe_subscription_id`
  * for a business identified only by its dashboard token. Returns `null` when
  * there's no paid invitation on record (e.g. a trial or never-subscribed
- * business), including when Supabase isn't configured.
+ * business), including when the database isn't configured.
  */
 export async function getInvitationByCuratedBusinessId(
   curatedBusinessId: string
 ): Promise<EnrollmentInvitation | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from('enrollment_invitations')
-    .select('*')
-    .eq('curated_business_id', curatedBusinessId)
-    .eq('status', 'paid')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error || !data) return null
-  return data as EnrollmentInvitation
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<EnrollmentInvitation>(
+    `SELECT * FROM enrollment_invitations
+     WHERE curated_business_id = $1 AND status = 'paid'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [curatedBusinessId]
+  )
+  return rows[0] ? asInvitation(rows[0]) : null
 }
 
 export async function getInvitationById(id: string): Promise<EnrollmentInvitation | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from('enrollment_invitations')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle()
-
-  if (error || !data) return null
-  return data as EnrollmentInvitation
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<EnrollmentInvitation>(
+    'SELECT * FROM enrollment_invitations WHERE id = $1',
+    [id]
+  )
+  return rows[0] ? asInvitation(rows[0]) : null
 }
 
 export interface CreateTrialInvitationInput {
@@ -207,39 +171,33 @@ export interface CreateTrialInvitationInput {
 }
 
 export async function createTrialInvitation(input: CreateTrialInvitationInput): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-
-  const { error } = await supabase.from('enrollment_invitations').insert({
-    business_name: input.businessName,
-    yelp_id: input.yelpId || null,
-    yelp_data: input.yelpData || null,
-    category: input.category,
-    cities: input.cities,
-    monthly_price: 0,
-    status: 'trial',
-    curated_business_id: input.curatedBusinessId,
-    trial_ends_at: input.trialEndsAt,
-  })
-
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `INSERT INTO enrollment_invitations (
+       business_name, yelp_id, yelp_data, category, cities, monthly_price, status,
+       curated_business_id, trial_ends_at
+     ) VALUES ($1,$2,$3::jsonb,$4,$5,0,'trial',$6,$7)`,
+    [
+      input.businessName,
+      input.yelpId || null,
+      input.yelpData ? JSON.stringify(input.yelpData) : null,
+      input.category,
+      input.cities,
+      input.curatedBusinessId,
+      input.trialEndsAt,
+    ]
+  )
 }
 
 export async function deleteInvitation(id: string): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-  const { error } = await supabase.from('enrollment_invitations').delete().eq('id', id)
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query('DELETE FROM enrollment_invitations WHERE id = $1', [id])
 }
 
 export async function markInvitationCanceled(id: string): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-
-  const { error } = await supabase
-    .from('enrollment_invitations')
-    .update({ status: 'canceled', canceled_at: new Date().toISOString() })
-    .eq('id', id)
-
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations SET status = 'canceled', canceled_at = $2 WHERE id = $1`,
+    [id, new Date().toISOString()]
+  )
 }

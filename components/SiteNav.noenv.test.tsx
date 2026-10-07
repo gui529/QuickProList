@@ -19,7 +19,7 @@ vi.mock('next-auth/providers/google', () => ({ default: () => ({}) }))
 import SiteNav from './SiteNav'
 import HomePage from '@/app/page'
 
-const AUTH_ENV = ['AUTH_SECRET', 'AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']
+const AUTH_ENV = ['AUTH_SECRET', 'AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET', 'DATABASE_URL']
 
 beforeEach(() => {
   for (const key of AUTH_ENV) vi.stubEnv(key, '')
@@ -30,7 +30,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('with no auth or Supabase env (real lib/auth)', () => {
+describe('with no auth or database env (real lib/auth)', () => {
   it('SiteNav fails safe to isAdmin=false without throwing', async () => {
     render(await SiteNav())
     expect(screen.queryByRole('link', { name: 'Dashboard' })).toBeNull()

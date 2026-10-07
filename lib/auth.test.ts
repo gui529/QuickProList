@@ -10,15 +10,12 @@ vi.mock('./auth-config', () => ({
   auth: () => authMock(),
   isAuthConfigured: () => configured,
 }))
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
-    from: (table: string) => ({
-      select: async (cols: string) => {
-        select(table, cols)
-        return { data: adminRows, error: null }
-      },
-    }),
-  }),
+vi.mock('./db', () => ({
+  isDatabaseConfigured: () => Boolean(process.env.DATABASE_URL),
+  query: async (text: string) => {
+    select('admins', text)
+    return adminRows
+  },
 }))
 
 import { getAdminSession, requireAdmin, AuthError } from './auth'
@@ -29,8 +26,7 @@ beforeEach(() => {
   adminRows = []
   authMock.mockClear()
   select.mockClear()
-  process.env.SUPABASE_URL = 'https://x.supabase.co'
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service'
+  process.env.DATABASE_URL = 'postgres://test'
 })
 
 describe('getAdminSession', () => {
@@ -38,7 +34,7 @@ describe('getAdminSession', () => {
     session = { user: { email: 'admin@example.com', id: 'google-sub-1' } }
     adminRows = [{ email: 'admin@example.com' }]
     expect(await getAdminSession()).toEqual({ email: 'admin@example.com', userId: 'google-sub-1' })
-    expect(select).toHaveBeenCalledWith('admins', 'email')
+    expect(select).toHaveBeenCalledWith('admins', expect.stringContaining('admins'))
   })
 
   it('falls back to the email when there is no subject', async () => {
@@ -64,8 +60,8 @@ describe('getAdminSession', () => {
     expect(authMock).not.toHaveBeenCalled()
   })
 
-  it('is null when Supabase env is missing', async () => {
-    delete process.env.SUPABASE_URL
+  it('is null when the database env is missing', async () => {
+    delete process.env.DATABASE_URL
     session = { user: { email: 'admin@example.com' } }
     expect(await getAdminSession()).toBeNull()
   })

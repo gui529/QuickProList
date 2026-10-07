@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { isDatabaseConfigured, query } from './db'
 
 export type SuppressionChannel = 'sms' | 'email'
 
@@ -12,11 +12,8 @@ export class SuppressedError extends Error {
   }
 }
 
-function getSupabase() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error('Supabase not configured')
-  return createClient(url, key)
+function requireDatabase() {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
 }
 
 export function normalizeEmail(raw: string): string {
@@ -25,16 +22,12 @@ export function normalizeEmail(raw: string): string {
 
 /** `value` must already be normalized: lowercase email, or E.164 phone. */
 export async function isSuppressed(channel: SuppressionChannel, value: string): Promise<boolean> {
-  const { data, error } = await getSupabase()
-    .from('suppressions')
-    .select('value')
-    .eq('channel', channel)
-    .eq('value', value)
-    .maybeSingle()
-
-  // Fail closed: if the list can't be read, the caller must not send.
-  if (error) throw new Error('Failed to check suppression list')
-  return !!data
+  requireDatabase()
+  const rows = await query<{ value: string }>(
+    'SELECT value FROM suppressions WHERE channel = $1 AND value = $2',
+    [channel, value]
+  )
+  return rows.length > 0
 }
 
 export async function addSuppression(
@@ -42,17 +35,16 @@ export async function addSuppression(
   value: string,
   reason: string
 ): Promise<void> {
-  const { error } = await getSupabase()
-    .from('suppressions')
-    .upsert({ channel, value, reason }, { onConflict: 'channel,value' })
-  if (error) throw new Error('Failed to add suppression')
+  requireDatabase()
+  await query(
+    `INSERT INTO suppressions (channel, value, reason)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (channel, value) DO UPDATE SET reason = EXCLUDED.reason`,
+    [channel, value, reason]
+  )
 }
 
 export async function removeSuppression(channel: SuppressionChannel, value: string): Promise<void> {
-  const { error } = await getSupabase()
-    .from('suppressions')
-    .delete()
-    .eq('channel', channel)
-    .eq('value', value)
-  if (error) throw new Error('Failed to remove suppression')
+  requireDatabase()
+  await query('DELETE FROM suppressions WHERE channel = $1 AND value = $2', [channel, value])
 }

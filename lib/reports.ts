@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { isDatabaseConfigured, query } from './db'
 import { listInvitations, type EnrollmentInvitation } from './invitations'
 
 export interface BusinessReport {
@@ -42,13 +42,6 @@ interface CuratedRow {
   winback_sent_at: string | null
 }
 
-function getSupabase() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key)
-}
-
 export interface DeriveStatusRow {
   is_trial: boolean
   trial_ends_at: string | null
@@ -86,20 +79,18 @@ export function deriveStatus(
 }
 
 export async function getBusinessReports(): Promise<BusinessReport[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
+  if (!isDatabaseConfigured()) return []
 
-  const [{ data: rows, error }, allInvitations] = await Promise.all([
-    supabase
-      .from('curated_businesses')
-      .select(
-        'id, name, source, category, cities, created_at, is_trial, trial_ends_at, pro_site_enabled, contact_email, search_impressions, profile_views, phone_clicks, website_clicks, directions_clicks, winback_sent_at'
-      )
-      .order('created_at', { ascending: false }),
+  const [rows, allInvitations] = await Promise.all([
+    query<CuratedRow>(
+      `SELECT id, name, source, category, cities, created_at, is_trial, trial_ends_at,
+              pro_site_enabled, contact_email, search_impressions, profile_views, phone_clicks,
+              website_clicks, directions_clicks, winback_sent_at
+       FROM curated_businesses
+       ORDER BY created_at DESC`
+    ),
     listInvitations(),
   ])
-
-  if (error || !rows) return []
 
   const byBusinessId = new Map<string, EnrollmentInvitation[]>()
   for (const inv of allInvitations) {
@@ -109,7 +100,7 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
     byBusinessId.set(inv.curated_business_id, arr)
   }
 
-  return (rows as CuratedRow[]).map((row) => {
+  return rows.map((row) => {
     const invitations = (byBusinessId.get(row.id) ?? []).sort(
       (a, z) => new Date(a.created_at).getTime() - new Date(z.created_at).getTime()
     )

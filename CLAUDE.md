@@ -23,8 +23,8 @@ npm run lint     # lint
 ## Environment Variables
 
 Required in `.env.local`:
-- `SUPABASE_URL` — Supabase project URL (server-side)
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-side only)
+- `DATABASE_URL` — Neon Postgres connection string (server-side only)
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` — Cloudflare R2 for business photos
 - `AUTH_SECRET` — Auth.js (next-auth v5) JWT signing secret (`npx auth secret`)
 - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth web client credentials
 - `AUTH_TRUST_HOST=true` — only if Auth.js rejects the host (not needed on Vercel)
@@ -34,9 +34,9 @@ Required in `.env.local`:
 **Next.js 16 App Router** — `params` and `searchParams` in page components are Promises and must be awaited.
 
 ### Data flow
-- Search → `lib/search.ts:getMergedResults` — curated/manual businesses from Supabase only (no external listing API), capped at `MAX_RESULTS`
-- Curated businesses (admin-added pros; legacy `source = 'yelp'` rows render from stored data) → `lib/kv.ts` → Supabase `curated_businesses` table
-- Manual photo uploads → Supabase Storage bucket `business-photos` (public)
+- Search → `lib/search.ts:getMergedResults` — curated/manual businesses from Neon only (no external listing API), capped at `MAX_RESULTS`
+- Curated businesses (admin-added pros; legacy `source = 'yelp'` rows render from stored data) → `lib/kv.ts` → Neon `curated_businesses` table
+- Manual photo uploads → Cloudflare R2 bucket `quickprolist-photos` (public)
 - Starred favorites → browser `localStorage` only, no backend
 
 ### Key files
@@ -46,13 +46,13 @@ Required in `.env.local`:
 - `lib/categories.ts` — category definitions
 - `app/api/search/route.ts` — proxies merged search results
 - `app/api/curated/route.ts` — GET (list/filter), POST (add manual pro; admin auth), DELETE (Bearer auth)
-- `app/api/curated/photo/route.ts` — multipart upload to Supabase Storage (Bearer auth)
+- `app/api/curated/photo/route.ts` — multipart upload to R2 (Bearer auth)
 - `app/admin/page.tsx` — tabbed UI: curated list w/ remove, manual-add modal, invitations, reports
 - `components/BusinessModal.tsx` — `ManualBusinessModal` and `EditManualBusinessModal`
 - `components/BusinessCard.tsx` — shared card; no ratings shown
 
 ### Curation
-Admin adds pros per (category, city). User searches return up to `MAX_RESULTS` pros from Supabase only. Cities are normalized to the lowercase first segment (e.g. "Marietta, GA" → "marietta"); category and city matching is case-insensitive and trimmed. Without Supabase credentials, `getCurated` returns empty and search shows the "No pros found here yet" empty state.
+Admin adds pros per (category, city). User searches return up to `MAX_RESULTS` pros from Neon only. Cities are normalized to the lowercase first segment (e.g. "Marietta, GA" → "marietta"); category and city matching is case-insensitive and trimmed. Without `DATABASE_URL`, `getCurated` returns empty and search shows the "No pros found here yet" empty state.
 
 ### localStorage schema
 ```json

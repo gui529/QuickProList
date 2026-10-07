@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
 import { getStripe, handleSubscriptionCanceled } from '@/lib/stripe'
 import { getInvitationByToken, getInvitationBySubscriptionId, markInvitationPaid } from '@/lib/invitations'
 import {
   addCuratedFromYelp,
   addCuratedManual,
+  findCuratedIdByYelpId,
+  findLatestManualCuratedId,
   getCuratedById,
   setCuratedContactEmail,
   updateCuratedManual,
@@ -67,10 +68,6 @@ export async function POST(req: NextRequest) {
       }
 
       let curatedBusinessId: string
-      const supabase = createClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
 
       if (invitation.yelp_id && invitation.yelp_data) {
         const business = invitation.yelp_data as Partial<Business>
@@ -94,13 +91,7 @@ export async function POST(req: NextRequest) {
           invitation.cities
         )
 
-        const { data } = await supabase
-          .from('curated_businesses')
-          .select('id')
-          .eq('yelp_id', invitation.yelp_id)
-          .single()
-
-        curatedBusinessId = data?.id || ''
+        curatedBusinessId = (await findCuratedIdByYelpId(invitation.yelp_id)) || ''
       } else if (invitation.curated_business_id) {
         // The invitation was created for a business that already had a
         // curated_businesses row (e.g. converting an existing manual pin to
@@ -119,16 +110,7 @@ export async function POST(req: NextRequest) {
           cities: invitation.cities,
         })
 
-        const { data } = await supabase
-          .from('curated_businesses')
-          .select('id')
-          .eq('name', invitation.business_name)
-          .eq('source', 'manual')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-
-        curatedBusinessId = data?.id || ''
+        curatedBusinessId = (await findLatestManualCuratedId(invitation.business_name)) || ''
       }
 
       const subscriptionId =
