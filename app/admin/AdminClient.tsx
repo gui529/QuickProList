@@ -40,6 +40,18 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   const [confirmingDeleteEnrollmentId, setConfirmingDeleteEnrollmentId] = useState<string | null>(null)
   const [deletingEnrollmentId, setDeletingEnrollmentId] = useState<string | null>(null)
   const [enrollmentDeleteError, setEnrollmentDeleteError] = useState('')
+  const [openMoreId, setOpenMoreId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!openMoreId) return
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target
+      if (target instanceof Element && target.closest('[data-pro-more-menu]')) return
+      setOpenMoreId(null)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [openMoreId])
 
   function loadCurated() {
     return fetch('/api/curated')
@@ -182,7 +194,10 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
             </div>
           )}
           {curated.map((b) => (
-            <div key={b.id} className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+            <div
+              key={b.id}
+              className={`bg-white rounded-2xl ring-1 ring-slate-200 ${openMoreId === b.id ? 'relative z-30' : ''}`}
+            >
               <div className="p-0.5">
                 <BusinessCard business={b} isFeatured={false} highlighted={false} />
               </div>
@@ -225,37 +240,76 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
                     Enroll
                   </button>
                 )}
-                <details className="relative">
-                  <summary className="list-none cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-100">
+                <div className="relative" data-pro-more-menu>
+                  <button
+                    type="button"
+                    aria-expanded={openMoreId === b.id}
+                    onClick={() => setOpenMoreId((id) => (id === b.id ? null : b.id))}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-100"
+                  >
                     More
-                  </summary>
-                  <div className="absolute z-10 mt-1 min-w-40 rounded-xl bg-white ring-1 ring-slate-200 shadow-lg p-1 flex flex-col">
-                    {b.source === 'manual' && (
-                      <MenuButton onClick={() => setEditTarget(b)}>Edit</MenuButton>
-                    )}
-                    <MenuButton onClick={() => handleProSiteToggle(b)} disabled={proSiteToggling === b.id}>
-                      {b.proSiteEnabled ? 'Public profile on' : 'Public profile'}
-                    </MenuButton>
-                    <MenuButton onClick={() => setTrialTarget({ business: b, category: b.category ?? CATEGORIES[0].value, cities: b.cities ?? [] })}>
-                      Trial
-                    </MenuButton>
-                    <MenuButton onClick={() => openShareForBusiness(b, '', b.category ?? CATEGORIES[0].value)}>
-                      Share
-                    </MenuButton>
-                    <MenuButton onClick={() => setReviewTarget(b)}>Get Reviews</MenuButton>
-                    {listingStatus(b, enrollments) !== 'Paid' && b.dashboardToken && (
-                      <MenuButton onClick={() => handleCopyDashboardLink(b)}>Dashboard link</MenuButton>
-                    )}
-                    {listingStatus(b, enrollments) === 'Paid' && (
-                      <MenuButton onClick={() => setEnrollTarget({ business: b, category: b.category ?? CATEGORIES[0].value })}>
-                        Enroll
+                  </button>
+                  {openMoreId === b.id && (
+                    <div className="absolute left-0 z-50 mt-1 min-w-44 rounded-xl bg-white ring-1 ring-slate-200 shadow-lg p-1 flex flex-col">
+                      {b.source === 'manual' && (
+                        <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => setEditTarget(b)}>
+                          Edit
+                        </MenuButton>
+                      )}
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() => handleProSiteToggle(b)}
+                        disabled={proSiteToggling === b.id}
+                      >
+                        {b.proSiteEnabled ? 'Public profile on' : 'Public profile'}
                       </MenuButton>
-                    )}
-                    <MenuButton onClick={() => { setDeleteError(''); setConfirmingDeleteId(b.id) }} danger>
-                      Remove
-                    </MenuButton>
-                  </div>
-                </details>
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() =>
+                          setTrialTarget({
+                            business: b,
+                            category: b.category ?? CATEGORIES[0].value,
+                            cities: b.cities ?? [],
+                          })
+                        }
+                      >
+                        Trial
+                      </MenuButton>
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() => openShareForBusiness(b, '', b.category ?? CATEGORIES[0].value)}
+                      >
+                        Share
+                      </MenuButton>
+                      <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => setReviewTarget(b)}>
+                        Get Reviews
+                      </MenuButton>
+                      {listingStatus(b, enrollments) !== 'Paid' && b.dashboardToken && (
+                        <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => handleCopyDashboardLink(b)}>
+                          Dashboard link
+                        </MenuButton>
+                      )}
+                      {listingStatus(b, enrollments) === 'Paid' && (
+                        <MenuButton
+                          closeMenu={() => setOpenMoreId(null)}
+                          onClick={() => setEnrollTarget({ business: b, category: b.category ?? CATEGORIES[0].value })}
+                        >
+                          Enroll
+                        </MenuButton>
+                      )}
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() => {
+                          setDeleteError('')
+                          setConfirmingDeleteId(b.id)
+                        }}
+                        danger
+                      >
+                        Remove
+                      </MenuButton>
+                    </div>
+                  )}
+                </div>
                 {confirmingDeleteId === b.id && (
                   <div className="ml-auto flex items-center gap-1.5">
                     {deleteError && <span className="text-xs text-rose-600">{deleteError}</span>}
@@ -478,19 +532,21 @@ function StatusBadge({ status }: { status: ReturnType<typeof listingStatus> }) {
 function MenuButton({
   children,
   onClick,
+  closeMenu,
   disabled,
   danger,
 }: {
   children: React.ReactNode
   onClick: () => void
+  closeMenu?: () => void
   disabled?: boolean
   danger?: boolean
 }) {
   return (
     <button
       type="button"
-      onClick={(event) => {
-        event.currentTarget.closest('details')?.removeAttribute('open')
+      onClick={() => {
+        closeMenu?.()
         onClick()
       }}
       disabled={disabled}

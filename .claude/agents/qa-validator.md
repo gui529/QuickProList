@@ -169,6 +169,19 @@ Do not disable protection to get in.
      on production. https://www.quickprolist.com must not show the form,
      and a regression must not sign in as admin there.
 
+7b. **Dev admin — Pinned Pros More menu.** After step 7 on the dev
+   preview, stay on `/admin` (Pinned Pros).
+   - At least one pinned pro card is visible.
+   - Click **More** on the first card. A dropdown opens with actions such
+     as Public profile, Trial, Share, Get Reviews, and Remove (Edit when
+     the pro is manual). The menu must not be clipped inside the card.
+   - Click **Share**. A share modal opens (or equivalent UI). Close it
+     without sending.
+   - Click **More** again and choose **Remove**. Inline confirm/cancel
+     controls appear; click **Cancel** and leave the pro on the list.
+   - Save a screenshot of the open More menu under `.qa-screenshots/admin/`
+     when that folder exists in the workspace.
+
 8. **Dev-only Stripe checkout.** This can only be done on the dev site.
    Do not start checkout, pay, or create a test pro on
    https://www.quickprolist.com.
