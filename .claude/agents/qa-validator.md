@@ -180,6 +180,10 @@ Do not disable protection to get in.
      and open the enrollment link.
    - Click the subscribe button and pay in Stripe test mode with card
      `4242 4242 4242 4242`, any future expiry, any CVC, and any ZIP.
+     If Stripe shows a phone number, fill one (for example `4045550123`)
+     before submitting. If "Save my information" is checked and the phone
+     field is empty, uncheck it or fill the phone. Do not leave the form
+     on the Stripe page.
    - The enroll page shows payment success.
    - Dev search for Locksmiths in Marietta includes `QA Stripe Check`.
    - The same search on https://www.quickprolist.com does not include
