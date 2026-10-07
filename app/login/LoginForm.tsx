@@ -3,8 +3,26 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 
-export default function LoginForm({ initialError = null }: { initialError?: string | null }) {
+export default function LoginForm({
+  initialError = null,
+  qaLogin = false,
+}: {
+  initialError?: string | null
+  qaLogin?: boolean
+}) {
   const [pending, setPending] = useState(false)
+  const [qaSecret, setQaSecret] = useState('')
+
+  async function handleQa(e: React.FormEvent) {
+    e.preventDefault()
+    if (!qaSecret) return
+    setPending(true)
+    try {
+      await signIn('qa', { secret: qaSecret, redirectTo: '/admin' })
+    } finally {
+      setPending(false)
+    }
+  }
 
   async function handleGoogle() {
     setPending(true)
@@ -45,6 +63,29 @@ export default function LoginForm({ initialError = null }: { initialError?: stri
         >
           {pending ? 'Redirecting…' : 'Sign in with Google'}
         </button>
+
+        {qaLogin && (
+          <form onSubmit={handleQa} className="mt-4 border-t border-slate-200 pt-4">
+            <label htmlFor="qa-secret" className="block text-xs font-medium text-slate-500 mb-1.5">
+              QA sign-in
+            </label>
+            <input
+              id="qa-secret"
+              type="password"
+              autoComplete="off"
+              value={qaSecret}
+              onChange={(e) => setQaSecret(e.target.value)}
+              className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm mb-2"
+            />
+            <button
+              type="submit"
+              disabled={pending || !qaSecret}
+              className="w-full bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-800 font-semibold py-2.5 rounded-xl ring-1 ring-slate-200 transition-colors"
+            >
+              Sign in for QA
+            </button>
+          </form>
+        )}
       </div>
     </div>
   )
