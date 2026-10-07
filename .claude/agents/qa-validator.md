@@ -169,6 +169,24 @@ Do not disable protection to get in.
      on production. https://www.quickprolist.com must not show the form,
      and a regression must not sign in as admin there.
 
+8. **Dev-only Stripe checkout.** This can only be done on the dev site.
+   Do not start checkout, pay, or create a test pro on
+   https://www.quickprolist.com.
+   - Sign in with the QA admin sign-in from step 7 on
+     https://home-help-git-dev-gui-costas-projects.vercel.app.
+   - On `/admin`, click **+ Add Pro**. Name the business `QA Stripe Check`,
+     category Locksmiths, city Marietta. Save it.
+   - On that pro, click **Enroll**, keep Marietta, click **Generate link**,
+     and open the enrollment link.
+   - Click the subscribe button and pay in Stripe test mode with card
+     `4242 4242 4242 4242`, any future expiry, any CVC, and any ZIP.
+   - The enroll page shows payment success.
+   - Dev search for Locksmiths in Marietta includes `QA Stripe Check`.
+   - The same search on https://www.quickprolist.com does not include
+     `QA Stripe Check`.
+   - Back on the dev admin, remove `QA Stripe Check` so Marietta locksmiths
+     is empty again for step 3. Do not remove anything on production.
+
 Report each step as pass, fail, or incomplete, and quote what was on the
 screen. Include screenshot paths when you saved any. Name the browser
 tooling you used. If the browser never opened, the outcome is fail /
