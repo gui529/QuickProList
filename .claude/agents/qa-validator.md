@@ -151,6 +151,24 @@ Do not disable protection to get in.
    "Yelp API error" or `api.yelp.com`. A town outside the area returns the
    not-open JSON, not a 502.
 
+7. **Dev-only QA admin sign-in.**
+   - On https://www.quickprolist.com/login the page offers "Sign in with
+     Google" and does not show "QA sign-in" or "Sign in for QA".
+   - On the dev preview
+     https://home-help-git-dev-gui-costas-projects.vercel.app/login, after
+     the dev deploy that contains commit e4107d7 or later, a "QA sign-in"
+     field and a "Sign in for QA" button are visible under the Google
+     button.
+   - QA signs in by typing the value of `QA_ADMIN_SECRET` from the local
+     `.env.local` into that field and submitting. Never copy that secret
+     into the regression document, a commit, a screenshot filename, or the
+     final report.
+   - After submit, the browser lands on `/admin` and the admin UI is
+     visible (not bounced back to `/login`).
+   - The QA admin sign-in can only be done on the dev site. Do not try it
+     on production. https://www.quickprolist.com must not show the form,
+     and a regression must not sign in as admin there.
+
 Report each step as pass, fail, or incomplete, and quote what was on the
 screen. Include screenshot paths when you saved any. Name the browser
 tooling you used. If the browser never opened, the outcome is fail /
