@@ -38,6 +38,7 @@ interface CuratedRow {
   categories: string[] | null
   trial_ends_at: string | null
   is_trial: boolean
+  is_draft?: boolean
   pro_site_enabled: boolean
   delisted_at: string | null
   contact_email: string | null
@@ -79,6 +80,7 @@ function rowToBusiness(row: CuratedRow): Business {
     category: row.category,
     isTrial: row.is_trial || undefined,
     trialEndsAt: row.is_trial ? (row.trial_ends_at ?? null) : undefined,
+    isDraft: row.is_draft || undefined,
     proSiteEnabled: row.pro_site_enabled || undefined,
     contactEmail: row.contact_email ?? undefined,
     dashboardToken: row.dashboard_token ?? undefined,
@@ -92,6 +94,7 @@ async function fetchActiveRows(label: string): Promise<CuratedRow[]> {
     return await query<CuratedRow>(
       `SELECT * FROM curated_businesses
        WHERE delisted_at IS NULL
+         AND COALESCE(is_draft, FALSE) = FALSE
          AND (trial_ends_at IS NULL OR trial_ends_at > $1)
        ORDER BY created_at ASC`,
       [now]
@@ -293,8 +296,8 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
   await query(
     `INSERT INTO curated_businesses (
        source, category, cities, name, phone, address, image_url, website_url, review_url,
-       categories, trial_ends_at, is_trial
-     ) VALUES ('manual',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+       categories, trial_ends_at, is_trial, is_draft
+     ) VALUES ('manual',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,TRUE)`,
     [
       input.category,
       cities,
@@ -345,10 +348,7 @@ export async function updateCuratedCities(id: string, cities: string[]): Promise
 
 export async function removeCurated(id: string): Promise<void> {
   if (!isDatabaseConfigured()) return
-  await query(
-    'UPDATE enrollment_invitations SET curated_business_id = NULL WHERE curated_business_id = $1',
-    [id]
-  )
+  await query('DELETE FROM enrollment_invitations WHERE curated_business_id = $1', [id])
   await query('DELETE FROM curated_businesses WHERE id = $1', [id])
 }
 
@@ -463,9 +463,14 @@ export async function setCuratedTrial(
 ): Promise<void> {
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   await query(
-    'UPDATE curated_businesses SET is_trial = TRUE, trial_ends_at = $1, cities = $2 WHERE id = $3',
+    'UPDATE curated_businesses SET is_trial = TRUE, trial_ends_at = $1, cities = $2, is_draft = FALSE WHERE id = $3',
     [trialEndsAt, cities, id]
   )
+}
+
+export async function publishCurated(id: string): Promise<void> {
+  if (!id || !isDatabaseConfigured()) return
+  await query('UPDATE curated_businesses SET is_draft = FALSE WHERE id = $1', [id])
 }
 
 export async function uploadBusinessPhoto(

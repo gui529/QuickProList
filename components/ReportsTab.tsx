@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatCategoryLabel, formatCityLabel } from '@/lib/display'
 import type { BusinessReport } from '@/lib/reports'
 import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 import PaidProsTab from '@/components/PaidProsTab'
@@ -204,7 +205,7 @@ function BusinessReports() {
                 <div>
                   <p className="font-medium text-slate-900">{r.name}</p>
                   {r.pro_site_enabled && (
-                    <span className="text-xs text-indigo-600 font-medium">ProSite on</span>
+                    <span className="text-xs text-indigo-600 font-medium">Public profile on</span>
                   )}
                 </div>
                 <div>
@@ -212,11 +213,11 @@ function BusinessReports() {
                     {r.source}
                   </span>
                 </div>
-                <div className="text-sm text-slate-600 whitespace-nowrap">{r.category}</div>
+                <div className="text-sm text-slate-600 whitespace-nowrap">{formatCategoryLabel(r.category)}</div>
                 <div className="flex flex-wrap gap-1">
                   {r.cities.slice(0, 2).map((c) => (
                     <span key={c} className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                      {c}
+                      {formatCityLabel(c)}
                     </span>
                   ))}
                   {r.cities.length > 2 && (

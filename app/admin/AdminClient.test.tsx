@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
+import { render, screen, cleanup, waitFor } from '@testing-library/react'
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams('tab=invitations'),
+  usePathname: () => '/admin',
+}))
+
 import AdminClient from './AdminClient'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
@@ -63,8 +68,6 @@ describe('AdminClient invitations tab badges', () => {
 
   it('renders the same slate "expired" badge for status: expired and a pending-but-past-expires_at invitation', async () => {
     render(<AdminClient adminEmail="admin@example.com" />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Invitations' }))
 
     await waitFor(() => {
       expect(screen.getAllByText('expired')).toHaveLength(2)
