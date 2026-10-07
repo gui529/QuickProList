@@ -18,18 +18,6 @@ vi.mock('@/lib/auth', () => ({
   },
 }))
 
-const { supabaseSingleMock } = vi.hoisted(() => ({
-  supabaseSingleMock: vi.fn().mockResolvedValue({ data: { id: 'curated-1' } }),
-}))
-
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
-    from: () => ({
-      select: () => ({ eq: () => ({ single: supabaseSingleMock }) }),
-    }),
-  }),
-}))
-
 vi.mock('@/lib/kv', async () => import('@/lib/kv.test-double'))
 
 // Note: intentionally NOT using lib/invitations.test-double.ts here (unlike
@@ -63,9 +51,6 @@ describe('POST /api/invitations (trial path, multi-city)', () => {
   beforeEach(() => {
     resetCurated()
     createTrialInvitationMock.mockClear()
-    supabaseSingleMock.mockClear()
-    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
   })
 
   it('stores every submitted city on the curated business, not just the first', async () => {

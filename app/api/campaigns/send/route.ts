@@ -5,6 +5,7 @@ import { sendSms, normalizePhone, SmsDisabledError } from '@/lib/sms'
 import { SuppressedError, isSuppressed, normalizeEmail } from '@/lib/suppressions'
 import { sendEmail } from '@/lib/email'
 import { createInvitation } from '@/lib/invitations'
+import { errorMessage as toErrorMessage } from '@/lib/errors'
 
 export const maxDuration = 60
 
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
         const refused = refusal(err)
         if (refused) return refused
         status = 'failed'
-        errorMessage = err instanceof Error ? err.message : String(err)
+        errorMessage = toErrorMessage(err, String(err))
       }
     } else {
       try {
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
         const refused = refusal(err)
         if (refused) return refused
         status = 'failed'
-        errorMessage = err instanceof Error ? err.message : String(err)
+        errorMessage = toErrorMessage(err, String(err))
       }
     }
 

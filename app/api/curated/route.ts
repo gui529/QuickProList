@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
-  addCuratedFromYelp,
   addCuratedManual,
   listAllCurated,
   removeCurated,
@@ -9,8 +8,9 @@ import {
   updateProSiteEnabled,
   updateCuratedManual,
 } from '@/lib/kv'
-import { getBusinessById } from '@/lib/yelp'
 import { AuthError, requireAdmin } from '@/lib/auth'
+import { errorMessage } from '@/lib/errors'
+import { toPublicBusiness } from '@/lib/public-business'
 
 async function gate(): Promise<NextResponse | null> {
   try {
@@ -29,9 +29,11 @@ export async function GET(req: NextRequest) {
   const category = sp.get('category')
   const city = sp.get('city')
   if (category && city) {
-    const businesses = await getCurated(category, city)
+    const businesses = (await getCurated(category, city)).map(toPublicBusiness)
     return NextResponse.json({ businesses })
   }
+  const denied = await gate()
+  if (denied) return denied
   const businesses = await listAllCurated()
   return NextResponse.json({ businesses })
 }
@@ -40,24 +42,6 @@ export async function POST(req: NextRequest) {
   const denied = await gate()
   if (denied) return denied
   const body = await req.json()
-
-  if (body.source === 'yelp') {
-    if (!body.business || !body.category || !body.city) {
-      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
-    }
-    try {
-      // Fetch detail endpoint to get website URL (not available in search results)
-      let business = body.business
-      const detail = await getBusinessById(business.id).catch(() => null)
-      if (detail?.websiteUrl) business = { ...business, websiteUrl: detail.websiteUrl }
-      await addCuratedFromYelp(business, body.category, [body.city])
-      return NextResponse.json({ ok: true })
-    } catch (err) {
-      console.error('addCuratedFromYelp failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to save'
-      return NextResponse.json({ error: msg }, { status: 500 })
-    }
-  }
 
   if (body.source === 'manual') {
     const cities: string[] = Array.isArray(body.cities) ? body.cities : body.city ? [body.city] : []
@@ -79,7 +63,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     } catch (err) {
       console.error('addCuratedManual failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to save'
+      const msg = errorMessage(err, 'Failed to save')
       return NextResponse.json({ error: msg }, { status: 500 })
     }
   }
@@ -114,7 +98,8 @@ export async function PATCH(req: NextRequest) {
     }
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to update'
+    console.error('request failed:', err)
+    const msg = errorMessage(err, 'Failed to update')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
@@ -128,7 +113,8 @@ export async function DELETE(req: NextRequest) {
     await removeCurated(id)
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to remove'
+    console.error('request failed:', err)
+    const msg = errorMessage(err, 'Failed to remove')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

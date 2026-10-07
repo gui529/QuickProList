@@ -3,10 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '*.fl.yelpcdn.com' },
       { protocol: 'https', hostname: 'images.pexels.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: 'jrjaufrjgnhdobehdwcb.supabase.co' },
+      { protocol: 'https', hostname: 'pub-6b31b57ad0c04684b1b13fea4595a462.r2.dev' },
     ],
   },
 };

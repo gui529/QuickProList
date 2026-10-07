@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { isDatabaseConfigured, query } from './db'
 
 export interface ListingRequestInput {
   businessName: string
@@ -22,54 +22,41 @@ export interface ListingRequest {
   created_at: string
 }
 
-function getSupabase() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key)
-}
-
 /**
  * Persist a "List your business" form submission. Returns null (instead of
- * throwing) when Supabase isn't configured, so callers can treat storage as
+ * throwing) when the database isn't configured, so callers can treat storage as
  * a soft dependency rather than failing the whole request.
  */
 export async function createListingRequest(input: ListingRequestInput): Promise<ListingRequest | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
+  if (!isDatabaseConfigured()) return null
 
-  const { data, error } = await supabase
-    .from('business_listing_requests')
-    .insert({
-      business_name: input.businessName,
-      contact_name: input.contactName,
-      email: input.email,
-      phone: input.phone ?? null,
-      category: input.category,
-      zip: input.zip,
-      message: input.message ?? null,
-    })
-    .select('*')
-    .single()
-
-  if (error || !data) throw new Error('Failed to record listing request')
-  return data as ListingRequest
+  const rows = await query<ListingRequest>(
+    `INSERT INTO business_listing_requests (
+       business_name, contact_name, email, phone, category, zip, message
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7)
+     RETURNING *`,
+    [
+      input.businessName,
+      input.contactName,
+      input.email,
+      input.phone ?? null,
+      input.category,
+      input.zip,
+      input.message ?? null,
+    ]
+  )
+  if (!rows[0]) throw new Error('Failed to record listing request')
+  return rows[0]
 }
 
 /**
  * List all "List your business" submissions, most recent first, for the
- * admin inbox. Returns an empty array (instead of throwing) when Supabase
+ * admin inbox. Returns an empty array (instead of throwing) when the database
  * isn't configured, matching the soft-dependency pattern used elsewhere.
  */
 export async function listListingRequests(): Promise<ListingRequest[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from('business_listing_requests')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) throw new Error('Failed to list listing requests')
-  return (data ?? []) as ListingRequest[]
+  if (!isDatabaseConfigured()) return []
+  return query<ListingRequest>(
+    'SELECT * FROM business_listing_requests ORDER BY created_at DESC'
+  )
 }

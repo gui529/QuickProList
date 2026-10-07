@@ -1,41 +1,29 @@
-// Verified against node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md
-// and node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md ("`middleware` to `proxy`"):
-// Next 16.0.0 deprecates the `middleware.ts` file convention and the `middleware` export name in
-// favor of `proxy.ts` / `export function proxy`. Renamed per that guide's documented codemod steps.
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+// Protects /admin/* only. Must not touch Supabase: public pages have to keep
+// rendering when auth or database env vars are missing.
+import { NextResponse, type NextRequest } from 'next/server'
+import { auth, isAuthConfigured } from '@/lib/auth-config'
+
+function toLogin(req: NextRequest) {
+  const url = req.nextUrl.clone()
+  url.pathname = '/login'
+  url.search = ''
+  return NextResponse.redirect(url)
+}
+
+const withSession = auth((req) => (req.auth ? NextResponse.next() : toLogin(req)))
 
 export async function proxy(req: NextRequest) {
-  const res = NextResponse.next()
+  const { pathname } = req.nextUrl
+  const isAdminPath = pathname === '/admin' || pathname.startsWith('/admin/')
+  if (!isAdminPath) return NextResponse.next()
+  if (!isAuthConfigured()) return toLogin(req)
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          for (const { name, value, options } of cookiesToSet) {
-            res.cookies.set({ name, value, ...options })
-          }
-        },
-      },
-    }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    const url = req.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  try {
+    return (await withSession(req, { params: Promise.resolve({}) })) ?? toLogin(req)
+  } catch (err) {
+    console.error('proxy: auth check failed', err)
+    return toLogin(req)
   }
-
-  return res
 }
 
 export const config = {

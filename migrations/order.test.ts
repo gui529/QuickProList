@@ -13,6 +13,10 @@ import path from 'node:path'
 
 const MIGRATIONS_DIR = path.join(__dirname)
 
+// Tables that exist in the live project but whose CREATE TABLE was never
+// committed to migrations/. Later migrations may ALTER them.
+const TABLES_CREATED_OUTSIDE_MIGRATIONS = new Set(['business_submissions'])
+
 function getMigrationFilesInOrder(): string[] {
   return fs
     .readdirSync(MIGRATIONS_DIR)
@@ -33,15 +37,15 @@ describe('migrations/*.sql run in dependency order', () => {
     const files = getMigrationFilesInOrder()
     expect(files.length).toBeGreaterThan(0)
 
-    const createdTables = new Set<string>()
+    const createdTables = new Set<string>(TABLES_CREATED_OUTSIDE_MIGRATIONS)
 
     for (const file of files) {
       const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8')
 
       for (const statement of extractStatements(sql)) {
-        const createMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i)
-        const alterMatch = statement.match(/ALTER TABLE\s+(\w+)/i)
-        const referenceMatches = [...statement.matchAll(/REFERENCES\s+(\w+)/gi)]
+        const createMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:public\.)?(\w+)/i)
+        const alterMatch = statement.match(/ALTER TABLE\s+(?:IF EXISTS\s+)?(?:public\.)?(\w+)/i)
+        const referenceMatches = [...statement.matchAll(/REFERENCES\s+(?:public\.)?(\w+)/gi)]
 
         if (alterMatch) {
           const table = alterMatch[1]

@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import BusinessCard from '@/components/BusinessCard'
 import { CATEGORIES } from '@/lib/categories'
-import { YelpSnapshotModal, ManualBusinessModal, EditManualBusinessModal } from '@/components/BusinessModal'
-import CityAutocomplete from '@/components/CityAutocomplete'
+import { ManualBusinessModal, EditManualBusinessModal } from '@/components/BusinessModal'
 import ShareLinkModal from '@/components/ShareLinkModal'
 import ReviewLinkModal from '@/components/ReviewLinkModal'
 import EnrollmentLinkModal from '@/components/EnrollmentLinkModal'
@@ -12,24 +11,16 @@ import ReportsTab from '@/components/ReportsTab'
 import RequestsTab from '@/components/RequestsTab'
 import TrialModal from '@/components/TrialModal'
 import Link from 'next/link'
-import { getBrowserSupabase } from '@/lib/supabase/browser'
-import type { Business } from '@/lib/yelp'
+import { signOut } from 'next-auth/react'
+import type { Business } from '@/lib/business'
 import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 
-type Tab = 'curate' | 'yelp' | 'enrollments' | 'reports' | 'requests'
+type Tab = 'curate' | 'enrollments' | 'reports' | 'requests'
 
 export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   const [tab, setTab] = useState<Tab>('curate')
   const [curated, setCurated] = useState<Business[]>([])
 
-  const [location, setLocation] = useState('')
-  const [category, setCategory] = useState(CATEGORIES[0].value)
-  const [businessName, setBusinessName] = useState('')
-  const [results, setResults] = useState<Business[]>([])
-  const [searching, setSearching] = useState(false)
-  const [searchError, setSearchError] = useState('')
-
-  const [yelpModalBusiness, setYelpModalBusiness] = useState<Business | null>(null)
   const [showManualModal, setShowManualModal] = useState(false)
   const [enrollTarget, setEnrollTarget] = useState<{ business: Business; category: string } | null>(null)
   const [enrollments, setEnrollments] = useState<EnrollmentInvitation[]>([])
@@ -53,27 +44,6 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   useEffect(() => {
     loadCurated()
   }, [])
-
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    if (!location.trim()) return
-    setSearching(true)
-    setSearchError('')
-    const params = new URLSearchParams({ raw: '1', location: location.trim() })
-    if (businessName.trim()) {
-      params.set('term', businessName.trim())
-    } else {
-      params.set('category', category)
-    }
-    const res = await fetch(`/api/search?${params.toString()}`)
-    const data = await res.json()
-    if (!res.ok) {
-      setSearchError(data.error ?? 'Search failed')
-    } else {
-      setResults(data.businesses)
-    }
-    setSearching(false)
-  }
 
   async function handleDelete(id: string) {
     setDeletingId(id)
@@ -104,9 +74,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   }
 
   async function handleSignOut() {
-    const supabase = getBrowserSupabase()
-    await supabase.auth.signOut()
-    window.location.href = '/login'
+    await signOut({ redirectTo: '/login' })
   }
 
   const [copiedDashboardId, setCopiedDashboardId] = useState<string | null>(null)
@@ -130,14 +98,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
       category: b.category ?? fallbackCategory,
     })
   }
-  function openShareForSearch() {
-    if (!location.trim()) return
-    setShareTarget({ city: location, category })
-  }
-
   const [reviewTarget, setReviewTarget] = useState<Business | null>(null)
-
-  const curatedYelpIds = new Set(curated.map((b) => b.yelpId).filter(Boolean) as string[])
 
   async function handleProSiteToggle(b: Business) {
     setProSiteToggling(b.id)
@@ -170,7 +131,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">Pinned Pros</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            User searches show pinned pros first, with Yelp filling up to 3 results.
+            Searches show the pros you add here, up to 3 results.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -191,7 +152,6 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
           <TabButton active={tab === 'curate'} onClick={() => setTab('curate')}>Pinned Pros</TabButton>
-          <TabButton active={tab === 'yelp'} onClick={() => setTab('yelp')}>Search Yelp</TabButton>
           <TabButton active={tab === 'enrollments'} onClick={() => setTab('enrollments')}>Invitations</TabButton>
           <TabButton active={tab === 'reports'} onClick={() => setTab('reports')}>Reports</TabButton>
           <TabButton active={tab === 'requests'} onClick={() => setTab('requests')}>Requests</TabButton>
@@ -221,7 +181,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
             <div className="text-center py-16 bg-white rounded-2xl ring-1 ring-slate-200">
               <p className="text-4xl mb-3">📋</p>
               <p className="text-slate-700 font-medium">No pinned pros yet.</p>
-              <p className="text-sm text-slate-500 mt-1">Add from Yelp or create one manually.</p>
+              <p className="text-sm text-slate-500 mt-1">Use + Add Pro to create one.</p>
             </div>
           )}
           {curated.map((b) => (
@@ -349,131 +309,6 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
             </div>
           ))}
         </div>
-      )}
-
-      {tab === 'yelp' && (
-        <div>
-          <form
-            onSubmit={handleSearch}
-            className="bg-white rounded-2xl ring-1 ring-slate-200 p-3 mb-6 flex flex-col gap-2"
-          >
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1 rounded-xl ring-1 ring-slate-200 px-3 bg-white focus-within:ring-2 focus-within:ring-amber-400">
-                <CityAutocomplete
-                  value={location}
-                  onChange={setLocation}
-                  onSubmit={() => location.trim() && handleSearch({ preventDefault: () => {} } as React.FormEvent)}
-                  placeholder="City (e.g. Acworth, GA)"
-                  className="w-full bg-transparent py-2.5 text-base text-slate-900 placeholder-slate-400 focus:outline-none"
-                />
-              </div>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                disabled={!!businessName.trim()}
-                className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white disabled:bg-slate-50 disabled:text-slate-400"
-              >
-                {CATEGORIES.map(({ label, value }) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="Or search by business name (optional)"
-                className="flex-1 rounded-xl ring-1 ring-slate-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-              />
-              <button
-                type="submit"
-                disabled={searching || !location.trim()}
-                className="bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors"
-              >
-                {searching ? 'Searching…' : 'Search'}
-              </button>
-              <button
-                type="button"
-                onClick={openShareForSearch}
-                disabled={!location.trim() || !!businessName.trim()}
-                title={businessName.trim() ? 'Disabled while searching by business name' : 'Share a link to this category + city'}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-medium text-sm bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors"
-              >
-                <ShareIcon />
-                Share search
-              </button>
-            </div>
-            {businessName.trim() && (
-              <p className="text-xs text-slate-500 px-1">Searching by name across all categories — pick the right category when saving.</p>
-            )}
-          </form>
-
-          {searchError && <p className="text-sm text-rose-600 mb-4">{searchError}</p>}
-
-          <div className="flex flex-col gap-4">
-            {results.map((b) => {
-              const alreadyCurated = b.source === 'yelp' && curatedYelpIds.has(b.id)
-              return (
-                <div key={b.id} className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
-                  <div className="p-0.5">
-                    <BusinessCard business={b} />
-                  </div>
-                  <div className="flex items-center gap-1 px-3 py-2 border-t border-slate-100 bg-slate-50 flex-wrap">
-                    <button
-                      onClick={() => setYelpModalBusiness(b)}
-                      disabled={alreadyCurated || b.source !== 'yelp'}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-500 transition-colors"
-                    >
-                      {alreadyCurated ? '✓ Pinned' : 'Pin'}
-                    </button>
-
-                    <span className="mx-1 h-4 w-px bg-slate-200" />
-
-                    <button
-                      onClick={() => setEnrollTarget({ business: b, category })}
-                      disabled={!location.trim()}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors"
-                    >
-                      Enroll
-                    </button>
-                    <button
-                      onClick={() => setTrialTarget({ business: b, category, cities: location.trim() ? [location.trim()] : [] })}
-                      disabled={!location.trim()}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors"
-                    >
-                      Trial
-                    </button>
-
-                    <span className="mx-1 h-4 w-px bg-slate-200" />
-
-                    <button
-                      onClick={() => openShareForBusiness(b, location, category)}
-                      disabled={!location.trim()}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors"
-                    >
-                      <ShareIcon />
-                      Share
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {yelpModalBusiness && (
-        <YelpSnapshotModal
-          business={yelpModalBusiness}
-          defaultCity={location}
-          defaultCategory={category}
-          onClose={() => setYelpModalBusiness(null)}
-          onSaved={() => {
-            setYelpModalBusiness(null)
-            loadCurated()
-          }}
-        />
       )}
 
       {showManualModal && (

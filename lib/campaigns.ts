@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { isDatabaseConfigured, query } from './db'
 
 export const DEFAULT_MESSAGE =
   "Hi, I'm Jeremy from QuickProList. We'd like to feature your business on our website this month! Interested in a permanent listing? It's just $29.99/month. Reply STOP to opt out."
@@ -35,49 +35,36 @@ export interface RecordContactInput {
   invitationToken?: string
 }
 
-function getSupabase() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key)
-}
-
 export async function recordContact(input: RecordContactInput): Promise<CampaignContact> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-
-  const { data, error } = await supabase
-    .from('campaign_contacts')
-    .insert({
-      yelp_id: input.yelpId ?? null,
-      business_name: input.businessName,
-      phone: input.phone ?? '',
-      email: input.email ?? null,
-      channel: input.channel,
-      category: input.category ?? null,
-      city: input.city ?? null,
-      message_body: input.messageBody,
-      message_sid: input.messageSid ?? null,
-      status: input.status,
-      error_message: input.errorMessage ?? null,
-      invitation_token: input.invitationToken ?? null,
-    })
-    .select('*')
-    .single()
-
-  if (error || !data) throw new Error('Failed to record campaign contact')
-  return data as CampaignContact
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  const rows = await query<CampaignContact>(
+    `INSERT INTO campaign_contacts (
+       yelp_id, business_name, phone, email, channel, category, city, message_body,
+       message_sid, status, error_message, invitation_token
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     RETURNING *`,
+    [
+      input.yelpId ?? null,
+      input.businessName,
+      input.phone ?? '',
+      input.email ?? null,
+      input.channel,
+      input.category ?? null,
+      input.city ?? null,
+      input.messageBody,
+      input.messageSid ?? null,
+      input.status,
+      input.errorMessage ?? null,
+      input.invitationToken ?? null,
+    ]
+  )
+  if (!rows[0]) throw new Error('Failed to record campaign contact')
+  return rows[0]
 }
 
 export async function listCampaignContacts(): Promise<CampaignContact[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from('campaign_contacts')
-    .select('*')
-    .order('sent_at', { ascending: false })
-
-  if (error || !data) return []
-  return data as CampaignContact[]
+  if (!isDatabaseConfigured()) return []
+  return query<CampaignContact>(
+    'SELECT * FROM campaign_contacts ORDER BY sent_at DESC'
+  )
 }

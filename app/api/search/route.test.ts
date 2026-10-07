@@ -1,12 +1,10 @@
 import { NextRequest } from 'next/server'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
-const { getMergedResults, searchBusinesses } = vi.hoisted(() => ({
+const { getMergedResults } = vi.hoisted(() => ({
   getMergedResults: vi.fn(),
-  searchBusinesses: vi.fn(),
 }))
 vi.mock('@/lib/search', () => ({ getMergedResults }))
-vi.mock('@/lib/yelp', () => ({ searchBusinesses }))
 
 import { GET } from './route'
 
@@ -21,17 +19,19 @@ function get(query: string): NextRequest {
 describe('GET /api/search open area', () => {
   beforeEach(() => {
     getMergedResults.mockReset().mockResolvedValue([])
-    searchBusinesses.mockReset().mockResolvedValue([])
   })
 
-  it.each(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock', 'Marietta, GA'])('accepts %s', async (location) => {
-    const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
+  it.each(['Acworth', 'Kennesaw', 'Marietta', 'Woodstock', 'Marietta, GA', 'Smyrna', 'Canton', 'Fair Oaks, GA'])(
+    'accepts %s',
+    async (location) => {
+      const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
 
-    expect(res.status).toBe(200)
-    expect(getMergedResults).toHaveBeenCalledTimes(1)
-  })
+      expect(res.status).toBe(200)
+      expect(getMergedResults).toHaveBeenCalledTimes(1)
+    }
+  )
 
-  it.each(['Smyrna, GA', 'Atlanta, GA', 'Canton'])('refuses %s without searching', async (location) => {
+  it.each(['Atlanta, GA', 'Marietta, OH'])('refuses %s without searching', async (location) => {
     const res = await GET(get(`category=plumbing&location=${encodeURIComponent(location)}`))
     const body = await res.json()
 
@@ -39,16 +39,63 @@ describe('GET /api/search open area', () => {
     expect(body.error).toMatch(/not open there yet/i)
     expect(body.businesses).toBeUndefined()
     expect(getMergedResults).not.toHaveBeenCalled()
-    expect(searchBusinesses).not.toHaveBeenCalled()
   })
 
-  it('refuses raw Yelp searches and coordinates outside the area', async () => {
-    const raw = await GET(get('raw=1&category=plumbing&location=Atlanta'))
+  it('omits private fields from results', async () => {
+    const secret = {
+      id: 'biz-1',
+      source: 'manual' as const,
+      name: 'Acme Plumbing',
+      rating: null,
+      reviewCount: null,
+      phone: '555-0100',
+      address: '1 Main St',
+      imageUrl: '',
+      url: '',
+      categories: ['Plumbing'],
+      proSiteEnabled: true,
+      reviewUrl: 'https://g.page/r/example/review',
+      contactEmail: 'owner@acme.example',
+      dashboardToken: 'secret-dash-token',
+      isTrial: true,
+      trialEndsAt: '2099-01-01T00:00:00.000Z',
+    }
+    getMergedResults.mockResolvedValue([secret])
+
+    const merged = await GET(get('category=plumbing&location=Marietta'))
+    const mergedBody = await merged.json()
+
+    expect(merged.status).toBe(200)
+    for (const body of [mergedBody]) {
+      expect(body.businesses[0]).toMatchObject({
+        id: 'biz-1',
+        name: 'Acme Plumbing',
+        reviewUrl: 'https://g.page/r/example/review',
+      })
+      expect(body.businesses[0]).not.toHaveProperty('dashboardToken')
+      expect(body.businesses[0]).not.toHaveProperty('contactEmail')
+      expect(body.businesses[0]).not.toHaveProperty('isTrial')
+      expect(body.businesses[0]).not.toHaveProperty('trialEndsAt')
+      expect(JSON.stringify(body)).not.toContain('secret-dash-token')
+      expect(JSON.stringify(body)).not.toContain('owner@acme.example')
+    }
+  })
+
+  it('refuses coordinates outside the area', async () => {
     const coords = await GET(get('category=plumbing&lat=33.7&lng=-84.4'))
 
-    expect(raw.status).toBe(400)
     expect(coords.status).toBe(400)
-    expect(searchBusinesses).not.toHaveBeenCalled()
     expect(getMergedResults).not.toHaveBeenCalled()
+  })
+
+  it('returns a generic 502 without leaking the underlying error', async () => {
+    getMergedResults.mockRejectedValue(new Error('supabase exploded: secret detail'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await GET(get('category=plumbing&location=Marietta'))
+    const body = await res.json()
+
+    expect(res.status).toBe(502)
+    expect(body).toEqual({ error: 'Failed to fetch results' })
   })
 })

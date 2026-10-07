@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireAdmin, AuthError } from '@/lib/auth'
 import { createInvitation, createTrialInvitation, listInvitations, deleteInvitation } from '@/lib/invitations'
-import { normalizeCity, addCuratedFromYelp, addCuratedManual } from '@/lib/kv'
-import type { Business } from '@/lib/yelp'
+import {
+  normalizeCity,
+  addCuratedFromYelp,
+  addCuratedManual,
+  findCuratedIdByYelpId,
+  findLatestManualCuratedId,
+  setCuratedTrial,
+} from '@/lib/kv'
+import type { Business } from '@/lib/business'
+import { errorMessage } from '@/lib/errors'
 
 async function gate(req?: NextRequest): Promise<NextResponse | null> {
   try {
@@ -42,19 +49,10 @@ export async function POST(req: NextRequest) {
         ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
         : null
 
-      const supabase = createClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-
       let curatedBusinessId: string
 
       if (body.existingCuratedId) {
-        const { error } = await supabase
-          .from('curated_businesses')
-          .update({ is_trial: true, trial_ends_at: trialEndsAt, cities })
-          .eq('id', body.existingCuratedId)
-        if (error) throw error
+        await setCuratedTrial(body.existingCuratedId, trialEndsAt, cities)
         curatedBusinessId = body.existingCuratedId
       } else if (body.yelpId && body.yelpData) {
         const business = body.yelpData as Partial<Business>
@@ -77,12 +75,7 @@ export async function POST(req: NextRequest) {
           cities,
           trialEndsAt
         )
-        const { data } = await supabase
-          .from('curated_businesses')
-          .select('id')
-          .eq('yelp_id', body.yelpId)
-          .single()
-        curatedBusinessId = data?.id || ''
+        curatedBusinessId = (await findCuratedIdByYelpId(body.yelpId)) || ''
       } else {
         await addCuratedManual({
           name: body.businessName,
@@ -90,15 +83,7 @@ export async function POST(req: NextRequest) {
           cities,
           trialEndsAt,
         })
-        const { data } = await supabase
-          .from('curated_businesses')
-          .select('id')
-          .eq('name', body.businessName)
-          .eq('source', 'manual')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-        curatedBusinessId = data?.id || ''
+        curatedBusinessId = (await findLatestManualCuratedId(body.businessName)) || ''
       }
 
       await createTrialInvitation({
@@ -114,7 +99,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     } catch (err) {
       console.error('createTrial failed:', err)
-      const msg = err instanceof Error ? err.message : 'Failed to start trial'
+      const msg = errorMessage(err, 'Failed to start trial')
       return NextResponse.json({ error: msg }, { status: 500 })
     }
   }
@@ -133,7 +118,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ token })
   } catch (err) {
     console.error('createInvitation failed:', err)
-    const msg = err instanceof Error ? err.message : 'Failed to create invitation'
+    const msg = errorMessage(err, 'Failed to create invitation')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
@@ -166,7 +151,8 @@ export async function DELETE(req: NextRequest) {
     await deleteInvitation(id)
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to remove'
+    console.error('request failed:', err)
+    const msg = errorMessage(err, 'Failed to remove')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

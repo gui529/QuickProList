@@ -1,6 +1,23 @@
-import { getInvitationByToken, isInvitationExpired } from '@/lib/invitations'
+import { getInvitationByToken, isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 import { getCuratedById } from '@/lib/kv'
 import EnrollClient from './EnrollClient'
+
+const PRIVATE_YELP_DATA_KEYS = [
+  'dashboardToken',
+  'dashboard_token',
+  'contactEmail',
+  'contact_email',
+  'isTrial',
+  'trialEndsAt',
+  'reviewUrl',
+]
+
+function invitationForClient(invitation: EnrollmentInvitation): EnrollmentInvitation {
+  if (!invitation.yelp_data) return invitation
+  const yelpData = { ...invitation.yelp_data }
+  for (const key of PRIVATE_YELP_DATA_KEYS) delete yelpData[key]
+  return { ...invitation, yelp_data: yelpData }
+}
 
 export default async function EnrollPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -36,5 +53,5 @@ export default async function EnrollPage({ params }: { params: Promise<{ token: 
     ? (await getCuratedById(invitation.curated_business_id))?.dashboardToken ?? null
     : null
 
-  return <EnrollClient invitation={invitation} token={token} dashboardToken={dashboardToken} />
+  return <EnrollClient invitation={invitationForClient(invitation)} token={token} dashboardToken={dashboardToken} />
 }

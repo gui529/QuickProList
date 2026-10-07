@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, AuthError } from '@/lib/auth'
 import { getInvitationById, markInvitationCanceled } from '@/lib/invitations'
 import { getStripe } from '@/lib/stripe'
+import { errorMessage } from '@/lib/errors'
 
 export async function POST(
   _req: NextRequest,
@@ -41,7 +42,7 @@ export async function POST(
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('cancel subscription failed:', err)
-    const msg = err instanceof Error ? err.message : 'Failed to cancel subscription'
+    const msg = errorMessage(err, 'Failed to cancel subscription')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
