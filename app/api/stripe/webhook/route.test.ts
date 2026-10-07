@@ -10,14 +10,13 @@ const {
   updateCuratedManualMock,
   setCuratedContactEmailMock,
   getCuratedByIdMock,
+  findCuratedIdByYelpIdMock,
+  findLatestManualCuratedIdMock,
   sendEmailMock,
-  supabaseSingleMock,
 } = vi.hoisted(() => {
   // route.ts reads STRIPE_WEBHOOK_SECRET as a module-level constant, so it
   // must be set before the module graph is imported below.
   process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
-  process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
 
   const constructEventMock = vi.fn()
   const handleSubscriptionCanceledMock = vi.fn()
@@ -26,8 +25,9 @@ const {
   const updateCuratedManualMock = vi.fn().mockResolvedValue(undefined)
   const setCuratedContactEmailMock = vi.fn().mockResolvedValue(undefined)
   const getCuratedByIdMock = vi.fn()
+  const findCuratedIdByYelpIdMock = vi.fn().mockResolvedValue('curated-1')
+  const findLatestManualCuratedIdMock = vi.fn().mockResolvedValue('curated-1')
   const sendEmailMock = vi.fn().mockResolvedValue('email-id')
-  const supabaseSingleMock = vi.fn().mockResolvedValue({ data: { id: 'curated-1' } })
   return {
     constructEventMock,
     handleSubscriptionCanceledMock,
@@ -36,8 +36,9 @@ const {
     updateCuratedManualMock,
     setCuratedContactEmailMock,
     getCuratedByIdMock,
+    findCuratedIdByYelpIdMock,
+    findLatestManualCuratedIdMock,
     sendEmailMock,
-    supabaseSingleMock,
   }
 })
 
@@ -52,27 +53,12 @@ vi.mock('@/lib/kv', () => ({
   updateCuratedManual: updateCuratedManualMock,
   setCuratedContactEmail: setCuratedContactEmailMock,
   getCuratedById: getCuratedByIdMock,
+  findCuratedIdByYelpId: findCuratedIdByYelpIdMock,
+  findLatestManualCuratedId: findLatestManualCuratedIdMock,
 }))
 
 vi.mock('@/lib/email', () => ({
   sendEmail: sendEmailMock,
-}))
-
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          eq: () => ({
-            order: () => ({
-              limit: () => ({ single: supabaseSingleMock }),
-            }),
-          }),
-          single: supabaseSingleMock,
-        }),
-      }),
-    }),
-  }),
 }))
 
 vi.mock('@/lib/invitations', async () => import('@/lib/invitations.test-double'))
@@ -103,7 +89,6 @@ describe('POST /api/stripe/webhook (idempotency)', () => {
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
-    supabaseSingleMock.mockClear()
   })
 
   it('only inserts the curated business once when Stripe retries the same event', async () => {
@@ -246,7 +231,6 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
-    supabaseSingleMock.mockClear()
   })
 
   it('sends a welcome email with the dashboard link when payment succeeds', async () => {
@@ -353,7 +337,6 @@ describe('POST /api/stripe/webhook (subscription status handling)', () => {
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
-    supabaseSingleMock.mockClear()
   })
 
   it('does not delist on customer.subscription.updated with status past_due (grace period)', async () => {
@@ -395,7 +378,6 @@ describe('POST /api/stripe/webhook (dunning notice on invoice.payment_failed)', 
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
-    supabaseSingleMock.mockClear()
   })
 
   function makeInvoiceFailedEvent(subscriptionId: string) {

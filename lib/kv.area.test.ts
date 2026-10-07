@@ -1,19 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-const { rowsState, fromMock } = vi.hoisted(() => {
+const { rowsState, queryMock } = vi.hoisted(() => {
   const rowsState: { data: Array<Record<string, unknown>> } = { data: [] }
-  const query = {
-    select: vi.fn(() => query),
-    is: vi.fn(() => query),
-    or: vi.fn(() => query),
-    order: vi.fn(async () => ({ data: rowsState.data, error: null })),
-  }
-  const fromMock = vi.fn(() => query)
-  return { rowsState, fromMock }
+  const queryMock = vi.fn(async () => rowsState.data)
+  return { rowsState, queryMock }
 })
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({ from: fromMock })),
+vi.mock('./db', () => ({
+  isDatabaseConfigured: () => Boolean(process.env.DATABASE_URL),
+  query: (...args: unknown[]) => queryMock(...args),
 }))
 
 import { getCurated, getCuratedInArea } from './kv'
@@ -34,8 +29,7 @@ function row(overrides: Record<string, unknown> = {}) {
 
 describe('curated area lookups (lib/kv.ts)', () => {
   beforeEach(() => {
-    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+    process.env.DATABASE_URL = 'postgres://test'
     rowsState.data = []
   })
 

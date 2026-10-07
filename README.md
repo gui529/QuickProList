@@ -41,24 +41,24 @@ credentials (e.g. searches return no pros,
 outbound email/SMS throw only when actually invoked), but each feature
 below requires its corresponding vars to function.
 
-### Supabase
+### Database (Neon)
 
-- `SUPABASE_URL` — Supabase project URL (server-side).
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-side
-  only). Used by `lib/kv.ts`, `lib/invitations.ts`, `lib/campaigns.ts`,
-  `lib/listing-requests.ts`, `lib/reports.ts`, `lib/auth.ts`, and the
-  Stripe webhook handler for all database and storage access.
+- `DATABASE_URL` — Neon Postgres connection string (server-side only). Used by
+  `lib/db.ts` for curated businesses, admins, invitations, campaigns, reports,
+  listing requests, and suppressions.
 
-Supabase is used only as the database and file storage. Admin login does
-not use Supabase Auth; the `NEXT_PUBLIC_SUPABASE_*` variables are no longer
-needed.
+### Photos (Cloudflare R2)
+
+- `R2_ACCOUNT_ID` — Cloudflare account id.
+- `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` — R2 S3 credentials.
+- `R2_BUCKET` — bucket name (`quickprolist-photos`).
+- `R2_PUBLIC_URL` — public base URL for uploaded photos.
 
 ### Admin login (Auth.js + Google)
 
 Admin sign-in uses [Auth.js](https://authjs.dev) (`next-auth` v5) with the
 Google provider only and JWT session cookies. A signed-in Google account is
-an admin only if its email is in the `admins` table (checked with the
-service role key).
+an admin only if its email is in the `admins` table.
 
 - `AUTH_SECRET` — random secret used to sign the session JWT. Generate with
   `npx auth secret` or `openssl rand -base64 33`.
@@ -85,7 +85,7 @@ redirects to `/login` and the header hides the Dashboard link.
    `AUTH_GOOGLE_SECRET`.
 5. In Vercel (Project Settings > Environment Variables) set `AUTH_SECRET`,
    `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` for Production and Preview, then
-   redeploy. The existing `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` stay.
+   redeploy.
 
 ### Stripe
 

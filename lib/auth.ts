@@ -1,23 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
 import { auth, isAuthConfigured } from './auth-config'
-
-function serviceClient() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key)
-}
+import { isDatabaseConfigured, query } from './db'
 
 async function isAdminEmail(email: string | undefined | null): Promise<boolean> {
   const wanted = email?.trim().toLowerCase()
   if (!wanted) return false
-  const sb = serviceClient()
-  if (!sb) return false
-  // Compare in code rather than with ilike/pattern matching, where `%` and `_`
-  // in an email would act as wildcards.
-  const { data, error } = await sb.from('admins').select('email')
-  if (error) console.error('admins lookup failed', error.message)
-  return (data ?? []).some((row) => row.email?.trim().toLowerCase() === wanted)
+  if (!isDatabaseConfigured()) return false
+  const rows = await query<{ email: string }>('SELECT email FROM admins')
+  return rows.some((row) => row.email?.trim().toLowerCase() === wanted)
 }
 
 export interface AdminSession {

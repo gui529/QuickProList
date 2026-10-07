@@ -10,7 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.104.0",
+    "@aws-sdk/client-s3": "^3.1147.0",
+    "@neondatabase/serverless": "^1.2.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "next": "16.2.4",

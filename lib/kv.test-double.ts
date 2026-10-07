@@ -346,6 +346,27 @@ export async function incrementContactClick(id: string, type: ContactClickType):
   else row.directions_clicks += 1
 }
 
+export async function findCuratedIdByYelpId(yelpId: string): Promise<string | null> {
+  return rows.find((row) => row.yelp_id === yelpId)?.id ?? null
+}
+
+export async function findLatestManualCuratedId(name: string): Promise<string | null> {
+  const matches = rows.filter((row) => row.source === 'manual' && row.name === name)
+  return matches.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.id ?? null
+}
+
+export async function setCuratedTrial(
+  id: string,
+  trialEndsAt: string | null,
+  cities: string[]
+): Promise<void> {
+  const row = rows.find((item) => item.id === id)
+  if (!row) throw new Error('Curated business not found')
+  row.is_trial = true
+  row.trial_ends_at = trialEndsAt
+  row.cities = cities
+}
+
 export async function uploadBusinessPhoto(
   _file: ArrayBuffer,
   _contentType: string,

@@ -1,16 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
 import type { Business } from './business'
 import { normalizeCategory } from './categories'
+import { isDatabaseConfigured, query } from './db'
 import { sanitizeHttpUrl } from './http-url'
+import { isStorageConfigured, uploadPublicObject } from './storage'
 
-const PHOTO_BUCKET = 'business-photos'
-
-function getSupabase() {
-  const url = process.env.SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key)
-}
+const COUNTER_COLUMNS = new Set([
+  'profile_views',
+  'phone_clicks',
+  'website_clicks',
+  'directions_clicks',
+  'search_impressions',
+])
 
 export function normalizeCity(input: string): string {
   return input.trim().toLowerCase().split(',')[0].trim()
@@ -66,8 +66,8 @@ function rowToBusiness(row: CuratedRow): Business {
     source: row.source,
     yelpId: row.yelp_id ?? undefined,
     name: row.name,
-    rating: row.rating,
-    reviewCount: row.review_count,
+    rating: row.rating == null ? null : Number(row.rating),
+    reviewCount: row.review_count == null ? null : Number(row.review_count),
     phone: row.phone ?? '',
     address: row.address ?? '',
     imageUrl: row.image_url ?? '',
@@ -86,18 +86,20 @@ function rowToBusiness(row: CuratedRow): Business {
 }
 
 async function fetchActiveRows(label: string): Promise<CuratedRow[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
+  if (!isDatabaseConfigured()) return []
   const now = new Date().toISOString()
-  const { data, error } = await supabase
-    .from('curated_businesses')
-    .select('*')
-    .is('delisted_at', null)
-    .or(`trial_ends_at.is.null,trial_ends_at.gt.${now}`)
-    .order('created_at', { ascending: true })
-  if (error) console.error(`${label} failed:`, error)
-  if (error || !data) return []
-  return data as CuratedRow[]
+  try {
+    return await query<CuratedRow>(
+      `SELECT * FROM curated_businesses
+       WHERE delisted_at IS NULL
+         AND (trial_ends_at IS NULL OR trial_ends_at > $1)
+       ORDER BY created_at ASC`,
+      [now]
+    )
+  } catch (error) {
+    console.error(`${label} failed:`, error)
+    return []
+  }
 }
 
 export async function getCurated(category: string, city: string): Promise<Business[]> {
@@ -115,15 +117,12 @@ export async function getCuratedInArea(category: string, cities: string[]): Prom
 }
 
 export async function getCuratedById(id: string): Promise<Business | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase
-    .from('curated_businesses')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle()
-  if (!data) return null
-  return rowToBusiness(data as CuratedRow)
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<CuratedRow>(
+    'SELECT * FROM curated_businesses WHERE id = $1',
+    [id]
+  )
+  return rows[0] ? rowToBusiness(rows[0]) : null
 }
 
 export interface BusinessDashboardData {
@@ -146,21 +145,19 @@ export interface BusinessDashboardData {
  * Look up a curated business by its `dashboard_token` — the secret used by
  * the token-secured, no-login business-facing dashboard (`/dashboard/[token]`)
  * to show a subscriber their own profile-view/click stats and status.
- * Returns `null` on no match (including when Supabase isn't configured),
+ * Returns `null` on no match (including when the database isn't configured),
  * which the dashboard page treats as a 404.
  */
 export async function getCuratedByDashboardToken(
   token: string
 ): Promise<BusinessDashboardData | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data } = await supabase
-    .from('curated_businesses')
-    .select('*')
-    .eq('dashboard_token', token)
-    .maybeSingle()
-  if (!data) return null
-  const row = data as CuratedRow
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<CuratedRow>(
+    'SELECT * FROM curated_businesses WHERE dashboard_token = $1',
+    [token]
+  )
+  const row = rows[0]
+  if (!row) return null
   return {
     id: row.id,
     name: row.name,
@@ -190,7 +187,7 @@ export interface DashboardEditableFields {
  * the sole credential the token-secured `/dashboard/[token]` page grants a
  * subscriber. Deliberately excludes name/category/cities/pricing-adjacent
  * fields, which stay admin-controlled via `/admin`. Returns `false` (no-op,
- * nothing mutated) for an unknown token or when Supabase isn't configured,
+ * nothing mutated) for an unknown token or when the database isn't configured,
  * so the caller can 404 — mirrors `getCuratedByDashboardToken`'s
  * null-on-miss convention.
  */
@@ -198,29 +195,36 @@ export async function updateCuratedByDashboardToken(
   token: string,
   fields: DashboardEditableFields
 ): Promise<boolean> {
-  const supabase = getSupabase()
-  if (!supabase) return false
-  const update: Record<string, unknown> = {}
-  if (fields.websiteUrl !== undefined) update.website_url = sanitizeHttpUrl(fields.websiteUrl)
-  if (fields.contactEmail !== undefined) update.contact_email = fields.contactEmail.trim() || null
-  if (fields.reviewUrl !== undefined) update.review_url = sanitizeHttpUrl(fields.reviewUrl)
-  const { data, error } = await supabase
-    .from('curated_businesses')
-    .update(update)
-    .eq('dashboard_token', token)
-    .select('id')
-  if (error) throw error
-  return Array.isArray(data) && data.length > 0
+  if (!isDatabaseConfigured()) return false
+  const sets: string[] = []
+  const params: unknown[] = []
+  if (fields.websiteUrl !== undefined) {
+    params.push(sanitizeHttpUrl(fields.websiteUrl))
+    sets.push(`website_url = $${params.length}`)
+  }
+  if (fields.contactEmail !== undefined) {
+    params.push(fields.contactEmail.trim() || null)
+    sets.push(`contact_email = $${params.length}`)
+  }
+  if (fields.reviewUrl !== undefined) {
+    params.push(sanitizeHttpUrl(fields.reviewUrl))
+    sets.push(`review_url = $${params.length}`)
+  }
+  if (sets.length === 0) return false
+  params.push(token)
+  const rows = await query<{ id: string }>(
+    `UPDATE curated_businesses SET ${sets.join(', ')} WHERE dashboard_token = $${params.length} RETURNING id`,
+    params
+  )
+  return rows.length > 0
 }
 
 export async function listAllCurated(): Promise<Business[]> {
-  const supabase = getSupabase()
-  if (!supabase) return []
-  const { data } = await supabase
-    .from('curated_businesses')
-    .select('*')
-    .order('created_at', { ascending: false })
-  return ((data as CuratedRow[]) ?? []).map(rowToBusiness)
+  if (!isDatabaseConfigured()) return []
+  const rows = await query<CuratedRow>(
+    'SELECT * FROM curated_businesses ORDER BY created_at DESC'
+  )
+  return rows.map(rowToBusiness)
 }
 
 export async function addCuratedFromYelp(
@@ -229,30 +233,44 @@ export async function addCuratedFromYelp(
   cities: string[],
   trialEndsAt?: string | null
 ): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
   const normalizedCities = [...new Set(cities.map(normalizeCity).filter(Boolean))]
   if (normalizedCities.length === 0) throw new Error('At least one city is required')
-  const { error } = await supabase.from('curated_businesses').upsert(
-    {
-      yelp_id: business.id,
-      source: 'yelp',
+  await query(
+    `INSERT INTO curated_businesses (
+       yelp_id, source, category, cities, name, phone, address, image_url, website_url,
+       rating, review_count, categories, trial_ends_at, is_trial
+     ) VALUES ($1,'yelp',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+     ON CONFLICT (yelp_id) DO UPDATE SET
+       source = EXCLUDED.source,
+       category = EXCLUDED.category,
+       cities = EXCLUDED.cities,
+       name = EXCLUDED.name,
+       phone = EXCLUDED.phone,
+       address = EXCLUDED.address,
+       image_url = EXCLUDED.image_url,
+       website_url = EXCLUDED.website_url,
+       rating = EXCLUDED.rating,
+       review_count = EXCLUDED.review_count,
+       categories = EXCLUDED.categories,
+       trial_ends_at = EXCLUDED.trial_ends_at,
+       is_trial = EXCLUDED.is_trial`,
+    [
+      business.id,
       category,
-      cities: normalizedCities,
-      name: business.name,
-      phone: business.phone || null,
-      address: business.address || null,
-      image_url: business.imageUrl || null,
-      website_url: business.websiteUrl || null,
-      rating: business.rating,
-      review_count: business.reviewCount,
-      categories: business.categories,
-      trial_ends_at: trialEndsAt ?? null,
-      is_trial: trialEndsAt !== undefined,
-    },
-    { onConflict: 'yelp_id' }
+      normalizedCities,
+      business.name,
+      business.phone || null,
+      business.address || null,
+      business.imageUrl || null,
+      business.websiteUrl || null,
+      business.rating,
+      business.reviewCount,
+      business.categories,
+      trialEndsAt ?? null,
+      trialEndsAt !== undefined,
+    ]
   )
-  if (error) throw error
 }
 
 export interface ManualBusinessInput {
@@ -269,76 +287,74 @@ export interface ManualBusinessInput {
 }
 
 export async function addCuratedManual(input: ManualBusinessInput): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
   const cities = input.cities.map(normalizeCity).filter(Boolean)
   if (cities.length === 0) throw new Error('At least one city is required')
-  const { error } = await supabase.from('curated_businesses').insert({
-    source: 'manual',
-    category: input.category,
-    cities,
-    name: input.name,
-    phone: input.phone || null,
-    address: input.address || null,
-    image_url: input.imageUrl || null,
-    website_url: input.websiteUrl || null,
-    review_url: input.reviewUrl || null,
-    categories: input.categories ?? [],
-    trial_ends_at: input.trialEndsAt ?? null,
-    is_trial: input.trialEndsAt !== undefined,
-  })
-  if (error) throw error
+  await query(
+    `INSERT INTO curated_businesses (
+       source, category, cities, name, phone, address, image_url, website_url, review_url,
+       categories, trial_ends_at, is_trial
+     ) VALUES ('manual',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+    [
+      input.category,
+      cities,
+      input.name,
+      input.phone || null,
+      input.address || null,
+      input.imageUrl || null,
+      input.websiteUrl || null,
+      input.reviewUrl || null,
+      input.categories ?? [],
+      input.trialEndsAt ?? null,
+      input.trialEndsAt !== undefined,
+    ]
+  )
 }
 
 export async function updateCuratedManual(id: string, input: Partial<ManualBusinessInput>): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-  const update: Record<string, unknown> = {}
-  if (input.name !== undefined) update.name = input.name
-  if (input.phone !== undefined) update.phone = input.phone || null
-  if (input.address !== undefined) update.address = input.address || null
-  if (input.websiteUrl !== undefined) update.website_url = input.websiteUrl || null
-  if (input.reviewUrl !== undefined) update.review_url = input.reviewUrl || null
-  if (input.imageUrl !== undefined) update.image_url = input.imageUrl || null
-  if (input.category !== undefined) update.category = input.category
-  if (input.cities !== undefined) update.cities = input.cities.map(normalizeCity).filter(Boolean)
-  if (input.categories !== undefined) update.categories = input.categories
-  const { error } = await supabase.from('curated_businesses').update(update).eq('id', id)
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  const sets: string[] = []
+  const params: unknown[] = []
+  const set = (column: string, value: unknown) => {
+    params.push(value)
+    sets.push(`${column} = $${params.length}`)
+  }
+  if (input.name !== undefined) set('name', input.name)
+  if (input.phone !== undefined) set('phone', input.phone || null)
+  if (input.address !== undefined) set('address', input.address || null)
+  if (input.websiteUrl !== undefined) set('website_url', input.websiteUrl || null)
+  if (input.reviewUrl !== undefined) set('review_url', input.reviewUrl || null)
+  if (input.imageUrl !== undefined) set('image_url', input.imageUrl || null)
+  if (input.category !== undefined) set('category', input.category)
+  if (input.cities !== undefined) set('cities', input.cities.map(normalizeCity).filter(Boolean))
+  if (input.categories !== undefined) set('categories', input.categories)
+  if (sets.length === 0) return
+  params.push(id)
+  await query(
+    `UPDATE curated_businesses SET ${sets.join(', ')} WHERE id = $${params.length}`,
+    params
+  )
 }
 
 export async function updateCuratedCities(id: string, cities: string[]): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
   const normalized = cities.map(normalizeCity).filter(Boolean)
   if (normalized.length === 0) throw new Error('At least one city is required')
-  const { error } = await supabase
-    .from('curated_businesses')
-    .update({ cities: normalized })
-    .eq('id', id)
-  if (error) throw error
+  await query('UPDATE curated_businesses SET cities = $1 WHERE id = $2', [normalized, id])
 }
 
 export async function removeCurated(id: string): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) return
-  // Nullify FK before delete to avoid constraint violation from linked invitations
-  await supabase
-    .from('enrollment_invitations')
-    .update({ curated_business_id: null })
-    .eq('curated_business_id', id)
-  const { error } = await supabase.from('curated_businesses').delete().eq('id', id)
-  if (error) throw error
+  if (!isDatabaseConfigured()) return
+  await query(
+    'UPDATE enrollment_invitations SET curated_business_id = NULL WHERE curated_business_id = $1',
+    [id]
+  )
+  await query('DELETE FROM curated_businesses WHERE id = $1', [id])
 }
 
 export async function updateProSiteEnabled(id: string, enabled: boolean): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-  const { error } = await supabase
-    .from('curated_businesses')
-    .update({ pro_site_enabled: enabled })
-    .eq('id', id)
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query('UPDATE curated_businesses SET pro_site_enabled = $1 WHERE id = $2', [enabled, id])
 }
 
 /**
@@ -348,55 +364,39 @@ export async function updateProSiteEnabled(id: string, enabled: boolean): Promis
  * remain in `listAllCurated` for admin visibility/audit history.
  */
 export async function setCuratedDelisted(id: string, delisted: boolean): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-  const { error } = await supabase
-    .from('curated_businesses')
-    .update({ delisted_at: delisted ? new Date().toISOString() : null })
-    .eq('id', id)
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query('UPDATE curated_businesses SET delisted_at = $1 WHERE id = $2', [
+    delisted ? new Date().toISOString() : null,
+    id,
+  ])
 }
 
 /**
  * Store the contact email captured from Stripe Checkout's
  * `customer_details.email` on a curated business — the address dunning
  * notices (e.g. on `invoice.payment_failed`) are sent to. No-ops when
- * Supabase isn't configured or `email` is falsy, matching the webhook's
+ * the database isn't configured or `email` is falsy, matching the webhook's
  * fire-and-forget-on-missing-data handling of this optional field.
  */
 export async function setCuratedContactEmail(id: string, email: string): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase || !email) return
-  const { error } = await supabase
-    .from('curated_businesses')
-    .update({ contact_email: email })
-    .eq('id', id)
-  if (error) throw error
+  if (!isDatabaseConfigured() || !email) return
+  await query('UPDATE curated_businesses SET contact_email = $1 WHERE id = $2', [email, id])
 }
 
 /**
  * Bump a single integer counter column on a `curated_businesses` row by 1.
- * Supabase's JS client has no atomic increment for a plain `update()`, so
- * this reads the current value and writes back current+1 — acceptable for
- * low-contention view/click counters. No-ops (rather than throwing) when
- * Supabase isn't configured or the row can't be found, matching the
- * fire-and-forget call sites (page render, click-tracking endpoint) that
- * should never fail a request over a missed counter increment.
+ * The update is atomic. A missing row or a missing database configuration
+ * is a no-op, matching the fire-and-forget call sites (page render,
+ * click-tracking endpoint) that should never fail a request over a missed
+ * counter increment.
  */
 async function incrementCounterColumn(id: string, column: string): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) return
-  const { data } = await supabase
-    .from('curated_businesses')
-    .select(column)
-    .eq('id', id)
-    .maybeSingle()
-  if (!data) return
-  const current = (data as unknown as Record<string, number | null>)[column] ?? 0
-  await supabase
-    .from('curated_businesses')
-    .update({ [column]: current + 1 })
-    .eq('id', id)
+  if (!isDatabaseConfigured()) return
+  if (!COUNTER_COLUMNS.has(column)) throw new Error('Unknown counter')
+  await query(
+    `UPDATE curated_businesses SET ${column} = COALESCE(${column}, 0) + 1 WHERE id = $1`,
+    [id]
+  )
 }
 
 export async function incrementProfileView(id: string): Promise<void> {
@@ -428,13 +428,44 @@ export async function incrementContactClick(id: string, type: ContactClickType):
  * sends a second email to the same business.
  */
 export async function setWinbackSent(id: string): Promise<void> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
-  const { error } = await supabase
-    .from('curated_businesses')
-    .update({ winback_sent_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query('UPDATE curated_businesses SET winback_sent_at = $1 WHERE id = $2', [
+    new Date().toISOString(),
+    id,
+  ])
+}
+
+export async function findCuratedIdByYelpId(yelpId: string): Promise<string | null> {
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<{ id: string }>(
+    'SELECT id FROM curated_businesses WHERE yelp_id = $1',
+    [yelpId]
+  )
+  return rows[0]?.id ?? null
+}
+
+export async function findLatestManualCuratedId(name: string): Promise<string | null> {
+  if (!isDatabaseConfigured()) return null
+  const rows = await query<{ id: string }>(
+    `SELECT id FROM curated_businesses
+     WHERE name = $1 AND source = 'manual'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [name]
+  )
+  return rows[0]?.id ?? null
+}
+
+export async function setCuratedTrial(
+  id: string,
+  trialEndsAt: string | null,
+  cities: string[]
+): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    'UPDATE curated_businesses SET is_trial = TRUE, trial_ends_at = $1, cities = $2 WHERE id = $3',
+    [trialEndsAt, cities, id]
+  )
 }
 
 export async function uploadBusinessPhoto(
@@ -442,14 +473,8 @@ export async function uploadBusinessPhoto(
   contentType: string,
   filename: string
 ): Promise<string> {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not configured')
+  if (!isStorageConfigured()) throw new Error('Storage not configured')
   const ext = filename.split('.').pop() ?? 'jpg'
   const path = `${crypto.randomUUID()}.${ext}`
-  const { error } = await supabase.storage
-    .from(PHOTO_BUCKET)
-    .upload(path, file, { contentType, upsert: false })
-  if (error) throw error
-  const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path)
-  return data.publicUrl
+  return uploadPublicObject(new Uint8Array(file), contentType, path)
 }

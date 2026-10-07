@@ -1,38 +1,15 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { Business } from './business'
 
-// Mock the Supabase client so we can test lib/kv.ts's real query-building
-// logic (not just the in-memory double) without a live Supabase project.
-const { upsertMock, fromMock, createClientMock, selectState, updateMock, updateEqMock, updateSelectState } =
-  vi.hoisted(() => {
-    const upsertMock = vi.fn().mockResolvedValue({ error: null })
-    // Mutable holder so tests can control what update(...).eq(...).select(...) resolves to
-    // (used by the update-by-token path, which needs to know how many rows matched).
-    const updateSelectState: { data: Array<{ id: string }> | null } = { data: [{ id: 'curated-1' }] }
-    const updateEqMock = vi.fn().mockReturnValue({
-      error: null,
-      select: vi.fn().mockImplementation(async () => ({ data: updateSelectState.data, error: null })),
-    })
-    const updateMock = vi.fn().mockReturnValue({
-      eq: updateEqMock,
-    })
-    // Mutable holder so tests can control what the chained select().eq().maybeSingle() resolves to.
-    const selectState: { data: Record<string, unknown> | null } = { data: null }
-    const fromMock = vi.fn(() => ({
-      upsert: upsertMock,
-      update: updateMock,
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn().mockImplementation(async () => ({ data: selectState.data })),
-        })),
-      })),
-    }))
-    const createClientMock = vi.fn(() => ({ from: fromMock }))
-    return { upsertMock, fromMock, createClientMock, selectState, updateMock, updateEqMock, updateSelectState }
-  })
+const { queryMock, selectState } = vi.hoisted(() => {
+  const selectState: { rows: Record<string, unknown>[] } = { rows: [] }
+  const queryMock = vi.fn(async () => selectState.rows)
+  return { queryMock, selectState }
+})
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: createClientMock,
+vi.mock('./db', () => ({
+  isDatabaseConfigured: () => Boolean(process.env.DATABASE_URL),
+  query: (...args: unknown[]) => queryMock(...args),
 }))
 
 import {
@@ -62,11 +39,8 @@ function makeBusiness(overrides: Partial<Business> = {}): Business {
 
 describe('addCuratedFromYelp (lib/kv.ts)', () => {
   beforeEach(() => {
-    upsertMock.mockClear()
-    fromMock.mockClear()
-    createClientMock.mockClear()
-    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+    queryMock.mockClear()
+    process.env.DATABASE_URL = 'postgres://test'
   })
 
   it('stores every city passed in, not just the first, for a multi-city invitation', async () => {
@@ -76,9 +50,9 @@ describe('addCuratedFromYelp (lib/kv.ts)', () => {
       'Houston, TX',
     ])
 
-    expect(upsertMock).toHaveBeenCalledTimes(1)
-    const payload = upsertMock.mock.calls[0][0]
-    expect(payload.cities).toEqual(['austin', 'dallas', 'houston'])
+    expect(queryMock).toHaveBeenCalledTimes(1)
+    const params = queryMock.mock.calls[0][1] as unknown[]
+    expect(params[2]).toEqual(['austin', 'dallas', 'houston'])
   })
 
   it('normalizes and de-dupes city names', async () => {
@@ -88,77 +62,59 @@ describe('addCuratedFromYelp (lib/kv.ts)', () => {
       'Dallas, TX',
     ])
 
-    const payload = upsertMock.mock.calls[0][0]
-    expect(payload.cities).toEqual(['austin', 'dallas'])
+    const params = queryMock.mock.calls[0][1] as unknown[]
+    expect(params[2]).toEqual(['austin', 'dallas'])
   })
 
   it('throws when no valid city is provided', async () => {
     await expect(addCuratedFromYelp(makeBusiness(), 'plumbing', [])).rejects.toThrow(
       'At least one city is required'
     )
-    expect(upsertMock).not.toHaveBeenCalled()
+    expect(queryMock).not.toHaveBeenCalled()
   })
 })
 
 describe('incrementProfileView / incrementContactClick (lib/kv.ts)', () => {
   beforeEach(() => {
-    fromMock.mockClear()
-    updateMock.mockClear()
-    createClientMock.mockClear()
-    selectState.data = null
-    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+    queryMock.mockClear()
+    process.env.DATABASE_URL = 'postgres://test'
   })
 
-  it('reads the current profile_views count and writes back current+1', async () => {
-    selectState.data = { profile_views: 4 }
-
+  it('increments profile_views in one update', async () => {
     await incrementProfileView('curated-1')
 
-    expect(updateMock).toHaveBeenCalledWith({ profile_views: 5 })
-  })
-
-  it('treats a missing count as 0', async () => {
-    selectState.data = { profile_views: 0 }
-
-    await incrementProfileView('curated-1')
-
-    expect(updateMock).toHaveBeenCalledWith({ profile_views: 1 })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('profile_views'), ['curated-1'])
   })
 
   it('increments the correct column for each contact click type', async () => {
-    selectState.data = { phone_clicks: 2 }
     await incrementContactClick('curated-1', 'phone')
-    expect(updateMock).toHaveBeenCalledWith({ phone_clicks: 3 })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('phone_clicks'), ['curated-1'])
 
-    selectState.data = { website_clicks: 7 }
     await incrementContactClick('curated-1', 'website')
-    expect(updateMock).toHaveBeenCalledWith({ website_clicks: 8 })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_clicks'), ['curated-1'])
 
-    selectState.data = { directions_clicks: 0 }
     await incrementContactClick('curated-1', 'directions')
-    expect(updateMock).toHaveBeenCalledWith({ directions_clicks: 1 })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('directions_clicks'), ['curated-1'])
   })
 
-  it('is a no-op when the row is not found', async () => {
-    selectState.data = null
+  it('does not query when the database is not configured', async () => {
+    delete process.env.DATABASE_URL
 
     await incrementProfileView('missing')
 
-    expect(updateMock).not.toHaveBeenCalled()
+    expect(queryMock).not.toHaveBeenCalled()
   })
 })
 
 describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
   beforeEach(() => {
-    fromMock.mockClear()
-    selectState.data = null
-    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+    queryMock.mockClear()
+    selectState.rows = []
+    process.env.DATABASE_URL = 'postgres://test'
   })
 
   it('returns the mapped dashboard data for a matching token', async () => {
-    selectState.data = {
+    selectState.rows = [{
       id: 'curated-1',
       name: 'Acme Plumbing',
       source: 'yelp',
@@ -172,7 +128,7 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
       website_url: 'https://acme-plumbing.example',
       contact_email: 'owner@acme-plumbing.example',
       review_url: null,
-    }
+    }]
 
     const result = await getCuratedByDashboardToken('good-token')
 
@@ -194,13 +150,13 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
   })
 
   it('defaults missing counters to 0', async () => {
-    selectState.data = {
+    selectState.rows = [{
       id: 'curated-1',
       name: 'Acme Plumbing',
       source: 'manual',
       is_trial: false,
       trial_ends_at: null,
-    }
+    }]
 
     const result = await getCuratedByDashboardToken('good-token')
 
@@ -217,16 +173,15 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
   })
 
   it('returns null for an unknown token', async () => {
-    selectState.data = null
+    selectState.rows = []
 
     const result = await getCuratedByDashboardToken('bogus-token')
 
     expect(result).toBeNull()
   })
 
-  it('returns null when Supabase is not configured', async () => {
-    delete process.env.SUPABASE_URL
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+  it('returns null when the database is not configured', async () => {
+    delete process.env.DATABASE_URL
 
     const result = await getCuratedByDashboardToken('any-token')
 
@@ -236,14 +191,13 @@ describe('getCuratedByDashboardToken (lib/kv.ts)', () => {
 
 describe('reviewUrl derivation (lib/kv.ts)', () => {
   beforeEach(() => {
-    fromMock.mockClear()
-    selectState.data = null
-    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+    queryMock.mockClear()
+    selectState.rows = []
+    process.env.DATABASE_URL = 'postgres://test'
   })
 
   it('does not derive a Yelp write-a-review link for a legacy yelp row without a review_url', async () => {
-    selectState.data = {
+    selectState.rows = [{
       id: 'curated-1',
       source: 'yelp',
       yelp_id: 'yelp-biz-1',
@@ -253,7 +207,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       cities: [],
       categories: [],
       is_trial: false,
-    }
+    }]
 
     const result = await getCuratedById('curated-1')
 
@@ -262,7 +216,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
   })
 
   it('returns a stored review_url unchanged for a manual business', async () => {
-    selectState.data = {
+    selectState.rows = [{
       id: 'curated-2',
       source: 'manual',
       yelp_id: null,
@@ -272,7 +226,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       cities: [],
       categories: [],
       is_trial: false,
-    }
+    }]
 
     const result = await getCuratedById('curated-2')
 
@@ -280,7 +234,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
   })
 
   it('returns undefined (not a broken link) when no review_url is stored', async () => {
-    selectState.data = {
+    selectState.rows = [{
       id: 'curated-3',
       source: 'manual',
       yelp_id: null,
@@ -290,7 +244,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       cities: [],
       categories: [],
       is_trial: false,
-    }
+    }]
 
     const result = await getCuratedById('curated-3')
 
@@ -300,12 +254,9 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
 
 describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
   beforeEach(() => {
-    fromMock.mockClear()
-    updateMock.mockClear()
-    updateEqMock.mockClear()
-    updateSelectState.data = [{ id: 'curated-1' }]
-    process.env.SUPABASE_URL = 'https://example.test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+    queryMock.mockClear()
+    selectState.rows = [{ id: 'curated-1' }]
+    process.env.DATABASE_URL = 'postgres://test'
   })
 
   it('updates only the allow-listed fields for a valid token', async () => {
@@ -315,17 +266,16 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
     })
 
     expect(result).toBe(true)
-    expect(updateMock).toHaveBeenCalledWith({
-      website_url: 'https://example.com',
-      contact_email: 'owner@example.com',
-    })
-    expect(updateEqMock).toHaveBeenCalledWith('dashboard_token', 'good-token')
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining('website_url'),
+      ['https://example.com', 'owner@example.com', 'good-token']
+    )
   })
 
   it('trims whitespace and stores an empty value as null', async () => {
     await updateCuratedByDashboardToken('good-token', { reviewUrl: '   ' })
 
-    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('review_url'), [null, 'good-token'])
   })
 
   it('sanitizes a javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
@@ -333,7 +283,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteUrl: 'javascript:alert(1)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_url'), [null, 'good-token'])
   })
 
   it('sanitizes a javascript: URI in reviewUrl to null rather than storing it verbatim', async () => {
@@ -341,7 +291,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       reviewUrl: 'javascript:alert(document.cookie)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('review_url'), [null, 'good-token'])
   })
 
   it('sanitizes a tab-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
@@ -349,7 +299,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteUrl: 'java\tscript:alert(1)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_url'), [null, 'good-token'])
   })
 
   it('sanitizes a newline-obfuscated javascript: URI in reviewUrl to null rather than storing it verbatim', async () => {
@@ -357,7 +307,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       reviewUrl: 'java\nscript:alert(document.cookie)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('review_url'), [null, 'good-token'])
   })
 
   it('sanitizes a carriage-return-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
@@ -365,7 +315,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteUrl: 'java\rscript:alert(1)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_url'), [null, 'good-token'])
   })
 
   it('sanitizes a javascript: URI split across multiple embedded control characters to null', async () => {
@@ -373,7 +323,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteUrl: 'j\ta\nv\ra\tscript:alert(1)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_url'), [null, 'good-token'])
   })
 
   it('sanitizes a leading-\\x01-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
@@ -381,7 +331,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteUrl: '\x01javascript:alert(1)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_url'), [null, 'good-token'])
   })
 
   it('sanitizes a leading-\\x00-obfuscated javascript: URI in websiteUrl to null rather than storing it verbatim', async () => {
@@ -389,7 +339,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       websiteUrl: '\x00javascript:alert(1)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ website_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_url'), [null, 'good-token'])
   })
 
   it('sanitizes a leading-\\x1f-obfuscated javascript: URI in reviewUrl to null rather than storing it verbatim', async () => {
@@ -397,7 +347,7 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       reviewUrl: '\x1fjavascript:alert(1)',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({ review_url: null })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('review_url'), [null, 'good-token'])
   })
 
   it('still saves a normal https:// URL for websiteUrl and reviewUrl', async () => {
@@ -406,14 +356,15 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
       reviewUrl: 'https://g.page/r/abc/review',
     })
 
-    expect(updateMock).toHaveBeenCalledWith({
-      website_url: 'https://acme-plumbing.example',
-      review_url: 'https://g.page/r/abc/review',
-    })
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('website_url'), [
+      'https://acme-plumbing.example',
+      'https://g.page/r/abc/review',
+      'good-token',
+    ])
   })
 
   it('returns false and reports no match for an unknown token', async () => {
-    updateSelectState.data = []
+    selectState.rows = []
 
     const result = await updateCuratedByDashboardToken('bogus-token', {
       websiteUrl: 'https://example.com',
@@ -422,15 +373,14 @@ describe('updateCuratedByDashboardToken (lib/kv.ts)', () => {
     expect(result).toBe(false)
   })
 
-  it('returns false when Supabase is not configured', async () => {
-    delete process.env.SUPABASE_URL
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+  it('returns false when the database is not configured', async () => {
+    delete process.env.DATABASE_URL
 
     const result = await updateCuratedByDashboardToken('any-token', {
       websiteUrl: 'https://example.com',
     })
 
     expect(result).toBe(false)
-    expect(updateMock).not.toHaveBeenCalled()
+    expect(queryMock).not.toHaveBeenCalled()
   })
 })
