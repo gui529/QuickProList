@@ -37,6 +37,10 @@ Server path (`isTrial` branch):
 - `createTrialInvitation` with `status: 'trial'`, `monthly_price: 0`.
 - Listing can appear in search when not draft/delisted and trial not expired — **no** Stripe step.
 
+When `trial_ends_at` passes: [trial-expiration.md](./trial-expiration.md).
+
+**Campaign / enroll self-serve preview** (business clicks “start 30-day preview” on `/enroll/[token]`) uses `lib/enrollment-trial.ts` instead of this admin modal — same search visibility rules, same expiry behavior.
+
 ---
 
 ## Share link (search highlight)

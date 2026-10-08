@@ -2,6 +2,8 @@
 
 Subscribed (or trial) business opens a **secret link** to view lifetime stats and edit limited listing fields. There is **no** separate business login — the URL token is the credential.
 
+**Feature flag (default off):** set `PRO_DASHBOARD_ENABLED=true` in production to expose this flow. When off, `/dashboard/*` and `PATCH /api/dashboard/*` return **404**, enroll/checkout omit dashboard links, admin hides **Dashboard link**, and [scheduled-email-jobs.md](./scheduled-email-jobs.md) skips performance digests (`lib/feature-flags.ts`).
+
 ---
 
 ## URL
@@ -12,7 +14,7 @@ Subscribed (or trial) business opens a **secret link** to view lifetime stats an
 
 ## Access
 
-`getCuratedByDashboardToken(token)` (`lib/kv.ts`). Unknown token → Next.js `notFound()`.
+Requires `PRO_DASHBOARD_ENABLED`. Then `getCuratedByDashboardToken(token)` (`lib/kv.ts`). Unknown token → Next.js `notFound()`.
 
 ---
 
@@ -37,8 +39,10 @@ Subscribed (or trial) business opens a **secret link** to view lifetime stats an
 
 ## How businesses get the link
 
-- Transactional email after checkout (`app/api/stripe/webhook/route.ts`) includes dashboard URL.
-- Admin **Copy dashboard link** on pinned pro (`app/admin/AdminClient.tsx` → `handleCopyDashboardLink`).
+Only when `PRO_DASHBOARD_ENABLED`:
+
+- Transactional email after checkout (`app/api/stripe/webhook/route.ts`).
+- Admin **Dashboard link** on pinned pro (`app/admin/AdminClient.tsx`).
 
 ---
 

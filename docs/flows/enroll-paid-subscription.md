@@ -49,9 +49,9 @@ Campaign email **requires** `city` and `category` on the send payload (`app/api/
 
 ### 3. Trial active
 
-- After **start trial**, browser redirects to `/?location=…&category=…` (with `highlight=` when known) so the pro sees homeowner search.
-- Revisiting `/enroll/[token]` while `status === 'trial'` redirects the same way.
-- Checkout step remains available if they return to enroll URL and navigate to subscribe (or use Stripe from admin).
+- After **start trial**, browser redirects via `lib/enroll-home-url.ts` to `/?location=…&category=…` (and `highlight=` when `curatedBusinessId` is known).
+- Revisiting `/enroll/[token]` while `status === 'trial'` redirects the same way (brief “Taking you to QuickProList…”).
+- When `trial_ends_at` passes without payment, see **[trial-expiration.md](./trial-expiration.md)** (drops out of search; optional win-back email).
 
 ### 4. Checkout step
 
@@ -61,11 +61,12 @@ Campaign email **requires** `city` and `category` on the send payload (`app/api/
 
 ### 5. Return from Stripe
 
-- URL `?success=1` → success screen (“Payment successful!”) and optional **View your dashboard** if `dashboardToken` was resolved server-side.
+- URL `?success=1` → success screen (“Payment successful!”).
+- **View your dashboard** link only when `PRO_DASHBOARD_ENABLED` is true and a `dashboardToken` exists (`lib/feature-flags.ts`).
 
 ### 6. After webhook (async)
 
-Listing published in search; transactional welcome email may include dashboard URL. See [stripe-webhook-effects.md](./stripe-webhook-effects.md).
+Listing published in search; transactional welcome email may include a dashboard URL when **`PRO_DASHBOARD_ENABLED`**. See [stripe-webhook-effects.md](./stripe-webhook-effects.md).
 
 ---
 
@@ -81,4 +82,4 @@ Listing published in search; transactional welcome email may include dashboard U
 
 ## Key files
 
-`lib/invitations.ts`, `app/enroll/[token]/EnrollClient.tsx`, `components/EnrollListingPreview.tsx`, `app/api/stripe/checkout/route.ts`, `lib/stripe.ts`, `app/api/stripe/webhook/route.ts`, `lib/kv.ts` (`publishCurated`).
+`lib/invitations.ts`, `lib/enrollment-trial.ts`, `lib/enroll-home-url.ts`, `app/enroll/[token]/EnrollClient.tsx`, `components/EnrollListingPreview.tsx`, `app/api/enroll/start-trial/route.ts`, `app/api/stripe/checkout/route.ts`, `lib/stripe.ts`, `app/api/stripe/webhook/route.ts`, `lib/kv.ts` (`publishCurated`).

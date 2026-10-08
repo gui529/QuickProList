@@ -18,7 +18,7 @@ When `session.metadata.invitationToken` is set (from [enroll-paid-subscription.m
 2. Create/update `curated_businesses` (Yelp data, existing id, or new manual row).
 3. `markInvitationPaid` + `publishCurated` (clears `is_draft`).
 4. Store Stripe customer email on curated row when present.
-5. Send **transactional** `sendEmail` with dashboard URL when `dashboardToken` exists.
+5. Send **transactional** `sendEmail` with dashboard URL when `PRO_DASHBOARD_ENABLED` and `dashboardToken` exist.
 
 ---
 

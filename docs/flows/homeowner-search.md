@@ -36,7 +36,7 @@ Hero: town input (`components/OpenTownInput.tsx`) + category grid (`lib/categori
 
 `GET /api/search?category={value}&location={town}`
 
-- Rate limit: `search:{ip}` (`lib/rate-limit.ts`).
+- Rate limit: `search:{ip}` — default **120 requests / minute / IP** (`searchRateLimitMax()` in `lib/rate-limit.ts`; override `SEARCH_RATE_LIMIT_PER_MINUTE`). Requests with no identifiable IP are not bucketed together.
 - Server uses `getMergedResults` (`lib/search.ts`) — **Neon `curated_businesses` only** (no external listing API).
 - Results capped at `MAX_RESULTS` (3) in `lib/search.ts`; home UI also `.slice(0, 3)` on the client response.
 

@@ -10,6 +10,8 @@ Vercel cron (see `vercel.json`) hits authenticated endpoints; businesses receive
 **Auth:** `Authorization: Bearer {CRON_SECRET}`  
 **Logic:** `lib/digest.ts` → `sendDigestEmail` per eligible subscribed business (stats from curated row / dashboard metrics).
 
+**Gated:** No digests sent unless `PRO_DASHBOARD_ENABLED` is true (`lib/feature-flags.ts`).
+
 **User effect:** Email with lifetime stats + link to site (`lib/email.ts` `sendDigestEmail`).
 
 ---
@@ -21,6 +23,8 @@ Vercel cron (see `vercel.json`) hits authenticated endpoints; businesses receive
 **Logic:** `lib/winback.ts` — finds `expired-trial` reports with `contact_email`, sends marketing email with new `enrollUrl`, sets `winback_sent_at`.
 
 **User effect:** [enroll-paid-subscription.md](./enroll-paid-subscription.md) entry via email.
+
+Details when preview lapses without payment: [trial-expiration.md](./trial-expiration.md).
 
 ---
 

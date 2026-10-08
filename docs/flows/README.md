@@ -8,8 +8,9 @@ Each file documents **one flow** as implemented in the repo today — routes, UI
 | `/search` URL alias | [search-redirect.md](./search-redirect.md) | Homeowner / visitor |
 | “Get listed” lead form | [list-business-lead.md](./list-business-lead.md) | Business owner (inbound) |
 | Public ProSite page | [pro-site-visit.md](./pro-site-visit.md) | Homeowner / visitor |
-| Paid enrollment (invitation → Stripe) | [enroll-paid-subscription.md](./enroll-paid-subscription.md) | Business owner |
-| Business performance dashboard | [business-dashboard.md](./business-dashboard.md) | Subscribed business (token link) |
+| Enrollment (preview → 30-day trial or Stripe) | [enroll-paid-subscription.md](./enroll-paid-subscription.md) | Business owner |
+| Trial preview ends (search + win-back) | [trial-expiration.md](./trial-expiration.md) | Business owner |
+| Business performance dashboard | [business-dashboard.md](./business-dashboard.md) | Subscribed business (`PRO_DASHBOARD_ENABLED`) |
 | Email unsubscribe | [email-unsubscribe.md](./email-unsubscribe.md) | Campaign recipient |
 | SMS STOP / START | [sms-opt-out.md](./sms-opt-out.md) | SMS recipient |
 | Admin sign-in | [admin-sign-in.md](./admin-sign-in.md) | Admin |
