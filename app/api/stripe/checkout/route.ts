@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
     if (invitation.status === 'paid') {
       return NextResponse.json({ error: 'Invitation already paid' }, { status: 400 })
     }
+    if (invitation.status !== 'pending' && invitation.status !== 'trial') {
+      return NextResponse.json({ error: 'Invitation is not eligible for checkout' }, { status: 400 })
+    }
 
     const baseUrl = (
       process.env.SITE_URL ??

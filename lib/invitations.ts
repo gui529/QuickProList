@@ -86,6 +86,20 @@ export async function getInvitationByToken(token: string): Promise<EnrollmentInv
   return rows[0] ? asInvitation(rows[0]) : null
 }
 
+export async function markInvitationTrial(
+  token: string,
+  curatedBusinessId: string,
+  trialEndsAt: string
+): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET status = 'trial', curated_business_id = $2, trial_ends_at = $3
+     WHERE token = $1`,
+    [token, curatedBusinessId, trialEndsAt]
+  )
+}
+
 export async function markInvitationPaid(
   token: string,
   sessionId: string,

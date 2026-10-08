@@ -367,6 +367,10 @@ export async function setCuratedTrial(
   row.cities = cities
 }
 
+export async function publishCurated(_id: string): Promise<void> {
+  // Real DB clears is_draft; test double has no draft flag on search path.
+}
+
 export async function uploadBusinessPhoto(
   _file: ArrayBuffer,
   _contentType: string,

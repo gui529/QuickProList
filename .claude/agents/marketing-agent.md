@@ -153,8 +153,9 @@ enrollment + subscription + ongoing use.
 
 When drafting or reviewing email, SMS, homepage, enroll, or admin campaign flows:
 
-1. **One stage, one ask** — Pick the single next step (preview → finish enroll →
-   start trial → pay). No vague "check us out."
+1. **One stage, one ask** — Cold mail leads with **permission** ("okay if I add
+   you for a 30-day preview?") before the preview link — reciprocity + low
+   pressure (Cialdini). Then preview → enroll → pay. No vague "check us out."
 2. **ICP** — local pro; skeptical of lead-gen scams — overcome with specificity and
    proof, then **close** (playbook).
 3. **Structure** — Gap or Challenger teach → emotional/logical why now → **one naked

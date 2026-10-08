@@ -19,16 +19,58 @@ interface Props {
   dashboardToken?: string | null
 }
 
+function formatTrialEnd(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  } catch {
+    return iso
+  }
+}
+
 export default function EnrollClient({ invitation, token, dashboardToken }: Props) {
   const [step, setStep] = useState<'preview' | 'checkout'>('preview')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [trialStarted, setTrialStarted] = useState(false)
+  const [localDashboardToken, setLocalDashboardToken] = useState<string | null>(dashboardToken ?? null)
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(invitation.trial_ends_at)
+
   const [success] = useState(() => {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).get('success') === '1'
   })
 
   const categoryLabel = CATEGORIES.find((c) => c.value === invitation.category)?.label || invitation.category
+  const effectiveDashboardToken = localDashboardToken ?? dashboardToken ?? null
+  const onTrial = (invitation.status === 'trial' || trialStarted) && step !== 'checkout'
+
+  async function handleStartPreview() {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/enroll/start-trial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to start preview')
+        setLoading(false)
+        return
+      }
+      setTrialStarted(true)
+      setTrialEndsAt(data.trialEndsAt ?? null)
+      if (data.dashboardToken) setLocalDashboardToken(data.dashboardToken)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    }
+    setLoading(false)
+  }
 
   async function handleSubscribe() {
     setLoading(true)
@@ -70,14 +112,49 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
           <p className="text-sm text-emerald-600">
             Your monthly subscription of ${invitation.monthly_price.toFixed(2)}/month is now active.
           </p>
-          {dashboardToken && (
+          {effectiveDashboardToken && (
             <Link
-              href={`/dashboard/${dashboardToken}`}
+              href={`/dashboard/${effectiveDashboardToken}`}
               className="inline-block mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-colors"
             >
               View your dashboard
             </Link>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  if (onTrial) {
+    const endLabel = trialEndsAt ? formatTrialEnd(trialEndsAt) : 'soon'
+    return (
+      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-emerald-50 to-emerald-100 px-4">
+        <div className="text-center max-w-lg">
+          <div className="text-6xl mb-4">✓</div>
+          <h1 className="text-4xl font-bold text-emerald-900 mb-2">You&apos;re live on QuickProList</h1>
+          <p className="text-emerald-700 mb-4">
+            {invitation.business_name} is pinned in search for {invitation.cities.join(', ')} through{' '}
+            <strong>{endLabel}</strong> — your free preview window.
+          </p>
+          <p className="text-sm text-emerald-600 mb-6">
+            When you&apos;re ready, you can subscribe at ${invitation.monthly_price.toFixed(2)}/month to stay listed
+            after the preview.
+          </p>
+          {effectiveDashboardToken && (
+            <Link
+              href={`/dashboard/${effectiveDashboardToken}`}
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-colors"
+            >
+              View your dashboard
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setStep('checkout')}
+            className="block w-full mt-4 text-sm text-emerald-800 underline hover:text-emerald-950"
+          >
+            Subscribe now — skip waiting until preview ends
+          </button>
         </div>
       </div>
     )
@@ -115,16 +192,32 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
               </p>
             )}
 
+            {error && (
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mt-6 text-center">
+                <p className="text-rose-800 text-sm font-medium">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleStartPreview}
+              disabled={loading}
+              className="w-full mt-8 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
+            >
+              {loading ? 'Starting preview…' : 'Yes — start my 30-day preview'}
+            </button>
+
             <button
               type="button"
               onClick={() => setStep('checkout')}
-              className="w-full mt-8 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors"
+              className="w-full mt-3 text-sm text-slate-600 hover:text-slate-900 underline"
             >
-              Continue — activate listing
+              I&apos;d rather subscribe now (${invitation.monthly_price.toFixed(2)}/mo)
             </button>
 
             <p className="text-center text-xs text-slate-500 mt-4">
-              Next step shows pricing and secure checkout. No charge until you confirm payment.
+              No card required for the preview. Your listing goes live in search for 30 days; subscribe anytime to
+              stay on after that.
             </p>
           </div>
         </div>
@@ -147,7 +240,7 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
           )}
 
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Activate your listing</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Subscribe to stay listed</h1>
             <p className="text-slate-600">{invitation.business_name}</p>
           </div>
 

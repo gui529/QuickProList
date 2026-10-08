@@ -2,10 +2,12 @@ import { isDatabaseConfigured, query } from './db'
 
 export { expandCampaignMessage, type CampaignMessageContext } from './campaign-message'
 
-/** Placeholders expanded on send: {businessName}, {city}, {category}, {signature} */
-export const DEFAULT_MESSAGE = `We're putting together a short list of {category} pros homeowners see when they search in {city}. {businessName} came up for that area.
+/** Placeholders expanded on send: {businessName}, {city}, {category}, {areas}, {signature} */
+export const DEFAULT_MESSAGE = `I'm with QuickProList — it's a simple list of {category} pros homeowners see when they search around {areas}. We came across {businessName} and I'd like to add you.
 
-It's a simple pinned profile on QuickProList — not a pay-per-lead marketplace. If you want to see what yours would look like, there's a link below (about two minutes). No pressure.
+Would it be okay if I pinned your listing there for a 30-day preview? A little extra visibility in those local searches can help when someone is already looking for your trade — not pay-per-lead, just a clear profile.
+
+A quick "yes" or "no" by reply is totally fine. If you want to see what we'd publish first, I'll include a preview link right after this note.
 
 {signature}`
 

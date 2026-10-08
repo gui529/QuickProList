@@ -1,4 +1,5 @@
 import { formatCategoryLabel, formatCityLabel } from './display'
+import { formatCampaignAreasPhrase } from './open-towns'
 
 export interface CampaignMessageContext {
   businessName: string
@@ -6,7 +7,7 @@ export interface CampaignMessageContext {
   category?: string | null
 }
 
-/** Replace `{businessName}`, `{city}`, `{category}` in campaign SMS/email copy. */
+/** Replace `{businessName}`, `{city}`, `{category}`, `{areas}`, `{signature}` in campaign copy. */
 export function expandCampaignMessage(template: string, ctx: CampaignMessageContext): string {
   const businessName = ctx.businessName.trim()
   const cityRaw = ctx.city?.trim()
@@ -14,6 +15,7 @@ export function expandCampaignMessage(template: string, ctx: CampaignMessageCont
 
   const city = cityRaw ? formatCityLabel(cityRaw) : 'your area'
   const category = categoryRaw ? formatCategoryLabel(categoryRaw) : 'home-service'
+  const areas = formatCampaignAreasPhrase(cityRaw)
 
   const signature =
     process.env.CAMPAIGN_SENDER_NAME?.trim()
@@ -24,5 +26,6 @@ export function expandCampaignMessage(template: string, ctx: CampaignMessageCont
     .replaceAll('{businessName}', businessName)
     .replaceAll('{city}', city)
     .replaceAll('{category}', category)
+    .replaceAll('{areas}', areas)
     .replaceAll('{signature}', signature)
 }

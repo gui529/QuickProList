@@ -55,9 +55,9 @@ export function buildPersonalMarketingEmail(
   const ctaUrl =
     opts.enrollUrl ?? buildSearchUrl(siteUrl, opts.city, opts.category) ?? siteUrl
   const linkIntro = opts.enrollUrl
-    ? 'Preview your listing (about two minutes):'
+    ? 'Preview what we would publish (about two minutes):'
     : opts.city && opts.category
-      ? `See ${formatCategoryLabel(opts.category)} in ${formatCityLabel(opts.city)}:`
+      ? `See how ${formatCategoryLabel(opts.category)} show up around ${formatCityLabel(opts.city)}:`
       : 'QuickProList:'
 
   const bodyLines = body
@@ -73,7 +73,7 @@ export function buildPersonalMarketingEmail(
     linkIntro,
     ctaUrl,
     '',
-    'Pinned listings are $29.99/month after preview. Cancel anytime.',
+    'After the 30-day preview window, staying listed is $29.99/month if you choose to continue — cancel anytime.',
     compliance.text.trim(),
   ]
 
@@ -87,7 +87,7 @@ export function buildPersonalMarketingEmail(
     ),
     `<p style="margin:16px 0 8px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(linkIntro)}</p>`,
     `<p style="margin:0 0 16px;font-size:15px;line-height:1.6"><a href="${escapeHtml(ctaUrl)}" style="color:#2563eb">${escapeHtml(ctaUrl)}</a></p>`,
-    `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">Pinned listings are $29.99/month after preview. Cancel anytime.</p>`,
+    `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">After the 30-day preview window, staying listed is $29.99/month if you choose to continue — cancel anytime.</p>`,
     `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888">${compliance.html}</p>`,
   ].join('\n')
 
@@ -132,15 +132,15 @@ function buildTransactionalEmailHtml(businessName: string, body: string, siteUrl
 export function buildMarketingEmailSubject(businessName: string, opts: SendEmailOptions): string {
   const city = opts.city ? formatCityLabel(opts.city) : null
   const category = opts.category ? formatCategoryLabel(opts.category) : null
-  if (city) return `Quick question — ${businessName} in ${city}`
-  if (category) return `Quick question — ${businessName} (${category})`
-  return `Quick question — ${businessName}`
+  if (city) return `Okay to add ${businessName} to our ${city} list?`
+  if (category) return `Okay to add ${businessName} as a ${category} on QuickProList?`
+  return `Okay to add ${businessName} to QuickProList?`
 }
 
 export function buildMarketingCtaLabel(opts: SendEmailOptions): string {
-  if (opts.enrollUrl) return 'See your listing preview'
+  if (opts.enrollUrl) return 'Preview what we would publish'
   if (opts.city && opts.category) {
-    return `See ${formatCategoryLabel(opts.category)} in ${formatCityLabel(opts.city)}`
+    return `See ${formatCategoryLabel(opts.category)} around ${formatCityLabel(opts.city)}`
   }
   return 'Visit QuickProList'
 }

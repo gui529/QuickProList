@@ -124,7 +124,7 @@ function ManualSendModal({ onClose, onSent }: ManualModalProps) {
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Message</label>
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={7} className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
             <p className="text-xs text-slate-400">
-              {message.length} chars · placeholders: {'{businessName}'}, {'{city}'}, {'{category}'}, {'{signature}'}
+              {message.length} chars · placeholders: {'{businessName}'}, {'{city}'}, {'{category}'}, {'{areas}'}, {'{signature}'}
             </p>
             {channel === 'email' && (!category.trim() || !city.trim()) && (
               <p className="text-xs text-amber-700">Email requires city and category for the listing preview link.</p>

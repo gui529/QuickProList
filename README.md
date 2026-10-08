@@ -126,6 +126,7 @@ redirects to `/login` and the header hides the Dashboard link.
   outreach-campaign and notification emails.
 - `RESEND_FROM_EMAIL` — verified "from" address on your Resend domain (e.g. `hello@contact.quickprolist.com`). The app adds the display name `QuickProList` when the value is a bare address.
 - `CAMPAIGN_SENDER_NAME` (optional) — first name in campaign **From** (`Jeremy <contact@…>`) and in `{signature}` (default sign-off: "The QuickProList team").
+- `ENROLL_PREVIEW_TRIAL_DAYS` (optional) — days for self-serve enroll preview from campaign links (default `30`).
 
 ### Twilio (SMS)
 

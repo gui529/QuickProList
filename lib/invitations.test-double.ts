@@ -95,6 +95,18 @@ export async function getInvitationByToken(token: string): Promise<EnrollmentInv
   return invitations.find((inv) => inv.token === token) ?? null
 }
 
+export async function markInvitationTrial(
+  token: string,
+  curatedBusinessId: string,
+  trialEndsAt: string
+): Promise<void> {
+  const inv = invitations.find((i) => i.token === token)
+  if (!inv) throw new Error('Invitation not found')
+  inv.status = 'trial'
+  inv.curated_business_id = curatedBusinessId
+  inv.trial_ends_at = trialEndsAt
+}
+
 export async function markInvitationPaid(
   token: string,
   sessionId: string,

@@ -58,4 +58,19 @@ export function formatTown(town: OpenTown): string {
   return `${town.name}, ${OPEN_AREA_STATE}`
 }
 
+/** Natural phrase for campaign copy, e.g. "Acworth, Marietta, Kennesaw, and nearby towns". */
+export function formatCampaignAreasPhrase(citySlug?: string | null): string {
+  const names = OPEN_TOWNS.map((t) => t.name)
+  const firstSegment = citySlug?.trim().split(',')[0]?.trim().toLowerCase()
+  const highlight = firstSegment
+    ? OPEN_TOWNS.find((t) => t.slug === firstSegment)?.name ?? null
+    : null
+
+  const featured = highlight
+    ? [highlight, ...names.filter((n) => n.toLowerCase() !== highlight.toLowerCase())].slice(0, 3)
+    : names.slice(0, 3)
+  const unique = [...new Set(featured)]
+  return `${unique.join(', ')}, and nearby towns`
+}
+
 export const NOT_OPEN_MESSAGE = 'QuickProList is not open there yet. Choose a town from the list.'

@@ -18,4 +18,10 @@ describe('expandCampaignMessage', () => {
     expect(out).toContain('your area')
     expect(out).toContain('home-service')
   })
+
+  it('expands {areas} from open towns', () => {
+    const out = expandCampaignMessage('{areas}', { businessName: 'Biz', city: 'marietta' })
+    expect(out).toContain('Marietta')
+    expect(out).toContain('nearby towns')
+  })
 })

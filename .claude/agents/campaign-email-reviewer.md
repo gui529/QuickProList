@@ -14,7 +14,8 @@ Read `docs/sales-persuasion-playbook.md` and compare implementation to Mission 2
 
 ## Audit checklist (every run)
 
-1. `lib/campaigns.ts` — `DEFAULT_MESSAGE` (them-first, preview CTA in prose, placeholders).
+1. `lib/campaigns.ts` — `DEFAULT_MESSAGE` (natural language, permission ask,
+   `{areas}` + 30-day preview framing, placeholders).
 2. `lib/campaign-message.ts` — expansion + `{signature}` / `CAMPAIGN_SENDER_NAME`.
 3. `lib/email.ts` — subject (`buildMarketingEmailSubject`), `formatMarketingFromAddress`,
    `buildPersonalMarketingEmail` (plain text + minimal HTML, naked preview URL, no logo

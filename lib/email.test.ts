@@ -46,7 +46,7 @@ describe('formatMarketingFromAddress', () => {
 describe('buildMarketingEmailSubject', () => {
   it('uses a curiosity-style subject with city', () => {
     expect(buildMarketingEmailSubject('Biz', { city: 'marietta', category: 'homecleaning' })).toBe(
-      'Quick question — Biz in Marietta'
+      'Okay to add Biz to our Marietta list?'
     )
   })
 })
@@ -54,13 +54,13 @@ describe('buildMarketingEmailSubject', () => {
 describe('buildMarketingCtaLabel', () => {
   it('prefers preview wording when enroll URL exists', () => {
     expect(buildMarketingCtaLabel({ enrollUrl: 'https://example.test/enroll/x' })).toBe(
-      'See your listing preview'
+      'Preview what we would publish'
     )
   })
 
   it('describes local search when city and category set', () => {
     expect(buildMarketingCtaLabel({ city: 'marietta', category: 'plumbing' })).toBe(
-      'See Plumbers in Marietta'
+      'See Plumbers around Marietta'
     )
   })
 })
@@ -86,11 +86,11 @@ describe('sendEmail (lib/email.ts)', () => {
 
     const call = sendMock.mock.calls[0][0]
     expect(call.from).toBe('Jeremy <noreply@example.com>')
-    expect(call.subject).toBe('Quick question — Acme Plumbing in Marietta')
+    expect(call.subject).toBe('Okay to add Acme Plumbing to our Marietta list?')
     expect(call.html).not.toContain('linear-gradient')
     expect(call.html).not.toContain('border-radius:50px')
     expect(call.text).toContain('Hi Acme Plumbing,')
-    expect(call.text).toContain('Preview your listing')
+    expect(call.text).toContain('Preview what we would publish')
     expect(call.text).toContain('https://example.test/enroll/abc')
     expect(call.subject).not.toMatch(/🏠|\$29/)
     delete process.env.CAMPAIGN_SENDER_NAME

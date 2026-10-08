@@ -1,6 +1,6 @@
-# Flow: Paid enrollment (invitation → preview → Stripe)
+# Flow: Enrollment (invitation → preview → 30-day trial or Stripe)
 
-Business receives `/enroll/[token]` (from campaign email, win-back email, or an admin-copied link), previews a mock listing, optionally continues to Stripe Checkout, and becomes searchable after the webhook runs.
+Business receives `/enroll/[token]` (from campaign email, win-back email, or an admin-copied link), previews a mock listing, then either **starts a 30-day preview** (no card; listing goes live) or **subscribes immediately** via Stripe Checkout.
 
 Admin **trials** are a different flow: [admin-invitations-and-trials.md](./admin-invitations-and-trials.md).
 
@@ -43,20 +43,26 @@ Campaign email **requires** `city` and `category` on the send payload (`app/api/
 
 - Heading: “Your listing preview”.
 - `components/EnrollListingPreview.tsx` — static featured card (not loaded from search).
-- Link: `` `/search?where=${city}&category=${category}` `` (as built in `EnrollClient`; `/search` redirects to `/` with query params — see [search-redirect.md](./search-redirect.md)).
-- Button **Continue — activate listing** → checkout step (no payment yet).
+- Link: `` `/search?location=${city}&category=${category}` `` (`/search` redirects to `/` — see [search-redirect.md](./search-redirect.md)).
+- Primary: **Yes — start my 30-day preview** → `POST /api/enroll/start-trial` (`lib/enrollment-trial.ts`) creates/updates `curated_businesses` with `is_trial` + `trial_ends_at` (default 30 days, `ENROLL_PREVIEW_TRIAL_DAYS`), sets invitation `status: 'trial'`, publishes listing.
+- Secondary: subscribe now → checkout step.
 
-### 3. Checkout step
+### 3. Trial active
+
+- Success UI with trial end date and dashboard link when `status === 'trial'`.
+- Optional path to checkout to subscribe before preview ends.
+
+### 4. Checkout step
 
 - **Back to preview**.
 - Shows `monthly_price` from invitation.
 - **Go to secure checkout** → `POST /api/stripe/checkout` with JSON `{ token }` → browser redirect to Stripe Checkout URL (`lib/stripe.ts` `success_url` = `{returnUrl}?success=1`).
 
-### 4. Return from Stripe
+### 5. Return from Stripe
 
 - URL `?success=1` → success screen (“Payment successful!”) and optional **View your dashboard** if `dashboardToken` was resolved server-side.
 
-### 5. After webhook (async)
+### 6. After webhook (async)
 
 Listing published in search; transactional welcome email may include dashboard URL. See [stripe-webhook-effects.md](./stripe-webhook-effects.md).
 
@@ -66,6 +72,7 @@ Listing published in search; transactional welcome email may include dashboard U
 
 | Method | Path | Role |
 |--------|------|------|
+| POST | `/api/enroll/start-trial` | Start 30-day preview (no Stripe) |
 | POST | `/api/stripe/checkout` | Create Checkout session |
 | POST | `/api/stripe/webhook` | Stripe events (not user-initiated) |
 
