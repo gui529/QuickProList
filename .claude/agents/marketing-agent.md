@@ -28,12 +28,12 @@ Read the real implementation before recommending changes:
 
 | Area | Where |
 |------|--------|
-| Campaign email HTML + subjects | `lib/email.ts` (default subject uses emoji; marketing footers via `MAILING_ADDRESS`, List-Unsubscribe) |
+| Campaign email HTML + subjects | `lib/email.ts` (marketing footers: reason + List-Unsubscribe; no postal address in body) |
 | Campaign send + admin UI | `app/admin/campaigns/`, `components/CampaignTab.tsx`, `lib/campaigns.ts`, `app/api/campaigns/` |
 | SMS outreach | `lib/sms.ts`, Twilio env in `README.md` |
 | Suppressions / unsubscribe | `lib/suppressions.ts`, `lib/unsubscribe.ts`, `app/api/unsubscribe/` |
 | Public brand & CTAs | `app/page.tsx`, search empty states, enrollment copy in `app/enroll/` |
-| Env | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `MAILING_ADDRESS`, `SITE_URL` (see `README.md`) |
+| Env | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `UNSUBSCRIBE_SECRET`, `SITE_URL` (see `README.md`) |
 
 Use **Resend MCP** (list/get domains, email metrics, webhooks) and DNS/API
 tools the environment provides — do not ask the owner to click through

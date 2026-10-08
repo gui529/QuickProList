@@ -12,7 +12,7 @@ Last updated: 2026-10-08.
 ## Production env (Vercel)
 
 - `RESEND_FROM_EMAIL` — use a clean address on the **verified** subdomain, e.g. `hello@contact.quickprolist.com` (not `contact@contact.quickprolist.com`). Code adds display name `QuickProList <…>` automatically when the env value is a bare address.
-- `MAILING_ADDRESS` — physical address for CAN-SPAM footer (already required for marketing sends).
+- `UNSUBSCRIBE_SECRET` (or `CRON_SECRET`) — required for marketing footers with one-click unsubscribe.
 
 ## Apex DNS (optional but recommended)
 

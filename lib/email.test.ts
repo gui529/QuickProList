@@ -41,7 +41,6 @@ describe('sendEmail (lib/email.ts)', () => {
     sendMock.mockClear()
     process.env.RESEND_API_KEY = 'test_key'
     process.env.RESEND_FROM_EMAIL = 'noreply@example.com'
-    process.env.MAILING_ADDRESS = '1 Main St, Acworth, GA 30102'
     process.env.UNSUBSCRIBE_SECRET = 'test-unsub-secret'
     process.env.SITE_URL = 'https://example.test'
     isSuppressedMock.mockReset()
@@ -94,7 +93,7 @@ describe('sendEmail (lib/email.ts)', () => {
   })
 
   describe('marketing compliance', () => {
-    it('adds a working one-click unsubscribe link, headers and postal address', async () => {
+    it('adds a working one-click unsubscribe link and headers without a postal address', async () => {
       await sendEmail('Owner@Example.com', 'Biz', 'Hello')
 
       const call = sendMock.mock.calls[0][0] as {
@@ -110,9 +109,9 @@ describe('sendEmail (lib/email.ts)', () => {
         'owner@example.com'
       )
       expect(call.html).toContain('Unsubscribe')
-      expect(call.html).toContain('1 Main St, Acworth, GA 30102')
+      expect(call.html).not.toMatch(/Main St|woodhouse/i)
       expect(call.text).toContain(url)
-      expect(call.text).toContain('1 Main St, Acworth, GA 30102')
+      expect(call.text).not.toMatch(/Main St|woodhouse/i)
     })
 
     it('refuses to send to a suppressed address (case-insensitive)', async () => {
@@ -125,16 +124,16 @@ describe('sendEmail (lib/email.ts)', () => {
       expect(sendMock).not.toHaveBeenCalled()
     })
 
-    it('refuses to send marketing email when no postal address is configured', async () => {
-      delete process.env.MAILING_ADDRESS
+    it('refuses to send marketing email when unsubscribe signing is not configured', async () => {
+      delete process.env.UNSUBSCRIBE_SECRET
 
-      await expect(sendEmail('owner@example.com', 'Biz', 'Hello')).rejects.toThrow(/MAILING_ADDRESS/)
+      await expect(sendEmail('owner@example.com', 'Biz', 'Hello')).rejects.toThrow(/UNSUBSCRIBE_SECRET/)
       expect(sendMock).not.toHaveBeenCalled()
     })
 
-    it('does not suppress or require an address for transactional email', async () => {
+    it('does not suppress or require unsubscribe config for transactional email', async () => {
       isSuppressedMock.mockResolvedValue(true)
-      delete process.env.MAILING_ADDRESS
+      delete process.env.UNSUBSCRIBE_SECRET
 
       await sendEmail('owner@example.com', 'Biz', 'Payment failed', { kind: 'transactional' })
 
