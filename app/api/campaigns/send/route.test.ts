@@ -10,7 +10,11 @@ vi.mock('@/lib/auth', () => ({
   AuthError: class extends Error {},
   requireAdmin: vi.fn(async () => {}),
 }))
-vi.mock('@/lib/campaigns', () => ({ recordContact: recordMock, DEFAULT_MESSAGE: 'default' }))
+vi.mock('@/lib/campaigns', () => ({
+  recordContact: recordMock,
+  DEFAULT_MESSAGE: 'default',
+  expandCampaignMessage: (msg: string) => msg,
+}))
 vi.mock('@/lib/email', () => ({ sendEmail: sendEmailMock }))
 const { createInvitationMock, isSuppressedMock } = vi.hoisted(() => ({
   createInvitationMock: vi.fn(async () => 'tok'),
@@ -60,9 +64,23 @@ describe('POST /api/campaigns/send opt-out handling', () => {
 
   it('returns 409 and logs nothing when the email recipient opted out', async () => {
     sendEmailMock.mockRejectedValue(new SuppressedError('email', 'a@example.com'))
-    const res = await POST(post({ channel: 'email', businessName: 'Biz', email: 'a@example.com' }))
+    const res = await POST(
+      post({
+        channel: 'email',
+        businessName: 'Biz',
+        email: 'a@example.com',
+        category: 'plumbing',
+        city: 'Marietta',
+      })
+    )
     expect(res.status).toBe(409)
     expect(recordMock).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 when email is missing city or category', async () => {
+    const res = await POST(post({ channel: 'email', businessName: 'Biz', email: 'a@example.com' }))
+    expect(res.status).toBe(400)
+    expect(sendEmailMock).not.toHaveBeenCalled()
   })
 
   it('returns 409 and logs nothing when the SMS recipient opted out', async () => {
@@ -81,7 +99,15 @@ describe('POST /api/campaigns/send opt-out handling', () => {
 
   it('still records a normal successful send', async () => {
     sendEmailMock.mockResolvedValue('email_1')
-    const res = await POST(post({ channel: 'email', businessName: 'Biz', email: 'a@example.com' }))
+    const res = await POST(
+      post({
+        channel: 'email',
+        businessName: 'Biz',
+        email: 'a@example.com',
+        category: 'plumbing',
+        city: 'Marietta',
+      })
+    )
     expect(res.status).toBe(200)
     expect(recordMock).toHaveBeenCalledTimes(1)
   })

@@ -1,7 +1,13 @@
 import { isDatabaseConfigured, query } from './db'
 
-export const DEFAULT_MESSAGE =
-  'Hi — we help homeowners find local home-service pros on QuickProList. If you would like to be listed in your area, I can send details. No obligation.'
+export { expandCampaignMessage, type CampaignMessageContext } from './campaign-message'
+
+/** Placeholders expanded on send: {businessName}, {city}, {category}, {signature} */
+export const DEFAULT_MESSAGE = `We're putting together a short list of {category} pros homeowners see when they search in {city}. {businessName} came up for that area.
+
+It's a simple pinned profile on QuickProList — not a pay-per-lead marketplace. If you want to see what yours would look like, use the button below (about two minutes). No pressure.
+
+{signature}`
 
 export interface CampaignContact {
   id: string

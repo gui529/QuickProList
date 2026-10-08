@@ -125,6 +125,7 @@ redirects to `/login` and the header hides the Dashboard link.
 - `RESEND_API_KEY` — Resend API key. Used by `lib/email.ts` to send
   outreach-campaign and notification emails.
 - `RESEND_FROM_EMAIL` — verified "from" address on your Resend domain (e.g. `hello@contact.quickprolist.com`). The app adds the display name `QuickProList` when the value is a bare address.
+- `CAMPAIGN_SENDER_NAME` (optional) — first name used in `{signature}` for campaign emails (default sign-off: "The QuickProList team").
 
 ### Twilio (SMS)
 
