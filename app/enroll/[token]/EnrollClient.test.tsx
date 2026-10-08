@@ -43,6 +43,21 @@ describe('EnrollClient (success view dashboard link)', () => {
     expect(link.getAttribute('href')).toBe('/dashboard/dash-token-123')
   })
 
+  it('shows listing preview first for pending invitations (no checkout button yet)', () => {
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ status: 'pending' })}
+        token="test-token"
+        dashboardToken={null}
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /your listing preview/i })).toBeTruthy()
+    expect(screen.getByText('Acme Plumbing')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /secure checkout/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /continue — activate listing/i })).toBeTruthy()
+  })
+
   it('omits the dashboard link when no dashboard token is available yet', () => {
     window.history.pushState({}, '', '/enroll/test-token?success=1')
 

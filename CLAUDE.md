@@ -38,6 +38,7 @@ Required in `.env.local`:
 - Curated businesses (admin-added pros; legacy `source = 'yelp'` rows render from stored data) → `lib/kv.ts` → Neon `curated_businesses` table
 - Manual photo uploads → Cloudflare R2 bucket `quickprolist-photos` (public)
 - Starred favorites → browser `localStorage` only, no backend
+- User flows (one doc per flow) → [docs/flows/README.md](docs/flows/README.md)
 
 ### Key files
 - `lib/search.ts` — `getMergedResults(where, category)` — curated lookup across the opened towns

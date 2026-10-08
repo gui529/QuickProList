@@ -19,6 +19,7 @@ import {
   buildMarketingCtaLabel,
   buildMarketingEmailSubject,
   formatFromAddress,
+  formatMarketingFromAddress,
   sendEmail,
   sendDigestEmail,
 } from './email'
@@ -31,6 +32,14 @@ describe('formatFromAddress', () => {
   })
   it('leaves preformatted values alone', () => {
     expect(formatFromAddress('Team <team@example.com>')).toBe('Team <team@example.com>')
+  })
+})
+
+describe('formatMarketingFromAddress', () => {
+  it('uses CAMPAIGN_SENDER_NAME for bare addresses', () => {
+    process.env.CAMPAIGN_SENDER_NAME = 'Jeremy'
+    expect(formatMarketingFromAddress('hello@quickprolist.com')).toBe('Jeremy <hello@quickprolist.com>')
+    delete process.env.CAMPAIGN_SENDER_NAME
   })
 })
 
@@ -67,19 +76,24 @@ describe('sendEmail (lib/email.ts)', () => {
     isSuppressedMock.mockResolvedValue(false)
   })
 
-  it('formats From with a display name and uses a plain marketing subject', async () => {
-    await sendEmail('owner@example.com', 'Acme Plumbing', 'Hello', {
+  it('sends person-like plain marketing mail without a branded template', async () => {
+    process.env.CAMPAIGN_SENDER_NAME = 'Jeremy'
+    await sendEmail('owner@example.com', 'Acme Plumbing', 'Quick note about your area.', {
       city: 'marietta',
       category: 'plumbing',
+      enrollUrl: 'https://example.test/enroll/abc',
     })
 
     const call = sendMock.mock.calls[0][0]
-    expect(call.from).toBe('QuickProList <noreply@example.com>')
+    expect(call.from).toBe('Jeremy <noreply@example.com>')
     expect(call.subject).toBe('Quick question — Acme Plumbing in Marietta')
-    expect(call.html).toContain('See Plumbers in Marietta')
-    expect(call.html).not.toContain('Complete your listing')
-    expect(call.html).toContain('after preview')
+    expect(call.html).not.toContain('linear-gradient')
+    expect(call.html).not.toContain('border-radius:50px')
+    expect(call.text).toContain('Hi Acme Plumbing,')
+    expect(call.text).toContain('Preview your listing')
+    expect(call.text).toContain('https://example.test/enroll/abc')
     expect(call.subject).not.toMatch(/🏠|\$29/)
+    delete process.env.CAMPAIGN_SENDER_NAME
   })
 
   it('uses a transactional subject for payment notices', async () => {
@@ -89,7 +103,7 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(sendMock.mock.calls[0][0].subject).toBe('QuickProList payment issue — action needed')
   })
 
-  it('escapes HTML-unsafe characters in businessName and body lines before interpolating into the HTML email', async () => {
+  it('escapes HTML-unsafe characters in marketing HTML', async () => {
     await sendEmail(
       'owner@example.com',
       '<script>alert(1)</script>',
@@ -103,16 +117,7 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(call.html).not.toContain('<script>alert(1)</script>')
     expect(call.html).toContain('Hello &lt;b&gt;there&lt;/b&gt;')
     expect(call.html).toContain('Second line &amp; &quot;quoted&quot; more')
-  })
-
-  it('leaves the plaintext fallback unescaped', async () => {
-    const businessName = '<script>alert(1)</script>'
-    const body = 'Hello <b>there</b>\nSecond line & "quoted" more'
-
-    await sendEmail('owner@example.com', businessName, body)
-
-    const call = sendMock.mock.calls[0][0]
-    expect(call.text).toContain(body)
+    expect(call.text).toContain('Hello <b>there</b>')
   })
 
   describe('marketing compliance', () => {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import EnrollListingPreview from '@/components/EnrollListingPreview'
 import { CATEGORIES } from '@/lib/categories'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function EnrollClient({ invitation, token, dashboardToken }: Props) {
+  const [step, setStep] = useState<'preview' | 'checkout'>('preview')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success] = useState(() => {
@@ -81,40 +83,75 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
     )
   }
 
+  const searchCity = invitation.cities[0]
+  const searchHref =
+    searchCity
+      ? `/search?location=${encodeURIComponent(searchCity)}&category=${encodeURIComponent(invitation.category)}`
+      : null
+
+  if (step === 'preview' && invitation.status !== 'paid') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-12">
+        <div className="max-w-lg mx-auto">
+          <div className="bg-white rounded-3xl shadow-lg ring-1 ring-slate-200 p-8">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">Your listing preview</h1>
+              <p className="text-slate-600 text-sm">
+                Not live yet — this is how your pinned profile can look on QuickProList.
+              </p>
+            </div>
+
+            <EnrollListingPreview
+              businessName={invitation.business_name}
+              category={invitation.category}
+              cities={invitation.cities}
+            />
+
+            {searchHref && (
+              <p className="text-center mt-4">
+                <Link href={searchHref} className="text-sm text-slate-600 underline hover:text-slate-900">
+                  See current {categoryLabel} results in {searchCity}
+                </Link>
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setStep('checkout')}
+              className="w-full mt-8 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors"
+            >
+              Continue — activate listing
+            </button>
+
+            <p className="text-center text-xs text-slate-500 mt-4">
+              Next step shows pricing and secure checkout. No charge until you confirm payment.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-12">
       <div className="max-w-lg mx-auto">
         <div className="bg-white rounded-3xl shadow-lg ring-1 ring-slate-200 p-8">
+          {invitation.status !== 'paid' && (
+            <button
+              type="button"
+              onClick={() => setStep('preview')}
+              className="text-sm text-slate-500 hover:text-slate-800 mb-4"
+            >
+              ← Back to preview
+            </button>
+          )}
+
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Get Featured</h1>
-            <p className="text-slate-600">Get a featured listing on QuickProList</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Activate your listing</h1>
+            <p className="text-slate-600">{invitation.business_name}</p>
           </div>
 
           <div className="space-y-6 mb-8">
-            <div className="bg-slate-50 rounded-2xl p-6 border-2 border-amber-200">
-              <p className="text-sm text-slate-600 mb-1">Business</p>
-              <h2 className="text-2xl font-bold text-slate-900 mb-4">{invitation.business_name}</h2>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Category</p>
-                  <p className="text-slate-900 font-medium">{categoryLabel}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Cities</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {invitation.cities.map((city) => (
-                      <span
-                        key={city}
-                        className="inline-block bg-amber-50 text-amber-800 text-sm font-medium px-3 py-1 rounded-full ring-1 ring-amber-200"
-                      >
-                        {city}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="border-t border-slate-200 pt-6">
               <div className="flex items-baseline justify-between mb-2">
                 <span className="text-slate-600 font-medium">Monthly price</span>
@@ -144,7 +181,7 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
             disabled={loading || invitation.status === 'paid'}
             className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
           >
-            {loading ? 'Processing…' : invitation.status === 'paid' ? 'Already Enrolled' : 'Subscribe Now'}
+            {loading ? 'Processing…' : invitation.status === 'paid' ? 'Already Enrolled' : 'Go to secure checkout'}
           </button>
 
           <p className="text-center text-xs text-slate-500 mt-6">

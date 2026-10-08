@@ -7,7 +7,7 @@ Last updated: 2026-10-08.
 | Domain | Status | Notes |
 |--------|--------|--------|
 | `contact.quickprolist.com` | **verified** | Send SPF/DKIM OK. Inbound receiving disabled (was `partially_failed` on bad MX). |
-| `quickprolist.com` (apex) | **not_started** | Publish Resend DNS records at your registrar (see below). |
+| `quickprolist.com` (apex) | **verified** | DKIM/SPF/MX/rsend records verified in Resend (2026-10-08). |
 
 ## Production env (Vercel)
 
@@ -28,7 +28,7 @@ Then click **Verify** in Resend. Until apex is verified, keep sending from `@con
 ## Code / copy (done on `dev`)
 
 - Plain marketing subjects (city + category when provided); no emoji or `$29.99/mo` in subject.
-- Softer HTML (no big promo pricing card).
+- **Person-like campaign email** in `lib/email.ts` — plain text + minimal HTML (no logo header or button CTA); set `CAMPAIGN_SENDER_NAME` for human From.
 - Shorter default campaign message in `lib/campaigns.ts`.
 
 ## After DNS + env

@@ -78,8 +78,11 @@ issues** — not app code unless the owner asks in the same thread.
 | Public brand & CTAs | `app/page.tsx`, `app/enroll/` |
 | Env | `RESEND_*`, `UNSUBSCRIBE_SECRET`, `SITE_URL` |
 
-Use **Resend MCP** and DNS/API tools for facts — not owner dashboard tours. Never
-print secrets in issues or reports.
+Use **Resend MCP** (`list-domains`, `get-domain`, `list-emails`, `get-email`,
+`get-suppression`) and **Vercel CLI** (`vercel ls`, `vercel inspect <alias>`,
+`vercel env ls production`) to verify deploy and email config yourself. If Vercel
+MCP needs IDE auth, use CLI — do not ask the owner to check dashboards for facts
+you can pull via API/CLI. Never print secrets in issues or reports.
 
 ---
 
@@ -154,16 +157,20 @@ When drafting or reviewing email, SMS, homepage, enroll, or admin campaign flows
    start trial → pay). No vague "check us out."
 2. **ICP** — local pro; skeptical of lead-gen scams — overcome with specificity and
    proof, then **close** (playbook).
-3. **Structure** — Gap or Challenger teach → emotional/logical why now → **strong
-   CTA** (button text that promises the outcome, not "Learn more").
-4. **Objections** — Pre-handle in copy ("not another Angi…") and supply reply
+3. **Structure** — Gap or Challenger teach → emotional/logical why now → **one naked
+   link** (preview URL), not a marketing template. Cold outreach defaults to **plain
+   text + human From** (`CAMPAIGN_SENDER_NAME`); save branded HTML for transactional
+   mail only (`lib/email.ts`).
+4. **CTA** — Outcome language in the link line ("Preview your listing"), not "Learn more"
+   or big orange buttons in cold email.
+5. **Objections** — Pre-handle in copy ("not another Angi…") and supply reply
    scripts for: price, time, scam fear, "already on Google," "not interested."
-5. **Frameworks** — Name what you used (Cialdini, Voss, JOLT, etc.) in draft notes.
-6. **Score for conversion** (1–10): would *this* pro click and finish enroll? Not
+6. **Frameworks** — Name what you used (Cialdini, Voss, JOLT, etc.) in draft notes.
+7. **Score for conversion** (1–10): would *this* pro click and finish enroll? Not
    "is it polite."
-7. Deliver **2–3 subject variants**, **one recommended body**, and **follow-up #2**
+8. Deliver **2–3 subject variants**, **one recommended body**, and **follow-up #2**
    (48–72h) when the channel allows and `legal-agent` would not block it.
-8. **Product gaps** — If UI/copy blocks closes (weak CTA, price too early/late, no
+9. **Product gaps** — If UI/copy blocks closes (weak CTA, price too early/late, no
    enroll URL), file `P1` issues for `backlog-worker` with conversion rationale.
 
 **Always fill city + category** in Campaigns when possible so enroll links auto-generate.

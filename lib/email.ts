@@ -25,6 +25,110 @@ export function formatFromAddress(raw: string): string {
   return `QuickProList <${trimmed}>`
 }
 
+/** Cold outreach: prefer a person's name (CAMPAIGN_SENDER_NAME) over the logo brand. */
+export function formatMarketingFromAddress(raw: string): string {
+  const trimmed = raw.trim()
+  if (/^[^<]+<.+>$/.test(trimmed)) return trimmed
+  const sender = process.env.CAMPAIGN_SENDER_NAME?.trim()
+  if (sender) return `${sender} <${trimmed}>`
+  return `QuickProList <${trimmed}>`
+}
+
+function buildSearchUrl(siteUrl: string, city?: string, category?: string): string | null {
+  if (!city?.trim() || !category?.trim()) return null
+  return `${siteUrl}/search?location=${encodeURIComponent(city.trim())}&category=${encodeURIComponent(category.trim())}`
+}
+
+export interface PersonalMarketingEmail {
+  text: string
+  html: string
+}
+
+/** Plain, person-like campaign mail — no branded header or button CTA. */
+export function buildPersonalMarketingEmail(
+  businessName: string,
+  body: string,
+  opts: SendEmailOptions,
+  compliance: ComplianceFooter,
+  siteUrl: string
+): PersonalMarketingEmail {
+  const ctaUrl =
+    opts.enrollUrl ?? buildSearchUrl(siteUrl, opts.city, opts.category) ?? siteUrl
+  const linkIntro = opts.enrollUrl
+    ? 'Preview your listing (about two minutes):'
+    : opts.city && opts.category
+      ? `See ${formatCategoryLabel(opts.category)} in ${formatCityLabel(opts.city)}:`
+      : 'QuickProList:'
+
+  const bodyLines = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const textParts = [
+    `Hi ${businessName},`,
+    '',
+    ...bodyLines,
+    '',
+    linkIntro,
+    ctaUrl,
+    '',
+    'Pinned listings are $29.99/month after preview. Cancel anytime.',
+    compliance.text.trim(),
+  ]
+
+  const text = textParts.join('\n')
+
+  const htmlBody = [
+    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#222222">Hi ${escapeHtml(businessName)},</p>`,
+    ...bodyLines.map(
+      (line) =>
+        `<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(line)}</p>`
+    ),
+    `<p style="margin:16px 0 8px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(linkIntro)}</p>`,
+    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6"><a href="${escapeHtml(ctaUrl)}" style="color:#2563eb">${escapeHtml(ctaUrl)}</a></p>`,
+    `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">Pinned listings are $29.99/month after preview. Cancel anytime.</p>`,
+    `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888">${compliance.html}</p>`,
+  ].join('\n')
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff">
+${htmlBody}
+</body>
+</html>`
+
+  return { text, html }
+}
+
+function buildTransactionalEmailHtml(businessName: string, body: string, siteUrl: string): string {
+  const paragraphs = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155">${escapeHtml(line)}</p>`)
+    .join('')
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <div style="max-width:580px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.07)">
+    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:32px 40px">
+      <a href="${siteUrl}" style="text-decoration:none">
+        <span style="color:#ffffff;font-weight:700;font-size:18px">QuickProList</span>
+      </a>
+    </div>
+    <div style="padding:36px 40px">
+      <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#0f172a">Hi ${escapeHtml(businessName)},</h1>
+      ${paragraphs}
+    </div>
+  </div>
+</body>
+</html>`
+}
+
 export function buildMarketingEmailSubject(businessName: string, opts: SendEmailOptions): string {
   const city = opts.city ? formatCityLabel(opts.city) : null
   const category = opts.category ? formatCategoryLabel(opts.category) : null
@@ -100,8 +204,8 @@ export async function sendEmail(
 ): Promise<string> {
   const fromRaw = process.env.RESEND_FROM_EMAIL
   if (!fromRaw) throw new Error('RESEND_FROM_EMAIL not configured')
-  const from = formatFromAddress(fromRaw)
   const isMarketing = (opts.kind ?? 'marketing') === 'marketing'
+  const from = isMarketing ? formatMarketingFromAddress(fromRaw) : formatFromAddress(fromRaw)
 
   let compliance: ComplianceFooter | null = null
   if (isMarketing) {
@@ -114,89 +218,22 @@ export async function sendEmail(
   }
 
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
-  const searchUrl =
-    opts.city && opts.category
-      ? `${siteUrl}/search?where=${encodeURIComponent(opts.city)}&category=${encodeURIComponent(opts.category)}`
-      : null
-
-  const ctaUrl = opts.enrollUrl ?? searchUrl ?? siteUrl
-  const ctaLabel = buildMarketingCtaLabel(opts)
-
-  const paragraphs = body
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155">${escapeHtml(line)}</p>`)
-    .join('')
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-  <div style="max-width:580px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.07)">
-
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:32px 40px">
-      <a href="${siteUrl}" style="text-decoration:none">
-        <div style="display:inline-flex;align-items:center;gap:8px">
-          <div style="width:32px;height:32px;background:#f59e0b;border-radius:8px;display:flex;align-items:center;justify-content:center">
-            <span style="color:#0f172a;font-weight:900;font-size:16px">Q</span>
-          </div>
-          <span style="color:#ffffff;font-weight:700;font-size:18px;letter-spacing:-0.3px">QuickProList</span>
-        </div>
-      </a>
-      <p style="margin:16px 0 0;color:#94a3b8;font-size:13px">Connecting homeowners with local pros</p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 40px">
-      <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#0f172a;line-height:1.3">Hi ${escapeHtml(businessName)},</h1>
-
-      ${paragraphs}
-
-      <!-- CTA button -->
-      <div style="text-align:center;margin:28px 0">
-        <a href="${ctaUrl}" style="display:inline-block;background:#f59e0b;color:#0f172a;font-weight:800;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:50px;letter-spacing:-0.2px">
-          ${ctaLabel}
-        </a>
-      </div>
-
-      ${
-        isMarketing
-          ? `<p style="margin:0 0 8px;text-align:center;font-size:13px;line-height:1.6;color:#94a3b8">Pinned listings are $29.99/month after preview. Cancel anytime.</p>`
-          : ''
-      }
-
-      ${
-        searchUrl
-          ? `<p style="text-align:center;margin:0 0 8px;font-size:13px;color:#94a3b8">
-          <a href="${searchUrl}" style="color:#64748b;text-decoration:underline">View ${opts.city} ${opts.category} listings</a>
-        </p>`
-          : ''
-      }
-      <p style="text-align:center;margin:0;font-size:13px;color:#94a3b8">
-        <a href="${siteUrl}" style="color:#64748b;text-decoration:underline">${siteUrl.replace('https://', '')}</a>
-      </p>
-    </div>
-
-    <!-- Footer -->
-    <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px">
-      <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6">
-        ${
-          compliance
-            ? compliance.html
-            : 'You received this because you have a QuickProList listing or account.'
-        }
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`
 
   const subject =
     opts.subject ??
     (isMarketing ? buildMarketingEmailSubject(businessName, opts) : buildTransactionalEmailSubject(businessName, body))
+
+  let html: string
+  let text: string
+
+  if (isMarketing && compliance) {
+    const personal = buildPersonalMarketingEmail(businessName, body, opts, compliance, siteUrl)
+    html = personal.html
+    text = personal.text
+  } else {
+    html = buildTransactionalEmailHtml(businessName, body, siteUrl)
+    text = body
+  }
 
   const client = getClient()
   const { data, error } = await client.emails.send({
@@ -204,10 +241,7 @@ export async function sendEmail(
     to,
     subject,
     html,
-    text:
-      body +
-      `\n\n${opts.enrollUrl ? `See your listing preview: ${opts.enrollUrl}` : searchUrl ? `See ${opts.city && opts.category ? `${formatCategoryLabel(opts.category)} in ${formatCityLabel(opts.city)}` : 'listings in your area'}: ${searchUrl}` : `Visit us: ${siteUrl}`}` +
-      (compliance?.text ?? ''),
+    text,
     ...(compliance ? { headers: compliance.headers } : {}),
   })
   if (error) throw new Error(error.message)
