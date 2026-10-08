@@ -5,7 +5,7 @@ export { expandCampaignMessage, type CampaignMessageContext } from './campaign-m
 /** Placeholders expanded on send: {businessName}, {city}, {category}, {signature} */
 export const DEFAULT_MESSAGE = `We're putting together a short list of {category} pros homeowners see when they search in {city}. {businessName} came up for that area.
 
-It's a simple pinned profile on QuickProList — not a pay-per-lead marketplace. If you want to see what yours would look like, use the button below (about two minutes). No pressure.
+It's a simple pinned profile on QuickProList — not a pay-per-lead marketplace. If you want to see what yours would look like, there's a link below (about two minutes). No pressure.
 
 {signature}`
 

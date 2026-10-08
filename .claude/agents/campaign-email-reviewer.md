@@ -16,8 +16,9 @@ Read `docs/sales-persuasion-playbook.md` and compare implementation to Mission 2
 
 1. `lib/campaigns.ts` — `DEFAULT_MESSAGE` (them-first, preview CTA in prose, placeholders).
 2. `lib/campaign-message.ts` — expansion + `{signature}` / `CAMPAIGN_SENDER_NAME`.
-3. `lib/email.ts` — subject (`buildMarketingEmailSubject`), CTA (`buildMarketingCtaLabel`),
-   price placement (after button on cold mail), marketing HTML not overly promotional.
+3. `lib/email.ts` — subject (`buildMarketingEmailSubject`), `formatMarketingFromAddress`,
+   `buildPersonalMarketingEmail` (plain text + minimal HTML, naked preview URL, no logo
+   header or pill button), price after link in body when mentioned.
 4. `app/api/campaigns/send/route.ts` — city+category required for email, `expandCampaignMessage`
    before `sendEmail`, enroll URL when invitation created.
 5. `components/CampaignTab.tsx` — UX nudges for required fields and placeholders.
