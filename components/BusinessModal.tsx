@@ -101,11 +101,11 @@ export function ManualBusinessModal({ onClose, onSaved }: BaseProps) {
 
       <Field label="Cities served *">
         <CityMultiSelect value={cities} onChange={setCities} />
-        <p className="text-xs text-slate-500 mt-1">Add every city this pro serves. Each saved as lowercase first segment.</p>
+        <p className="text-xs text-slate-500 mt-1">Add every city this pro serves.</p>
       </Field>
 
       <Field label="Phone">
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
       </Field>
 
       <Field label="Address">
@@ -263,10 +263,11 @@ export function EditManualBusinessModal({
 
       <Field label="Cities served *">
         <CityMultiSelect value={cities} onChange={setCities} />
+        <p className="text-xs text-slate-500 mt-1">Add every city this pro serves.</p>
       </Field>
 
       <Field label="Phone">
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(555) 123-4567" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" className="w-full rounded-xl ring-1 ring-slate-200 px-3 py-2.5" />
       </Field>
 
       <Field label="Address">

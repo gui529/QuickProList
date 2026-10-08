@@ -53,6 +53,7 @@ vi.mock('@/lib/kv', () => ({
   updateCuratedManual: updateCuratedManualMock,
   setCuratedContactEmail: setCuratedContactEmailMock,
   getCuratedById: getCuratedByIdMock,
+  publishCurated: vi.fn().mockResolvedValue(undefined),
   findCuratedIdByYelpId: findCuratedIdByYelpIdMock,
   findLatestManualCuratedId: findLatestManualCuratedIdMock,
 }))

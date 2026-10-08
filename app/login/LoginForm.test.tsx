@@ -5,6 +5,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 
 const signIn = vi.fn()
 vi.mock('next-auth/react', () => ({ signIn: (...args: unknown[]) => signIn(...args) }))
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers(),
+}))
 
 import LoginForm from './LoginForm'
 import LoginPage from './page'
@@ -28,6 +31,21 @@ describe('LoginForm', () => {
     render(<LoginForm />)
     fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }))
     await waitFor(() => expect(signIn).toHaveBeenCalledWith('google', { redirectTo: '/admin' }))
+  })
+
+  it('starts the QA flow when that sign-in is offered', async () => {
+    signIn.mockResolvedValue(undefined)
+    render(<LoginForm qaLogin />)
+    fireEvent.change(screen.getByLabelText('QA sign-in'), { target: { value: 'secret' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in for QA' }))
+    await waitFor(() =>
+      expect(signIn).toHaveBeenCalledWith('qa', { secret: 'secret', redirectTo: '/admin' })
+    )
+  })
+
+  it('hides QA sign-in unless the server allows it', () => {
+    render(<LoginForm />)
+    expect(screen.queryByLabelText('QA sign-in')).toBeNull()
   })
 
   it('shows the reason above the button after a bounce', () => {

@@ -17,6 +17,8 @@ export interface Business {
   category?: string
   isTrial?: boolean
   trialEndsAt?: string | null
+  /** Hidden from search until the pro is enrolled or put on a trial. */
+  isDraft?: boolean
   proSiteEnabled?: boolean
   contactEmail?: string
   dashboardToken?: string

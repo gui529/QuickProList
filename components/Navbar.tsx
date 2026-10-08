@@ -21,13 +21,12 @@ function Logo() {
   )
 }
 
-export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
+export default function Navbar({ isAdmin: _isAdmin = false }: { isAdmin?: boolean }) {
   const path = usePathname()
 
   const links = [
     { href: '/', label: 'Search' },
     { href: '/admin', label: 'Admin' },
-    ...(isAdmin ? [{ href: '/admin', label: 'Dashboard' }] : []),
   ]
 
   return (

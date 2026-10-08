@@ -14,7 +14,7 @@ not in this file.
 - **Dependencies:** noted in an issue's body as `Blocked by: #N`.
 
 Agents (`backlog-worker`, `qa-validator`, `product-owner`, `legal-agent`,
-`revenue-strategist`)
+`revenue-strategist`, `marketing-agent`)
 all read and write GitHub Issues directly, and all push code to the shared
 `dev` branch. `main` is reserved for the repo owner to merge into when
 ready to deploy. `legal-agent` researches compliance questions and drafts
@@ -37,6 +37,7 @@ changes:
 | `product-owner` | Once-a-day strategic pass; files new buildable issues. | You're deciding whether a feature is worth building/what it should look like from a business-model angle. |
 | `revenue-strategist` | Brutally honest viability check: does this business have real potential to make money? Reports a verdict (go / pivot / no-go) with numbers, never builds anything. | You need to know if a large feature, price change, or go-to-market push is commercially worth it — not for routine tickets. |
 | `legal-agent` | Compliance research + legal-text drafting. Prime directive: never let QuickProList do anything illegal that could get the company sued or harmed. | **Any time a legal/compliance question comes up, from any agent** — a data practice, a third-party API's terms, messaging/consent rules, billing disclosures, or "am I allowed to build this." Its answer is independently double-checked (it spawns a second `legal-agent` pass itself), so it's safe to treat as authoritative within this pipeline. |
+| `marketing-agent` | Marketing lead: deliverability, campaign copy, brand/CTA consistency, outreach that converts without burning reputation. Standing Mission 1: keep email out of junk. | Campaigns, Resend/DNS, "emails go to spam", homepage/enrollment messaging, or before a large outreach push. Pair with `legal-agent` on consent/CAN-SPAM; pair with `product-owner` on what to build next. |
 
 Rules for consulting a peer:
 - Give the peer enough context to actually answer (what you're doing, the

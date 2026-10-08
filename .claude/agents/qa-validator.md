@@ -151,6 +151,59 @@ Do not disable protection to get in.
    "Yelp API error" or `api.yelp.com`. A town outside the area returns the
    not-open JSON, not a 502.
 
+7. **Dev-only QA admin sign-in.**
+   - On https://www.quickprolist.com/login the page offers "Sign in with
+     Google" and does not show "QA sign-in" or "Sign in for QA".
+   - On the dev preview
+     https://home-help-git-dev-gui-costas-projects.vercel.app/login, after
+     the dev deploy that contains commit e4107d7 or later, a "QA sign-in"
+     field and a "Sign in for QA" button are visible under the Google
+     button.
+   - QA signs in by typing the value of `QA_ADMIN_SECRET` from the local
+     `.env.local` into that field and submitting. Never copy that secret
+     into the regression document, a commit, a screenshot filename, or the
+     final report.
+   - After submit, the browser lands on `/admin` and the admin UI is
+     visible (not bounced back to `/login`).
+   - The QA admin sign-in can only be done on the dev site. Do not try it
+     on production. https://www.quickprolist.com must not show the form,
+     and a regression must not sign in as admin there.
+
+7b. **Dev admin — Pinned Pros More menu.** After step 7 on the dev
+   preview, stay on `/admin` (Pinned Pros).
+   - At least one pinned pro card is visible.
+   - Click **More** on the first card. A dropdown opens with actions such
+     as Public profile, Trial, Share, Get Reviews, and Remove (Edit when
+     the pro is manual). The menu must not be clipped inside the card.
+   - Click **Share**. A share modal opens (or equivalent UI). Close it
+     without sending.
+   - Click **More** again and choose **Remove**. Inline confirm/cancel
+     controls appear; click **Cancel** and leave the pro on the list.
+   - Save a screenshot of the open More menu under `.qa-screenshots/admin/`
+     when that folder exists in the workspace.
+
+8. **Dev-only Stripe checkout.** This can only be done on the dev site.
+   Do not start checkout, pay, or create a test pro on
+   https://www.quickprolist.com.
+   - Sign in with the QA admin sign-in from step 7 on
+     https://home-help-git-dev-gui-costas-projects.vercel.app.
+   - On `/admin`, click **+ Add Pro**. Name the business `QA Stripe Check`,
+     category Locksmiths, city Marietta. Save it.
+   - On that pro, click **Enroll**, keep Marietta, click **Generate link**,
+     and open the enrollment link.
+   - Click the subscribe button and pay in Stripe test mode with card
+     `4242 4242 4242 4242`, any future expiry, any CVC, and any ZIP.
+     If Stripe shows a phone number, fill one (for example `4045550123`)
+     before submitting. If "Save my information" is checked and the phone
+     field is empty, uncheck it or fill the phone. Do not leave the form
+     on the Stripe page.
+   - The enroll page shows payment success.
+   - Dev search for Locksmiths in Marietta includes `QA Stripe Check`.
+   - The same search on https://www.quickprolist.com does not include
+     `QA Stripe Check`.
+   - Back on the dev admin, remove `QA Stripe Check` so Marietta locksmiths
+     is empty again for step 3. Do not remove anything on production.
+
 Report each step as pass, fail, or incomplete, and quote what was on the
 screen. Include screenshot paths when you saved any. Name the browser
 tooling you used. If the browser never opened, the outcome is fail /

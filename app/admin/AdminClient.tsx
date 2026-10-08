@@ -10,15 +10,21 @@ import EnrollmentLinkModal from '@/components/EnrollmentLinkModal'
 import ReportsTab from '@/components/ReportsTab'
 import RequestsTab from '@/components/RequestsTab'
 import TrialModal from '@/components/TrialModal'
-import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import type { Business } from '@/lib/business'
+import { formatCategoryLabel, formatCityLabel } from '@/lib/display'
 import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 
 type Tab = 'curate' | 'enrollments' | 'reports' | 'requests'
 
 export default function AdminClient({ adminEmail }: { adminEmail: string }) {
-  const [tab, setTab] = useState<Tab>('curate')
+  const tabParam = useSearchParams().get('tab')
+  const tab: Tab =
+    tabParam === 'invitations' ? 'enrollments'
+    : tabParam === 'reports' ? 'reports'
+    : tabParam === 'requests' ? 'requests'
+    : 'curate'
   const [curated, setCurated] = useState<Business[]>([])
 
   const [showManualModal, setShowManualModal] = useState(false)
@@ -34,6 +40,18 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   const [confirmingDeleteEnrollmentId, setConfirmingDeleteEnrollmentId] = useState<string | null>(null)
   const [deletingEnrollmentId, setDeletingEnrollmentId] = useState<string | null>(null)
   const [enrollmentDeleteError, setEnrollmentDeleteError] = useState('')
+  const [openMoreId, setOpenMoreId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!openMoreId) return
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target
+      if (target instanceof Element && target.closest('[data-pro-more-menu]')) return
+      setOpenMoreId(null)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [openMoreId])
 
   function loadCurated() {
     return fetch('/api/curated')
@@ -43,6 +61,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
 
   useEffect(() => {
     loadCurated()
+    loadEnrollments()
   }, [])
 
   async function handleDelete(id: string) {
@@ -125,14 +144,19 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
     }
   }, [tab])
 
+  const pageTitle = {
+    curate: ['Pinned Pros', 'New pros stay hidden from search until you enroll them or start a trial.'],
+    enrollments: ['Invitations', 'Payment links you have sent.'],
+    reports: ['Reports', 'Who is listed, who is paying, and who is on a trial.'],
+    requests: ['Requests', 'People who asked to be listed.'],
+  }[tab]
+
   return (
     <div>
       <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Pinned Pros</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Searches show the pros you add here, up to 3 results.
-          </p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{pageTitle[0]}</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{pageTitle[1]}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200 font-semibold px-3 py-1.5 rounded-full">
@@ -149,23 +173,8 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
-          <TabButton active={tab === 'curate'} onClick={() => setTab('curate')}>Pinned Pros</TabButton>
-          <TabButton active={tab === 'enrollments'} onClick={() => setTab('enrollments')}>Invitations</TabButton>
-          <TabButton active={tab === 'reports'} onClick={() => setTab('reports')}>Reports</TabButton>
-          <TabButton active={tab === 'requests'} onClick={() => setTab('requests')}>Requests</TabButton>
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <Link
-            href="/admin/campaigns"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
-          >
-            Campaigns
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </Link>
+      {tab === 'curate' && (
+        <div className="flex justify-end mb-4">
           <button
             onClick={() => setShowManualModal(true)}
             className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
@@ -173,7 +182,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
             + Add Pro
           </button>
         </div>
-      </div>
+      )}
 
       {tab === 'curate' && (
         <div className="flex flex-col gap-4">
@@ -185,126 +194,141 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
             </div>
           )}
           {curated.map((b) => (
-            <div key={b.id} className="bg-white rounded-2xl ring-1 ring-slate-200 overflow-hidden">
+            <div
+              key={b.id}
+              className={`bg-white rounded-2xl ring-1 ring-slate-200 ${openMoreId === b.id ? 'relative z-30' : ''}`}
+            >
               <div className="p-0.5">
-                <BusinessCard business={b} />
+                <BusinessCard business={b} isFeatured={false} highlighted={false} />
               </div>
 
               {/* Metadata row */}
-              {(b.cities?.length || b.isTrial) ? (
-                <div className="flex flex-wrap items-center gap-2 px-4 pb-2">
+              <div className="flex flex-wrap items-center gap-2 px-4 pb-2">
+                  {b.isTrial ? (
+                    <TrialBadge trialEndsAt={b.trialEndsAt ?? null} />
+                  ) : (
+                    <StatusBadge status={listingStatus(b, enrollments)} />
+                  )}
                   {b.cities && b.cities.length > 0 && (
                     <>
                       <span className="text-[11px] text-slate-400 font-medium">Cities:</span>
                       {b.cities.map((c) => (
                         <span key={c} className="inline-flex items-center bg-amber-50 text-amber-800 ring-1 ring-amber-200 text-[11px] font-medium px-2 py-0.5 rounded-full">
-                          {c}
+                          {formatCityLabel(c)}
                         </span>
                       ))}
                     </>
                   )}
-                  {b.isTrial && <TrialBadge trialEndsAt={b.trialEndsAt ?? null} />}
+                  {b.category && (
+                    <span className="text-[11px] font-medium text-slate-500">{formatCategoryLabel(b.category)}</span>
+                  )}
                 </div>
-              ) : null}
 
-              {/* Action bar */}
               <div className="flex items-center gap-1 px-3 py-2 border-t border-slate-100 bg-slate-50 flex-wrap">
-                {/* Left group: editing */}
-                {b.source === 'manual' && (
-                  <button
-                    onClick={() => setEditTarget(b)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    Edit
-                  </button>
-                )}
-                <button
-                  onClick={() => handleProSiteToggle(b)}
-                  disabled={proSiteToggling === b.id}
-                  title={b.proSiteEnabled ? 'ProSite live — click to disable' : 'Enable ProSite'}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
-                    b.proSiteEnabled
-                      ? 'bg-violet-600 text-white hover:bg-violet-700'
-                      : 'bg-white ring-1 ring-slate-200 text-slate-500 hover:bg-slate-100'
-                  }`}
-                >
-                  {b.proSiteEnabled ? '✦ ProSite' : 'ProSite'}
-                </button>
-
-                {/* Divider */}
-                <span className="mx-1 h-4 w-px bg-slate-200" />
-
-                {/* Middle group: outreach */}
-                <button
-                  onClick={() => setEnrollTarget({ business: b, category: b.category ?? CATEGORIES[0].value })}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                >
-                  Enroll
-                </button>
-                <button
-                  onClick={() => setTrialTarget({ business: b, category: b.category ?? CATEGORIES[0].value, cities: b.cities ?? [] })}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors"
-                >
-                  Trial
-                </button>
-
-                {/* Divider */}
-                <span className="mx-1 h-4 w-px bg-slate-200" />
-
-                {/* Right group: share + remove */}
-                <button
-                  onClick={() => openShareForBusiness(b, '', b.category ?? CATEGORIES[0].value)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors"
-                >
-                  <ShareIcon />
-                  Share
-                </button>
-                <button
-                  onClick={() => setReviewTarget(b)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-50 text-teal-800 hover:bg-teal-100 transition-colors"
-                >
-                  Get Reviews
-                </button>
-                {b.dashboardToken && (
+                {listingStatus(b, enrollments) === 'Paid' && b.dashboardToken ? (
                   <button
                     onClick={() => handleCopyDashboardLink(b)}
-                    title="Copy this business's performance dashboard link"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
                   >
                     {copiedDashboardId === b.id ? '✓ Copied' : 'Dashboard link'}
                   </button>
+                ) : (
+                  <button
+                    onClick={() => setEnrollTarget({ business: b, category: b.category ?? CATEGORIES[0].value })}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                  >
+                    Enroll
+                  </button>
                 )}
-
-                <div className="ml-auto flex items-center gap-1.5">
-                  {deleteError && confirmingDeleteId === b.id && (
-                    <span className="text-xs text-rose-600">{deleteError}</span>
-                  )}
-                  {confirmingDeleteId === b.id ? (
-                    <>
-                      <button
-                        onClick={() => handleDelete(b.id)}
-                        disabled={deletingId === b.id}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 transition-colors"
+                <div className="relative" data-pro-more-menu>
+                  <button
+                    type="button"
+                    aria-expanded={openMoreId === b.id}
+                    onClick={() => setOpenMoreId((id) => (id === b.id ? null : b.id))}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-100"
+                  >
+                    More
+                  </button>
+                  {openMoreId === b.id && (
+                    <div className="absolute left-0 z-50 mt-1 min-w-44 rounded-xl bg-white ring-1 ring-slate-200 shadow-lg p-1 flex flex-col">
+                      {b.source === 'manual' && (
+                        <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => setEditTarget(b)}>
+                          Edit
+                        </MenuButton>
+                      )}
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() => handleProSiteToggle(b)}
+                        disabled={proSiteToggling === b.id}
                       >
-                        {deletingId === b.id ? 'Removing…' : 'Confirm remove'}
-                      </button>
-                      <button
-                        onClick={() => setConfirmingDeleteId(null)}
-                        disabled={deletingId === b.id}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
+                        {b.proSiteEnabled ? 'Public profile on' : 'Public profile'}
+                      </MenuButton>
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() =>
+                          setTrialTarget({
+                            business: b,
+                            category: b.category ?? CATEGORIES[0].value,
+                            cities: b.cities ?? [],
+                          })
+                        }
                       >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => { setDeleteError(''); setConfirmingDeleteId(b.id) }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors"
-                    >
-                      Remove
-                    </button>
+                        Trial
+                      </MenuButton>
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() => openShareForBusiness(b, '', b.category ?? CATEGORIES[0].value)}
+                      >
+                        Share
+                      </MenuButton>
+                      <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => setReviewTarget(b)}>
+                        Get Reviews
+                      </MenuButton>
+                      {listingStatus(b, enrollments) !== 'Paid' && b.dashboardToken && (
+                        <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => handleCopyDashboardLink(b)}>
+                          Dashboard link
+                        </MenuButton>
+                      )}
+                      {listingStatus(b, enrollments) === 'Paid' && (
+                        <MenuButton
+                          closeMenu={() => setOpenMoreId(null)}
+                          onClick={() => setEnrollTarget({ business: b, category: b.category ?? CATEGORIES[0].value })}
+                        >
+                          Enroll
+                        </MenuButton>
+                      )}
+                      <MenuButton
+                        closeMenu={() => setOpenMoreId(null)}
+                        onClick={() => {
+                          setDeleteError('')
+                          setConfirmingDeleteId(b.id)
+                        }}
+                        danger
+                      >
+                        Remove
+                      </MenuButton>
+                    </div>
                   )}
                 </div>
+                {confirmingDeleteId === b.id && (
+                  <div className="ml-auto flex items-center gap-1.5">
+                    {deleteError && <span className="text-xs text-rose-600">{deleteError}</span>}
+                    <button
+                      onClick={() => handleDelete(b.id)}
+                      disabled={deletingId === b.id}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
+                    >
+                      {deletingId === b.id ? 'Removing…' : 'Confirm remove'}
+                    </button>
+                    <button
+                      onClick={() => setConfirmingDeleteId(null)}
+                      disabled={deletingId === b.id}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-200 text-slate-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -355,14 +379,14 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
                 <div key={inv.id} className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-4 p-4 border-b border-slate-100 last:border-b-0 items-center">
                   <div>
                     <p className="font-medium text-slate-900">{inv.business_name}</p>
-                    <p className="text-xs text-slate-500">{inv.category}</p>
+                    <p className="text-xs text-slate-500">{formatCategoryLabel(inv.category)}</p>
                   </div>
                   <div className="text-sm">
                     <p className="font-medium text-slate-900">${inv.monthly_price.toFixed(2)}/mo</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {inv.cities.slice(0, 2).map((c: string) => (
                         <span key={c} className="text-xs bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
-                          {c}
+                          {formatCityLabel(c)}
                         </span>
                       ))}
                       {inv.cities.length > 2 && (
@@ -481,6 +505,60 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
   )
 }
 
+function listingStatus(business: Business, invitations: EnrollmentInvitation[]): 'Draft' | 'Trial' | 'Paid' | 'Invited' | 'Free' {
+  if (business.isDraft) return 'Draft'
+  if (business.isTrial) return 'Trial'
+  const related = invitations.filter((invitation) => invitation.curated_business_id === business.id)
+  if (related.some((invitation) => invitation.status === 'paid')) return 'Paid'
+  if (related.some((invitation) => invitation.status === 'pending' || invitation.status === 'trial')) return 'Invited'
+  return 'Free'
+}
+
+function StatusBadge({ status }: { status: ReturnType<typeof listingStatus> }) {
+  const styles = {
+    Draft: 'bg-slate-100 text-slate-600',
+    Trial: 'bg-violet-50 text-violet-700',
+    Paid: 'bg-emerald-50 text-emerald-800',
+    Invited: 'bg-amber-50 text-amber-800',
+    Free: 'bg-slate-50 text-slate-500',
+  }
+  return (
+    <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${styles[status]}`}>
+      {status}
+    </span>
+  )
+}
+
+function MenuButton({
+  children,
+  onClick,
+  closeMenu,
+  disabled,
+  danger,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  closeMenu?: () => void
+  disabled?: boolean
+  danger?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        closeMenu?.()
+        onClick()
+      }}
+      disabled={disabled}
+      className={`text-left px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-50 ${
+        danger ? 'text-rose-600 hover:bg-rose-50' : 'text-slate-700 hover:bg-slate-100'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
 function TrialBadge({ trialEndsAt }: { trialEndsAt: string | null }) {
   if (!trialEndsAt) {
     return (
@@ -503,30 +581,5 @@ function TrialBadge({ trialEndsAt }: { trialEndsAt: string | null }) {
     <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">
       Trial · {daysLeft}d left
     </span>
-  )
-}
-
-function ShareIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-    </svg>
-  )
-}
-
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-        active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-      }`}
-    >
-      {children}
-    </button>
   )
 }

@@ -19,15 +19,13 @@ afterEach(() => {
 })
 
 describe('SiteNav Dashboard link', () => {
-  it('shows Dashboard pointing at /admin next to Search and Admin for an admin', async () => {
+  it('shows Search and Admin, with Admin as the only link to the admin area', async () => {
     authResult = async () => ({ email: 'admin@example.com', userId: 'u1' })
     await renderNav()
 
-    const links = screen.getAllByRole('link').map((a) => a.textContent)
-    expect(links).toEqual(expect.arrayContaining(['Search', 'Admin', 'Dashboard']))
-    expect(screen.getByRole('link', { name: 'Dashboard' }).getAttribute('href')).toBe('/admin')
-    expect(screen.getByRole('link', { name: 'Admin' }).getAttribute('href')).toBe('/admin')
     expect(screen.getByRole('link', { name: 'Search' }).getAttribute('href')).toBe('/')
+    expect(screen.getByRole('link', { name: 'Admin' }).getAttribute('href')).toBe('/admin')
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).toBeNull()
   })
 
   it('hides Dashboard for a signed-in non-admin or signed-out visitor', async () => {
