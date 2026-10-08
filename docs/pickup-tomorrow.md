@@ -13,7 +13,7 @@ From the marketing-agent pass (Resend + `lib/email.ts`). Goal: inbox placement, 
 - [ ] **DNS (apex)** — Publish Resend records at registrar — see `docs/email-deliverability.md`.
 - [ ] **From address (Vercel prod)** — Set `RESEND_FROM_EMAIL` to `hello@contact.quickprolist.com` (code adds `QuickProList` display name).
 - [x] **Subject + body (code)** — Plain subjects, softer template, shorter default campaign text on `dev`.
-- [ ] **Send tests** — Gmail + Outlook + mail-tester after prod env + optional apex DNS.
+- [ ] **Send tests** — Outlook (Hotmail) first, then mail-tester if needed, after prod env + DNS.
 
 ---
 
@@ -58,7 +58,7 @@ Decisions already made: operator name “QuickProList”; no arbitration clause;
 
 | Task | Agent |
 |------|--------|
-| Email junk / campaigns / copy | `marketing-agent` (`.claude/agents/marketing-agent.md`) |
+| Email junk / campaigns / copy / persuasion | `marketing-agent` (`.claude/agents/marketing-agent.md`, `docs/sales-persuasion-playbook.md`) |
 | CAN-SPAM / cold outreach wording | `legal-agent` |
 | Full dev regression (incl. admin 7b, Stripe checkout) | `qa-validator` |
 | What to build next | `product-owner` |

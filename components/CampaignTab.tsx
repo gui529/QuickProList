@@ -23,8 +23,12 @@ function ManualSendModal({ onClose, onSent }: ManualModalProps) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
 
-  const canSend = name.trim() && message.trim() &&
-    (channel === 'sms' ? !!phone.trim() : !!email.trim())
+  const canSend =
+    name.trim() &&
+    message.trim() &&
+    (channel === 'sms'
+      ? !!phone.trim()
+      : !!email.trim() && !!category.trim() && !!city.trim())
 
   async function handleSend() {
     if (!canSend) return
@@ -98,7 +102,9 @@ function ManualSendModal({ onClose, onSent }: ManualModalProps) {
 
           <div className="flex gap-2">
             <div className="flex flex-col gap-1 flex-1">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Category</label>
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                Category{channel === 'email' ? ' *' : ''}
+              </label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white">
                 <option value="">—</option>
                 {CATEGORIES.map(({ label, value }) => (
@@ -107,15 +113,22 @@ function ManualSendModal({ onClose, onSent }: ManualModalProps) {
               </select>
             </div>
             <div className="flex flex-col gap-1 flex-1">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">City</label>
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                City{channel === 'email' ? ' *' : ''}
+              </label>
               <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Atlanta, GA" className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
             </div>
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Message</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-            <p className="text-xs text-slate-400">{message.length} chars</p>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={7} className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+            <p className="text-xs text-slate-400">
+              {message.length} chars · placeholders: {'{businessName}'}, {'{city}'}, {'{category}'}, {'{signature}'}
+            </p>
+            {channel === 'email' && (!category.trim() || !city.trim()) && (
+              <p className="text-xs text-amber-700">Email requires city and category for the listing preview link.</p>
+            )}
           </div>
         </div>
 

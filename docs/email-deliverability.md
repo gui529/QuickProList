@@ -33,6 +33,6 @@ Then click **Verify** in Resend. Until apex is verified, keep sending from `@con
 
 ## After DNS + env
 
-1. Send a test campaign to your own Gmail and Outlook.
-2. Use [mail-tester.com](https://www.mail-tester.com) once.
-3. Keep volume low; cold B2B mail may still land in Promotions/Junk until reputation builds.
+1. Send a test campaign to your own **Outlook** inbox (e.g. Hotmail).
+2. Use [mail-tester.com](https://www.mail-tester.com) once if you want a second opinion.
+3. Keep volume low; cold B2B mail may still land in Junk/Other until reputation builds.

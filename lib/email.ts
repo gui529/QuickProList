@@ -28,9 +28,17 @@ export function formatFromAddress(raw: string): string {
 export function buildMarketingEmailSubject(businessName: string, opts: SendEmailOptions): string {
   const city = opts.city ? formatCityLabel(opts.city) : null
   const category = opts.category ? formatCategoryLabel(opts.category) : null
-  if (city && category) return `${businessName} — ${category} in ${city}`
-  if (city) return `${businessName} — QuickProList in ${city}`
-  return `QuickProList listing for ${businessName}`
+  if (city) return `Quick question — ${businessName} in ${city}`
+  if (category) return `Quick question — ${businessName} (${category})`
+  return `Quick question — ${businessName}`
+}
+
+export function buildMarketingCtaLabel(opts: SendEmailOptions): string {
+  if (opts.enrollUrl) return 'See your listing preview'
+  if (opts.city && opts.category) {
+    return `See ${formatCategoryLabel(opts.category)} in ${formatCityLabel(opts.city)}`
+  }
+  return 'Visit QuickProList'
 }
 
 function buildTransactionalEmailSubject(businessName: string, body: string): string {
@@ -112,7 +120,7 @@ export async function sendEmail(
       : null
 
   const ctaUrl = opts.enrollUrl ?? searchUrl ?? siteUrl
-  const ctaLabel = opts.enrollUrl ? 'Complete your listing' : 'See listings in your area'
+  const ctaLabel = buildMarketingCtaLabel(opts)
 
   const paragraphs = body
     .split('\n')
@@ -142,16 +150,9 @@ export async function sendEmail(
 
     <!-- Body -->
     <div style="padding:36px 40px">
-      ${isMarketing ? `<p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#64748b">Local home services</p>` : ''}
       <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#0f172a;line-height:1.3">Hi ${escapeHtml(businessName)},</h1>
 
       ${paragraphs}
-
-      ${
-        isMarketing
-          ? `<p style="margin:20px 0 0;font-size:14px;line-height:1.6;color:#64748b">Pinned listings are $29.99/month. Cancel anytime.</p>`
-          : ''
-      }
 
       <!-- CTA button -->
       <div style="text-align:center;margin:28px 0">
@@ -159,6 +160,12 @@ export async function sendEmail(
           ${ctaLabel}
         </a>
       </div>
+
+      ${
+        isMarketing
+          ? `<p style="margin:0 0 8px;text-align:center;font-size:13px;line-height:1.6;color:#94a3b8">Pinned listings are $29.99/month after preview. Cancel anytime.</p>`
+          : ''
+      }
 
       ${
         searchUrl
@@ -199,7 +206,7 @@ export async function sendEmail(
     html,
     text:
       body +
-      `\n\n${opts.enrollUrl ? `Get listed here: ${opts.enrollUrl}` : searchUrl ? `See listings in your area: ${searchUrl}` : `Visit us: ${siteUrl}`}` +
+      `\n\n${opts.enrollUrl ? `See your listing preview: ${opts.enrollUrl}` : searchUrl ? `See ${opts.city && opts.category ? `${formatCategoryLabel(opts.category)} in ${formatCityLabel(opts.city)}` : 'listings in your area'}: ${searchUrl}` : `Visit us: ${siteUrl}`}` +
       (compliance?.text ?? ''),
     ...(compliance ? { headers: compliance.headers } : {}),
   })

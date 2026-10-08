@@ -15,7 +15,13 @@ vi.mock('./suppressions', async (orig) => ({
   isSuppressed: isSuppressedMock,
 }))
 
-import { buildMarketingEmailSubject, formatFromAddress, sendEmail, sendDigestEmail } from './email'
+import {
+  buildMarketingCtaLabel,
+  buildMarketingEmailSubject,
+  formatFromAddress,
+  sendEmail,
+  sendDigestEmail,
+} from './email'
 import { SuppressedError } from './suppressions'
 import { verifyUnsubscribeToken } from './unsubscribe'
 
@@ -29,9 +35,23 @@ describe('formatFromAddress', () => {
 })
 
 describe('buildMarketingEmailSubject', () => {
-  it('includes city and category labels', () => {
+  it('uses a curiosity-style subject with city', () => {
     expect(buildMarketingEmailSubject('Biz', { city: 'marietta', category: 'homecleaning' })).toBe(
-      'Biz — Cleaners in Marietta'
+      'Quick question — Biz in Marietta'
+    )
+  })
+})
+
+describe('buildMarketingCtaLabel', () => {
+  it('prefers preview wording when enroll URL exists', () => {
+    expect(buildMarketingCtaLabel({ enrollUrl: 'https://example.test/enroll/x' })).toBe(
+      'See your listing preview'
+    )
+  })
+
+  it('describes local search when city and category set', () => {
+    expect(buildMarketingCtaLabel({ city: 'marietta', category: 'plumbing' })).toBe(
+      'See Plumbers in Marietta'
     )
   })
 })
@@ -55,7 +75,10 @@ describe('sendEmail (lib/email.ts)', () => {
 
     const call = sendMock.mock.calls[0][0]
     expect(call.from).toBe('QuickProList <noreply@example.com>')
-    expect(call.subject).toBe('Acme Plumbing — Plumbers in Marietta')
+    expect(call.subject).toBe('Quick question — Acme Plumbing in Marietta')
+    expect(call.html).toContain('See Plumbers in Marietta')
+    expect(call.html).not.toContain('Complete your listing')
+    expect(call.html).toContain('after preview')
     expect(call.subject).not.toMatch(/🏠|\$29/)
   })
 

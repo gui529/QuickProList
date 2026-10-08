@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AuthError, requireAdmin } from '@/lib/auth'
-import { recordContact, DEFAULT_MESSAGE } from '@/lib/campaigns'
+import { recordContact, DEFAULT_MESSAGE, expandCampaignMessage } from '@/lib/campaigns'
 import { sendSms, normalizePhone, SmsDisabledError } from '@/lib/sms'
 import { SuppressedError, isSuppressed, normalizeEmail } from '@/lib/suppressions'
 import { sendEmail } from '@/lib/email'
@@ -54,8 +54,22 @@ export async function POST(req: NextRequest) {
   if (channel === 'email' && !email?.trim()) {
     return NextResponse.json({ error: 'email is required for email campaign' }, { status: 400 })
   }
+  if (channel === 'email' && (!category?.trim() || !city?.trim())) {
+    return NextResponse.json(
+      {
+        error:
+          'city and category are required for email campaigns so we can generate a listing preview link',
+      },
+      { status: 400 }
+    )
+  }
 
-  const messageBody = message?.trim() || DEFAULT_MESSAGE
+  const rawMessage = message?.trim() || DEFAULT_MESSAGE
+  const messageBody = expandCampaignMessage(rawMessage, {
+    businessName: businessName!.trim(),
+    city: city?.trim(),
+    category: category?.trim(),
+  })
 
   if (channel === 'email' && (await isSuppressed('email', normalizeEmail(email!)))) {
     return NextResponse.json(
