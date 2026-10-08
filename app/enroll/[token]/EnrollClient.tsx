@@ -5,6 +5,7 @@ import Link from 'next/link'
 import EnrollListingPreview from '@/components/EnrollListingPreview'
 import { CATEGORIES } from '@/lib/categories'
 import { buildEnrollHomeUrl } from '@/lib/enroll-home-url'
+import { saveMyListingId } from '@/lib/my-listing-storage'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
    */
   dashboardToken?: string | null
   proDashboardEnabled?: boolean
+  initialContactEmail?: string | null
 }
 
 export default function EnrollClient({
@@ -26,10 +28,22 @@ export default function EnrollClient({
   token,
   dashboardToken,
   proDashboardEnabled = false,
+  initialContactEmail = null,
 }: Props) {
-  const [step, setStep] = useState<'preview' | 'checkout'>('preview')
+  const [wantSubscribe] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('subscribe') === '1'
+  })
+  const [step, setStep] = useState<'preview' | 'checkout'>(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('subscribe') === '1') {
+      return 'checkout'
+    }
+    if (invitation.curated_business_id && invitation.status === 'pending') return 'checkout'
+    return 'preview'
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [contactEmail, setContactEmail] = useState(initialContactEmail ?? '')
   const [localDashboardToken, setLocalDashboardToken] = useState<string | null>(dashboardToken ?? null)
 
   const [success] = useState(() => {
@@ -41,11 +55,11 @@ export default function EnrollClient({
   const effectiveDashboardToken =
     proDashboardEnabled ? (localDashboardToken ?? dashboardToken ?? null) : null
   useEffect(() => {
-    if (invitation.status !== 'trial' || success) return
+    if (wantSubscribe || invitation.status !== 'trial' || success) return
     window.location.replace(
       buildEnrollHomeUrl(invitation, invitation.curated_business_id)
     )
-  }, [invitation, success])
+  }, [invitation, success, wantSubscribe])
 
   async function handleStartPreview() {
     setLoading(true)
@@ -54,7 +68,10 @@ export default function EnrollClient({
       const res = await fetch('/api/enroll/start-trial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({
+          token,
+          email: contactEmail.trim() || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -62,6 +79,7 @@ export default function EnrollClient({
         setLoading(false)
         return
       }
+      if (data.curatedBusinessId) saveMyListingId(data.curatedBusinessId)
       window.location.href = buildEnrollHomeUrl(invitation, data.curatedBusinessId)
       return
     } catch (err) {
@@ -123,7 +141,7 @@ export default function EnrollClient({
     )
   }
 
-  if (invitation.status === 'trial' && step !== 'checkout') {
+  if (invitation.status === 'trial' && step !== 'checkout' && !wantSubscribe) {
     return (
       <div className="min-h-screen grid place-items-center bg-slate-50 px-4">
         <p className="text-slate-600">Taking you to QuickProList…</p>
@@ -162,6 +180,21 @@ export default function EnrollClient({
                 </Link>
               </p>
             )}
+
+            <div className="mt-6 flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                Email for listing updates
+              </label>
+              <input
+                type="email"
+                autoComplete="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="you@yourbusiness.com"
+                className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <p className="text-xs text-slate-500">Used for preview reminders and win-back — not shown on your listing.</p>
+            </div>
 
             {error && (
               <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mt-6 text-center">

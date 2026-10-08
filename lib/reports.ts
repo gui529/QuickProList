@@ -21,6 +21,7 @@ export interface BusinessReport {
   website_clicks: number
   directions_clicks: number
   winback_sent_at: string | null
+  trial_reminder_sent_at: string | null
 }
 
 interface CuratedRow {
@@ -40,6 +41,7 @@ interface CuratedRow {
   website_clicks: number | null
   directions_clicks: number | null
   winback_sent_at: string | null
+  trial_reminder_sent_at: string | null
 }
 
 export interface DeriveStatusRow {
@@ -85,7 +87,7 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
     query<CuratedRow>(
       `SELECT id, name, source, category, cities, created_at, is_trial, trial_ends_at,
               pro_site_enabled, contact_email, search_impressions, profile_views, phone_clicks,
-              website_clicks, directions_clicks, winback_sent_at
+              website_clicks, directions_clicks, winback_sent_at, trial_reminder_sent_at
        FROM curated_businesses
        ORDER BY created_at DESC`
     ),
@@ -124,6 +126,7 @@ export async function getBusinessReports(): Promise<BusinessReport[]> {
       website_clicks: row.website_clicks ?? 0,
       directions_clicks: row.directions_clicks ?? 0,
       winback_sent_at: row.winback_sent_at ?? null,
+      trial_reminder_sent_at: row.trial_reminder_sent_at ?? null,
     }
   })
 }

@@ -43,6 +43,7 @@ interface CuratedRow {
   contact_email: string | null
   dashboard_token: string | null
   winback_sent_at: string | null
+  trial_reminder_sent_at: string | null
 }
 
 let rows: CuratedRow[] = []
@@ -85,6 +86,7 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     contact_email: row.contact_email ?? null,
     dashboard_token: row.dashboard_token ?? `dashboard-token-${id}`,
     winback_sent_at: row.winback_sent_at ?? null,
+    trial_reminder_sent_at: row.trial_reminder_sent_at ?? null,
   }
   rows.push(full)
   return full
@@ -235,6 +237,7 @@ export async function addCuratedFromYelp(
     contact_email: base?.contact_email ?? null,
     dashboard_token: base?.dashboard_token ?? `dashboard-token-${id}`,
     winback_sent_at: base?.winback_sent_at ?? null,
+    trial_reminder_sent_at: base?.trial_reminder_sent_at ?? null,
   }
   if (existingIdx >= 0) rows[existingIdx] = row
   else rows.push(row)
@@ -272,6 +275,7 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
     contact_email: null,
     dashboard_token: `dashboard-token-${id}`,
     winback_sent_at: null,
+    trial_reminder_sent_at: null,
   })
 }
 
@@ -369,6 +373,19 @@ export async function setCuratedTrial(
 
 export async function publishCurated(_id: string): Promise<void> {
   // Real DB clears is_draft; test double has no draft flag on search path.
+}
+
+export async function clearCuratedTrial(id: string): Promise<void> {
+  const row = rows.find((r) => r.id === id)
+  if (!row) throw new Error('Not found')
+  row.is_trial = false
+  row.trial_ends_at = null
+}
+
+export async function setTrialReminderSent(id: string): Promise<void> {
+  const row = rows.find((r) => r.id === id)
+  if (!row) throw new Error('Not found')
+  row.trial_reminder_sent_at = new Date().toISOString()
 }
 
 export async function uploadBusinessPhoto(

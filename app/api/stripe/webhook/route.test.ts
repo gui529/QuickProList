@@ -12,6 +12,7 @@ const {
   getCuratedByIdMock,
   findCuratedIdByYelpIdMock,
   findLatestManualCuratedIdMock,
+  clearCuratedTrialMock,
   sendEmailMock,
 } = vi.hoisted(() => {
   // route.ts reads STRIPE_WEBHOOK_SECRET as a module-level constant, so it
@@ -27,6 +28,7 @@ const {
   const getCuratedByIdMock = vi.fn()
   const findCuratedIdByYelpIdMock = vi.fn().mockResolvedValue('curated-1')
   const findLatestManualCuratedIdMock = vi.fn().mockResolvedValue('curated-1')
+  const clearCuratedTrialMock = vi.fn().mockResolvedValue(undefined)
   const sendEmailMock = vi.fn().mockResolvedValue('email-id')
   return {
     constructEventMock,
@@ -38,6 +40,7 @@ const {
     getCuratedByIdMock,
     findCuratedIdByYelpIdMock,
     findLatestManualCuratedIdMock,
+    clearCuratedTrialMock,
     sendEmailMock,
   }
 })
@@ -54,6 +57,7 @@ vi.mock('@/lib/kv', () => ({
   setCuratedContactEmail: setCuratedContactEmailMock,
   getCuratedById: getCuratedByIdMock,
   publishCurated: vi.fn().mockResolvedValue(undefined),
+  clearCuratedTrial: clearCuratedTrialMock,
   findCuratedIdByYelpId: findCuratedIdByYelpIdMock,
   findLatestManualCuratedId: findLatestManualCuratedIdMock,
 }))
@@ -265,6 +269,7 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
     expect(res.status).toBe(200)
 
     expect(getCuratedByIdMock).toHaveBeenCalledWith('curated-1')
+    expect(clearCuratedTrialMock).toHaveBeenCalledWith('curated-1')
     expect(sendEmailMock).toHaveBeenCalledTimes(1)
     expect(sendEmailMock.mock.calls[0][0]).toBe('owner@acmeplumbing.test')
     expect(sendEmailMock.mock.calls[0][2]).toContain('/dashboard/dash-token-123')

@@ -47,7 +47,13 @@ Preview length defaults to **30 days** (`ENROLL_PREVIEW_TRIAL_DAYS`, set in `lib
 | Win-back email → new enroll link | This doc + enroll flow |
 | Admin **Enrollment link** or **Start trial** again | [admin-invitations-and-trials.md](./admin-invitations-and-trials.md) |
 
-**Product gap:** While `invitation.status === 'trial'`, `/enroll/[token]` redirects to the homepage (see enroll doc). There is no `?subscribe=1` shortcut yet to reach checkout during an active preview — upgrade during trial is via a **new** invitation (win-back, admin) or paying before `trial_ends_at` if they still have a pending invite path.
+**During an active preview:** `/enroll/[token]` redirects to the homepage unless `?subscribe=1` is present (checkout step). Trial-ending reminder email (~72h before end, `GET /api/cron/trial-reminder`) links to `?subscribe=1`.
+
+**After expiry on this device:** If the pro started preview from this browser, the homepage may show an amber banner (`/api/listing-status/[id]` + `localStorage` `quickprolist:myListing`) with a checkout link when a pending/trial token exists.
+
+**No second free preview:** `POST /api/enroll/start-trial` rejects invites that already have `curated_business_id` (win-back) or a prior `expired-trial` for the same business name.
+
+**Paid conversion:** Stripe `checkout.session.completed` calls `clearCuratedTrial` so paid listings are not hidden when `trial_ends_at` passes.
 
 ---
 

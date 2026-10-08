@@ -51,7 +51,7 @@ describe('EnrollClient (success view dashboard link)', () => {
   it('shows listing preview first for pending invitations (no checkout button yet)', () => {
     render(
       <EnrollClient
-        invitation={makeInvitation({ status: 'pending' })}
+        invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
         token="test-token"
         dashboardToken={null}
       />

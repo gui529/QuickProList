@@ -435,6 +435,23 @@ export async function setWinbackSent(id: string): Promise<void> {
   ])
 }
 
+/** After Stripe checkout — listing stays in search without a trial end date. */
+export async function clearCuratedTrial(id: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    'UPDATE curated_businesses SET is_trial = FALSE, trial_ends_at = NULL WHERE id = $1',
+    [id]
+  )
+}
+
+export async function setTrialReminderSent(id: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query('UPDATE curated_businesses SET trial_reminder_sent_at = $1 WHERE id = $2', [
+    new Date().toISOString(),
+    id,
+  ])
+}
+
 export async function findCuratedIdByYelpId(yelpId: string): Promise<string | null> {
   if (!isDatabaseConfigured()) return null
   const rows = await query<{ id: string }>(

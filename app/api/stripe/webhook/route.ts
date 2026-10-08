@@ -8,6 +8,7 @@ import {
   findCuratedIdByYelpId,
   findLatestManualCuratedId,
   getCuratedById,
+  clearCuratedTrial,
   publishCurated,
   setCuratedContactEmail,
   updateCuratedManual,
@@ -126,7 +127,10 @@ export async function POST(req: NextRequest) {
         subscriptionId,
         curatedBusinessId
       )
-      if (curatedBusinessId) await publishCurated(curatedBusinessId)
+      if (curatedBusinessId) {
+        await clearCuratedTrial(curatedBusinessId)
+        await publishCurated(curatedBusinessId)
+      }
 
       // Stripe Checkout always collects this; stash it so a future failed
       // payment (invoice.payment_failed) has an address to send a dunning

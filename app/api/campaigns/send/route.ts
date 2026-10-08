@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
         cities: [city.trim()],
         monthlyPrice: 29.99,
         yelpId: yelpId?.trim() || undefined,
+        contactEmail: email!.trim(),
       })
       enrollUrl = `${siteUrl}/enroll/${invitationToken}`
     } catch (err) {

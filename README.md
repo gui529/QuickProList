@@ -128,6 +128,9 @@ redirects to `/login` and the header hides the Dashboard link.
 - `CAMPAIGN_SENDER_NAME` (optional) — first name in campaign **From** (`Jeremy <contact@…>`) and in `{signature}` (default sign-off: "The QuickProList team").
 - `ENROLL_PREVIEW_TRIAL_DAYS` (optional) — days for self-serve enroll preview from campaign links (default `30`).
 - `PRO_DASHBOARD_ENABLED` (optional) — set to `true` to expose `/dashboard/[token]` to pros, admin dashboard links, and performance digests (default **off**).
+- `TRIAL_REMINDER_HOURS` (optional) — how far before `trial_ends_at` to send the trial-ending email (default `72`).
+
+Apply SQL migrations in `migrations/` to Neon (including `016_invitation_contact_and_trial_reminder.sql` for invitation email + trial reminder timestamps).
 
 ### Twilio (SMS)
 

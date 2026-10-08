@@ -57,6 +57,7 @@ export function __seed(overrides: Partial<EnrollmentInvitation> = {}): Enrollmen
     expires_at: overrides.expires_at ?? new Date(now.getTime() + THIRTY_DAYS_MS).toISOString(),
     canceled_at: overrides.canceled_at ?? null,
     trial_ends_at: overrides.trial_ends_at ?? null,
+    contact_email: overrides.contact_email ?? null,
   }
   invitations.push(full)
   return full
@@ -87,6 +88,7 @@ export async function createInvitation(input: CreateInvitationInput): Promise<st
     expires_at: new Date(now.getTime() + THIRTY_DAYS_MS).toISOString(),
     canceled_at: null,
     trial_ends_at: null,
+    contact_email: input.contactEmail ?? null,
   })
   return token
 }

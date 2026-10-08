@@ -8,7 +8,11 @@ vi.mock('./email', () => ({
 
 import { __reset as resetInvitations, __seed as seedInvitation, getInvitationByToken } from './invitations.test-double'
 import { __reset as resetCurated, __all as allCurated } from './kv.test-double'
-import { activateEnrollmentTrial, enrollPreviewTrialDays } from './enrollment-trial'
+import {
+  activateEnrollmentTrial,
+  enrollPreviewTrialDays,
+  EnrollmentTrialError,
+} from './enrollment-trial'
 
 describe('activateEnrollmentTrial', () => {
   beforeEach(() => {
@@ -53,6 +57,16 @@ describe('activateEnrollmentTrial', () => {
     const result = await activateEnrollmentTrial('tok-2')
     expect(result.curatedBusinessId).toBe('cur-1')
     expect(allCurated()).toHaveLength(0)
+  })
+
+  it('rejects preview when invitation already targets an existing listing', async () => {
+    seedInvitation({
+      token: 'tok-3',
+      status: 'pending',
+      curated_business_id: 'existing-curated',
+    })
+
+    await expect(activateEnrollmentTrial('tok-3')).rejects.toBeInstanceOf(EnrollmentTrialError)
   })
 
   it('defaults preview length to 30 days', () => {

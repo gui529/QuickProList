@@ -18,6 +18,7 @@ export interface EnrollmentInvitation {
   expires_at: string
   canceled_at: string | null
   trial_ends_at: string | null
+  contact_email?: string | null
 }
 
 function asInvitation(row: EnrollmentInvitation): EnrollmentInvitation {
@@ -40,14 +41,15 @@ export interface CreateInvitationInput {
    * Yelp-sourced path already dedupes via `upsert` on `yelp_id`.
    */
   curatedBusinessId?: string
+  contactEmail?: string | null
 }
 
 export async function createInvitation(input: CreateInvitationInput): Promise<string> {
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   const rows = await query<{ token: string }>(
     `INSERT INTO enrollment_invitations (
-       business_name, yelp_id, yelp_data, category, cities, monthly_price, curated_business_id
-     ) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7)
+       business_name, yelp_id, yelp_data, category, cities, monthly_price, curated_business_id, contact_email
+     ) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7,$8)
      RETURNING token`,
     [
       input.businessName,
@@ -57,6 +59,7 @@ export async function createInvitation(input: CreateInvitationInput): Promise<st
       input.cities,
       input.monthlyPrice,
       input.curatedBusinessId || null,
+      input.contactEmail?.trim() || null,
     ]
   )
   if (!rows[0]) throw new Error('Failed to create invitation')

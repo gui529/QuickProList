@@ -62,6 +62,7 @@ export default async function EnrollPage({ params }: { params: Promise<{ token: 
       token={token}
       dashboardToken={dashboardToken}
       proDashboardEnabled={proDashboardEnabled}
+      initialContactEmail={invitation.contact_email}
     />
   )
 }

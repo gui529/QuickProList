@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { CATEGORIES } from '@/lib/categories'
 import BusinessCard from '@/components/BusinessCard'
@@ -8,6 +9,7 @@ import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
 import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
 import type { Business } from '@/lib/business'
+import { loadMyListingId } from '@/lib/my-listing-storage'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
 
@@ -57,6 +59,22 @@ function HomePageInner() {
   const cityWrapRef = useRef<HTMLDivElement>(null)
   const highlightCardRef = useRef<HTMLDivElement>(null)
   const autoFiredRef = useRef(false)
+  const [listingBanner, setListingBanner] = useState<{
+    status: string
+    businessName?: string
+    subscribeToken?: string | null
+  } | null>(null)
+
+  useEffect(() => {
+    const id = loadMyListingId()
+    if (!id) return
+    void fetch(`/api/listing-status/${encodeURIComponent(id)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.status === 'expired-trial') setListingBanner(data)
+      })
+      .catch(() => {})
+  }, [])
 
   // Initial mount: auto-run the search if the URL already specified a city + category
   useEffect(() => {
@@ -145,6 +163,27 @@ function HomePageInner() {
             <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-500 max-w-xl px-2">
               Plumbers, electricians, HVAC and more — find pros in your city.
             </p>
+
+            {listingBanner?.status === 'expired-trial' && (
+              <div className="mt-6 w-full max-w-xl rounded-2xl bg-amber-50 ring-1 ring-amber-200 px-4 py-3 text-left text-sm text-amber-950">
+                <p className="font-semibold">
+                  {listingBanner.businessName
+                    ? `${listingBanner.businessName} is no longer in search`
+                    : 'Your preview listing has ended'}
+                </p>
+                <p className="mt-1 text-amber-900/90">
+                  Subscribe to stay listed for $29.99/mo.
+                </p>
+                {listingBanner.subscribeToken && (
+                  <Link
+                    href={`/enroll/${listingBanner.subscribeToken}?subscribe=1`}
+                    className="inline-block mt-2 font-semibold text-amber-950 underline hover:text-amber-800"
+                  >
+                    Continue to checkout
+                  </Link>
+                )}
+              </div>
+            )}
 
             <div className="mt-6 sm:mt-8 w-full max-w-xl">
               <div ref={cityWrapRef} className="relative flex items-center bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm focus-within:ring-2 focus-within:ring-amber-400 transition">
