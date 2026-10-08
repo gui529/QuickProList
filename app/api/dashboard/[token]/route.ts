@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isProDashboardEnabled } from '@/lib/feature-flags'
 import { updateCuratedByDashboardToken, type DashboardEditableFields } from '@/lib/kv'
 
 /**
@@ -12,6 +13,10 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  if (!isProDashboardEnabled()) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   const { token } = await params
 
   let body: Record<string, unknown>

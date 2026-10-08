@@ -13,6 +13,7 @@ import {
   updateCuratedManual,
 } from '@/lib/kv'
 import { sendEmail } from '@/lib/email'
+import { isProDashboardEnabled } from '@/lib/feature-flags'
 import type { Business } from '@/lib/business'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
         // only way it learns the dashboard exists is an admin manually
         // copying the link from `/admin` and sending it by hand. See #37.
         const business = await getCuratedById(curatedBusinessId)
-        if (business?.dashboardToken) {
+        if (isProDashboardEnabled() && business?.dashboardToken) {
           const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
           const dashboardUrl = `${siteUrl}/dashboard/${business.dashboardToken}`
           await sendEmail(

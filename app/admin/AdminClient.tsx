@@ -18,7 +18,13 @@ import { isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitation
 
 type Tab = 'curate' | 'enrollments' | 'reports' | 'requests'
 
-export default function AdminClient({ adminEmail }: { adminEmail: string }) {
+export default function AdminClient({
+  adminEmail,
+  proDashboardEnabled = false,
+}: {
+  adminEmail: string
+  proDashboardEnabled?: boolean
+}) {
   const tabParam = useSearchParams().get('tab')
   const tab: Tab =
     tabParam === 'invitations' ? 'enrollments'
@@ -225,7 +231,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
                 </div>
 
               <div className="flex items-center gap-1 px-3 py-2 border-t border-slate-100 bg-slate-50 flex-wrap">
-                {listingStatus(b, enrollments) === 'Paid' && b.dashboardToken ? (
+                {proDashboardEnabled && listingStatus(b, enrollments) === 'Paid' && b.dashboardToken ? (
                   <button
                     onClick={() => handleCopyDashboardLink(b)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
@@ -284,7 +290,7 @@ export default function AdminClient({ adminEmail }: { adminEmail: string }) {
                       <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => setReviewTarget(b)}>
                         Get Reviews
                       </MenuButton>
-                      {listingStatus(b, enrollments) !== 'Paid' && b.dashboardToken && (
+                      {proDashboardEnabled && listingStatus(b, enrollments) !== 'Paid' && b.dashboardToken && (
                         <MenuButton closeMenu={() => setOpenMoreId(null)} onClick={() => handleCopyDashboardLink(b)}>
                           Dashboard link
                         </MenuButton>

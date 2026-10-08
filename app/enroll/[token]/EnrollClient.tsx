@@ -17,6 +17,7 @@ interface Props {
    * linked to a curated row yet, in which case no link is rendered. See #41.
    */
   dashboardToken?: string | null
+  proDashboardEnabled?: boolean
 }
 
 function formatTrialEnd(iso: string): string {
@@ -31,7 +32,12 @@ function formatTrialEnd(iso: string): string {
   }
 }
 
-export default function EnrollClient({ invitation, token, dashboardToken }: Props) {
+export default function EnrollClient({
+  invitation,
+  token,
+  dashboardToken,
+  proDashboardEnabled = false,
+}: Props) {
   const [step, setStep] = useState<'preview' | 'checkout'>('preview')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -45,7 +51,8 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
   })
 
   const categoryLabel = CATEGORIES.find((c) => c.value === invitation.category)?.label || invitation.category
-  const effectiveDashboardToken = localDashboardToken ?? dashboardToken ?? null
+  const effectiveDashboardToken =
+    proDashboardEnabled ? (localDashboardToken ?? dashboardToken ?? null) : null
   const onTrial = (invitation.status === 'trial' || trialStarted) && step !== 'checkout'
 
   async function handleStartPreview() {
@@ -65,7 +72,7 @@ export default function EnrollClient({ invitation, token, dashboardToken }: Prop
       }
       setTrialStarted(true)
       setTrialEndsAt(data.trialEndsAt ?? null)
-      if (data.dashboardToken) setLocalDashboardToken(data.dashboardToken)
+      if (proDashboardEnabled && data.dashboardToken) setLocalDashboardToken(data.dashboardToken)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     }

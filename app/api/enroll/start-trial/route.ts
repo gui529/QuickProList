@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { activateEnrollmentTrial, EnrollmentTrialError } from '@/lib/enrollment-trial'
+import { isProDashboardEnabled } from '@/lib/feature-flags'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       trialEndsAt: result.trialEndsAt,
-      dashboardToken: result.dashboardToken,
+      dashboardToken: isProDashboardEnabled() ? result.dashboardToken : null,
     })
   } catch (err) {
     if (err instanceof EnrollmentTrialError) {

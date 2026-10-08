@@ -21,9 +21,20 @@ import { __reset as resetInvitations, __seed as seedInvitation } from './invitat
 
 describe('sendPerformanceDigests (lib/digest.ts)', () => {
   beforeEach(() => {
+    process.env.PRO_DASHBOARD_ENABLED = 'true'
     resetCurated()
     resetInvitations()
     sendDigestEmailMock.mockClear()
+  })
+
+  it('sends nothing when the pro dashboard feature flag is off', async () => {
+    delete process.env.PRO_DASHBOARD_ENABLED
+    seedCurated({ id: 'biz-paid', contact_email: 'acme@example.com', is_trial: false })
+    seedInvitation({ curated_business_id: 'biz-paid', status: 'paid' })
+
+    const results = await sendPerformanceDigests()
+    expect(results).toHaveLength(0)
+    expect(sendDigestEmailMock).not.toHaveBeenCalled()
   })
 
   it('composes a digest containing every stat field for a paid business with a contact_email', async () => {

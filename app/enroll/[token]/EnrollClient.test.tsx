@@ -36,7 +36,12 @@ describe('EnrollClient (success view dashboard link)', () => {
     window.history.pushState({}, '', '/enroll/test-token?success=1')
 
     render(
-      <EnrollClient invitation={makeInvitation()} token="test-token" dashboardToken="dash-token-123" />
+      <EnrollClient
+        invitation={makeInvitation()}
+        token="test-token"
+        dashboardToken="dash-token-123"
+        proDashboardEnabled
+      />
     )
 
     const link = screen.getByRole('link', { name: /view your dashboard/i })

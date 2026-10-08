@@ -15,6 +15,7 @@ import {
   setCuratedTrial,
 } from './kv'
 import { sendEmail } from './email'
+import { isProDashboardEnabled } from './feature-flags'
 
 export class EnrollmentTrialError extends Error {
   constructor(
@@ -136,7 +137,7 @@ export async function activateEnrollmentTrial(
   const business = await getCuratedById(curatedBusinessId)
   const dashboardToken = business?.dashboardToken ?? null
 
-  if (contactEmail?.trim() && dashboardToken) {
+  if (isProDashboardEnabled() && contactEmail?.trim() && dashboardToken) {
     const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
     const dashboardUrl = `${siteUrl}/dashboard/${dashboardToken}`
     try {

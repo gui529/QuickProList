@@ -1,5 +1,6 @@
 import { getBusinessReports } from './reports'
 import { sendDigestEmail } from './email'
+import { isProDashboardEnabled } from './feature-flags'
 import { SuppressedError } from './suppressions'
 
 export interface DigestSendResult {
@@ -20,6 +21,8 @@ export interface DigestSendResult {
  * Intended to be invoked on a schedule by `app/api/cron/digest/route.ts`.
  */
 export async function sendPerformanceDigests(): Promise<DigestSendResult[]> {
+  if (!isProDashboardEnabled()) return []
+
   const reports = await getBusinessReports()
 
   const eligible = reports.filter(

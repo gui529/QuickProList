@@ -97,9 +97,18 @@ function textOf(node: ReactNode): string {
 
 describe('BusinessDashboardPage', () => {
   beforeEach(() => {
+    process.env.PRO_DASHBOARD_ENABLED = 'true'
     getCuratedByDashboardTokenMock.mockReset()
     listInvitationsMock.mockReset()
     listInvitationsMock.mockResolvedValue([])
+  })
+
+  it('404s when the pro dashboard feature flag is off', async () => {
+    delete process.env.PRO_DASHBOARD_ENABLED
+    await expect(
+      DashboardPage({ params: Promise.resolve({ token: 'good-token' }) })
+    ).rejects.toMatchObject({ digest: 'NEXT_HTTP_ERROR_FALLBACK;404' })
+    expect(getCuratedByDashboardTokenMock).not.toHaveBeenCalled()
   })
 
   it('404s for an invalid or missing token', async () => {

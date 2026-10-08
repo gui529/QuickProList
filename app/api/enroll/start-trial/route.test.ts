@@ -23,6 +23,7 @@ function makeRequest(body: unknown): Request {
 
 describe('POST /api/enroll/start-trial', () => {
   beforeEach(() => {
+    delete process.env.PRO_DASHBOARD_ENABLED
     activateMock.mockReset()
     activateMock.mockResolvedValue({
       curatedBusinessId: 'cur-1',
@@ -36,8 +37,15 @@ describe('POST /api/enroll/start-trial', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.ok).toBe(true)
-    expect(data.dashboardToken).toBe('dash-1')
+    expect(data.dashboardToken).toBeNull()
     expect(activateMock).toHaveBeenCalledWith('abc', null)
+  })
+
+  it('returns dashboardToken when the pro dashboard flag is on', async () => {
+    process.env.PRO_DASHBOARD_ENABLED = 'true'
+    const res = await POST(makeRequest({ token: 'abc' }) as never)
+    const data = await res.json()
+    expect(data.dashboardToken).toBe('dash-1')
   })
 
   it('requires token', async () => {

@@ -235,6 +235,7 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
   })
 
   it('sends a welcome email with the dashboard link when payment succeeds', async () => {
+    process.env.PRO_DASHBOARD_ENABLED = 'true'
     const invitation = seedInvitation({
       status: 'pending',
       business_name: 'Acme Plumbing',
@@ -269,7 +270,40 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
     expect(sendEmailMock.mock.calls[0][2]).toContain('/dashboard/dash-token-123')
   })
 
+  it('does not send a dashboard welcome email when the pro dashboard flag is off', async () => {
+    delete process.env.PRO_DASHBOARD_ENABLED
+    const invitation = seedInvitation({
+      status: 'pending',
+      business_name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['austin'],
+    })
+    getCuratedByIdMock.mockResolvedValue({
+      id: 'curated-1',
+      name: 'Acme Plumbing',
+      dashboardToken: 'dash-token-123',
+    })
+
+    const event = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_123',
+          subscription: 'sub_test_456',
+          metadata: { invitationToken: invitation.token },
+          customer_details: { email: 'owner@acmeplumbing.test' },
+        },
+      },
+    }
+    constructEventMock.mockReturnValue(event)
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+
   it('does not send a welcome email when the curated business has no dashboard token', async () => {
+    process.env.PRO_DASHBOARD_ENABLED = 'true'
     const invitation = seedInvitation({
       status: 'pending',
       business_name: 'Acme Plumbing',

@@ -28,7 +28,15 @@ function makeParams(token: string) {
 
 describe('PATCH /api/dashboard/[token]', () => {
   beforeEach(() => {
+    process.env.PRO_DASHBOARD_ENABLED = 'true'
     updateCuratedByDashboardTokenMock.mockReset()
+  })
+
+  it('returns 404 when the pro dashboard feature flag is off', async () => {
+    delete process.env.PRO_DASHBOARD_ENABLED
+    const res = await PATCH(makeRequest({ websiteUrl: 'https://example.com' }) as never, makeParams('good-token') as never)
+    expect(res.status).toBe(404)
+    expect(updateCuratedByDashboardTokenMock).not.toHaveBeenCalled()
   })
 
   it('updates only the allow-listed fields for a valid token', async () => {

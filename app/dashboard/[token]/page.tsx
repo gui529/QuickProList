@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { isProDashboardEnabled } from '@/lib/feature-flags'
 import { getCuratedByDashboardToken } from '@/lib/kv'
 import { listInvitations } from '@/lib/invitations'
 import { deriveStatus, type BusinessReport } from '@/lib/reports'
@@ -39,6 +40,8 @@ export default async function BusinessDashboardPage({
 }: {
   params: Promise<{ token: string }>
 }) {
+  if (!isProDashboardEnabled()) notFound()
+
   const { token } = await params
   const business = await getCuratedByDashboardToken(token)
   if (!business) notFound()
