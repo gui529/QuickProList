@@ -37,6 +37,7 @@ describe('POST /api/enroll/start-trial', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.ok).toBe(true)
+    expect(data.curatedBusinessId).toBe('cur-1')
     expect(data.dashboardToken).toBeNull()
     expect(activateMock).toHaveBeenCalledWith('abc', null)
   })

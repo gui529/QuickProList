@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       trialEndsAt: result.trialEndsAt,
+      curatedBusinessId: result.curatedBusinessId,
       dashboardToken: isProDashboardEnabled() ? result.dashboardToken : null,
     })
   } catch (err) {

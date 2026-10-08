@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import EnrollListingPreview from '@/components/EnrollListingPreview'
 import { CATEGORIES } from '@/lib/categories'
+import { buildEnrollHomeUrl } from '@/lib/enroll-home-url'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
 interface Props {
@@ -20,18 +21,6 @@ interface Props {
   proDashboardEnabled?: boolean
 }
 
-function formatTrialEnd(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  } catch {
-    return iso
-  }
-}
-
 export default function EnrollClient({
   invitation,
   token,
@@ -41,9 +30,7 @@ export default function EnrollClient({
   const [step, setStep] = useState<'preview' | 'checkout'>('preview')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [trialStarted, setTrialStarted] = useState(false)
   const [localDashboardToken, setLocalDashboardToken] = useState<string | null>(dashboardToken ?? null)
-  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(invitation.trial_ends_at)
 
   const [success] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -53,7 +40,12 @@ export default function EnrollClient({
   const categoryLabel = CATEGORIES.find((c) => c.value === invitation.category)?.label || invitation.category
   const effectiveDashboardToken =
     proDashboardEnabled ? (localDashboardToken ?? dashboardToken ?? null) : null
-  const onTrial = (invitation.status === 'trial' || trialStarted) && step !== 'checkout'
+  useEffect(() => {
+    if (invitation.status !== 'trial' || success) return
+    window.location.replace(
+      buildEnrollHomeUrl(invitation, invitation.curated_business_id)
+    )
+  }, [invitation, success])
 
   async function handleStartPreview() {
     setLoading(true)
@@ -70,9 +62,8 @@ export default function EnrollClient({
         setLoading(false)
         return
       }
-      setTrialStarted(true)
-      setTrialEndsAt(data.trialEndsAt ?? null)
-      if (proDashboardEnabled && data.dashboardToken) setLocalDashboardToken(data.dashboardToken)
+      window.location.href = buildEnrollHomeUrl(invitation, data.curatedBusinessId)
+      return
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     }
@@ -132,37 +123,10 @@ export default function EnrollClient({
     )
   }
 
-  if (onTrial) {
-    const endLabel = trialEndsAt ? formatTrialEnd(trialEndsAt) : 'soon'
+  if (invitation.status === 'trial' && step !== 'checkout') {
     return (
-      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-emerald-50 to-emerald-100 px-4">
-        <div className="text-center max-w-lg">
-          <div className="text-6xl mb-4">✓</div>
-          <h1 className="text-4xl font-bold text-emerald-900 mb-2">You&apos;re live on QuickProList</h1>
-          <p className="text-emerald-700 mb-4">
-            {invitation.business_name} is pinned in search for {invitation.cities.join(', ')} through{' '}
-            <strong>{endLabel}</strong> — your free preview window.
-          </p>
-          <p className="text-sm text-emerald-600 mb-6">
-            When you&apos;re ready, you can subscribe at ${invitation.monthly_price.toFixed(2)}/month to stay listed
-            after the preview.
-          </p>
-          {effectiveDashboardToken && (
-            <Link
-              href={`/dashboard/${effectiveDashboardToken}`}
-              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-colors"
-            >
-              View your dashboard
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={() => setStep('checkout')}
-            className="block w-full mt-4 text-sm text-emerald-800 underline hover:text-emerald-950"
-          >
-            Subscribe now — skip waiting until preview ends
-          </button>
-        </div>
+      <div className="min-h-screen grid place-items-center bg-slate-50 px-4">
+        <p className="text-slate-600">Taking you to QuickProList…</p>
       </div>
     )
   }

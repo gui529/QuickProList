@@ -49,8 +49,9 @@ Campaign email **requires** `city` and `category` on the send payload (`app/api/
 
 ### 3. Trial active
 
-- Success UI with trial end date and dashboard link when `status === 'trial'`.
-- Optional path to checkout to subscribe before preview ends.
+- After **start trial**, browser redirects to `/?location=…&category=…` (with `highlight=` when known) so the pro sees homeowner search.
+- Revisiting `/enroll/[token]` while `status === 'trial'` redirects the same way.
+- Checkout step remains available if they return to enroll URL and navigate to subscribe (or use Stripe from admin).
 
 ### 4. Checkout step
 
