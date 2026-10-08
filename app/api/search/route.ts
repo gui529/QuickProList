@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { SearchLocation } from '@/lib/business'
 import { getMergedResults } from '@/lib/search'
 import { NOT_OPEN_MESSAGE, formatTown, resolveOpenTown } from '@/lib/open-towns'
-import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
+import { checkRateLimit, getClientIp, rateLimitResponse, searchRateLimitMax } from '@/lib/rate-limit'
 import { toPublicBusiness } from '@/lib/public-business'
 
 export async function GET(req: NextRequest) {
   const ip = getClientIp(req)
-  if (!checkRateLimit(`search:${ip}`, 10)) return rateLimitResponse()
+  // Avoid one shared bucket for every client when a proxy omits IP headers.
+  if (ip !== 'unknown' && !checkRateLimit(`search:${ip}`, searchRateLimitMax())) {
+    return rateLimitResponse()
+  }
   const sp = req.nextUrl.searchParams
   const location = sp.get('location')?.trim()
   const lat = sp.get('lat')

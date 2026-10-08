@@ -83,8 +83,27 @@ export function getRateLimitStore(): RateLimitStore {
 }
 
 export function getClientIp(req: { headers: { get(name: string): string | null } }): string {
-  const forwarded = req.headers.get('x-forwarded-for')
-  return (forwarded ? forwarded.split(',')[0] : 'unknown').trim()
+  const candidates = [
+    req.headers.get('x-forwarded-for'),
+    req.headers.get('x-real-ip'),
+    req.headers.get('cf-connecting-ip'),
+  ]
+  for (const raw of candidates) {
+    if (!raw?.trim()) continue
+    const ip = raw.split(',')[0].trim()
+    if (ip) return ip
+  }
+  return 'unknown'
+}
+
+/** Read-only homeowner search — generous default; override with SEARCH_RATE_LIMIT_PER_MINUTE. */
+export function searchRateLimitMax(): number {
+  const raw = process.env.SEARCH_RATE_LIMIT_PER_MINUTE?.trim()
+  if (raw) {
+    const n = parseInt(raw, 10)
+    if (Number.isFinite(n) && n > 0) return n
+  }
+  return 120
 }
 
 /**

@@ -98,7 +98,11 @@ function HomePageInner() {
       const res = await fetch(`/api/search?${params.toString()}`)
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error ?? 'Something went wrong.')
+        if (res.status === 429) {
+          setError('Too many searches at once. Please wait a minute and try again.')
+        } else {
+          setError(data.error ?? 'Something went wrong.')
+        }
       } else {
         setResults((data.businesses ?? []).slice(0, 3))
         setHighlightId(highlight ?? '')

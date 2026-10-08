@@ -4,6 +4,7 @@ import {
   checkRateLimit,
   getClientIp,
   getRateLimitStore,
+  searchRateLimitMax,
   setRateLimitStore,
   type RateLimitStore,
 } from './rate-limit'
@@ -105,5 +106,21 @@ describe('getClientIp', () => {
   it('falls back to "unknown" when the header is missing', () => {
     const req = { headers: { get: () => null } }
     expect(getClientIp(req)).toBe('unknown')
+  })
+
+  it('uses x-real-ip when x-forwarded-for is absent', () => {
+    const req = {
+      headers: {
+        get: (name: string) => (name === 'x-real-ip' ? '203.0.113.9' : null),
+      },
+    }
+    expect(getClientIp(req)).toBe('203.0.113.9')
+  })
+})
+
+describe('searchRateLimitMax', () => {
+  it('defaults to 120 per minute', () => {
+    delete process.env.SEARCH_RATE_LIMIT_PER_MINUTE
+    expect(searchRateLimitMax()).toBe(120)
   })
 })
