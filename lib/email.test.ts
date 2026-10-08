@@ -15,9 +15,26 @@ vi.mock('./suppressions', async (orig) => ({
   isSuppressed: isSuppressedMock,
 }))
 
-import { sendEmail, sendDigestEmail } from './email'
+import { buildMarketingEmailSubject, formatFromAddress, sendEmail, sendDigestEmail } from './email'
 import { SuppressedError } from './suppressions'
 import { verifyUnsubscribeToken } from './unsubscribe'
+
+describe('formatFromAddress', () => {
+  it('wraps bare addresses', () => {
+    expect(formatFromAddress('hello@contact.example.com')).toBe('QuickProList <hello@contact.example.com>')
+  })
+  it('leaves preformatted values alone', () => {
+    expect(formatFromAddress('Team <team@example.com>')).toBe('Team <team@example.com>')
+  })
+})
+
+describe('buildMarketingEmailSubject', () => {
+  it('includes city and category labels', () => {
+    expect(buildMarketingEmailSubject('Biz', { city: 'marietta', category: 'homecleaning' })).toBe(
+      'Biz — Cleaners in Marietta'
+    )
+  })
+})
 
 describe('sendEmail (lib/email.ts)', () => {
   beforeEach(() => {
@@ -29,6 +46,25 @@ describe('sendEmail (lib/email.ts)', () => {
     process.env.SITE_URL = 'https://example.test'
     isSuppressedMock.mockReset()
     isSuppressedMock.mockResolvedValue(false)
+  })
+
+  it('formats From with a display name and uses a plain marketing subject', async () => {
+    await sendEmail('owner@example.com', 'Acme Plumbing', 'Hello', {
+      city: 'marietta',
+      category: 'plumbing',
+    })
+
+    const call = sendMock.mock.calls[0][0]
+    expect(call.from).toBe('QuickProList <noreply@example.com>')
+    expect(call.subject).toBe('Acme Plumbing — Plumbers in Marietta')
+    expect(call.subject).not.toMatch(/🏠|\$29/)
+  })
+
+  it('uses a transactional subject for payment notices', async () => {
+    await sendEmail('owner@example.com', 'Acme', "We weren't able to process your payment.", {
+      kind: 'transactional',
+    })
+    expect(sendMock.mock.calls[0][0].subject).toBe('QuickProList payment issue — action needed')
   })
 
   it('escapes HTML-unsafe characters in businessName and body lines before interpolating into the HTML email', async () => {

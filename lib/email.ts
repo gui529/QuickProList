@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { formatCategoryLabel, formatCityLabel } from './display'
 import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
 import { buildUnsubscribeUrl } from './unsubscribe'
 
@@ -15,6 +16,27 @@ function getClient() {
   const key = process.env.RESEND_API_KEY
   if (!key) throw new Error('RESEND_API_KEY not configured')
   return new Resend(key)
+}
+
+/** Resend accepts `Name <addr@domain>`; bare env values get a consistent display name. */
+export function formatFromAddress(raw: string): string {
+  const trimmed = raw.trim()
+  if (/^[^<]+<.+>$/.test(trimmed)) return trimmed
+  return `QuickProList <${trimmed}>`
+}
+
+export function buildMarketingEmailSubject(businessName: string, opts: SendEmailOptions): string {
+  const city = opts.city ? formatCityLabel(opts.city) : null
+  const category = opts.category ? formatCategoryLabel(opts.category) : null
+  if (city && category) return `${businessName} — ${category} in ${city}`
+  if (city) return `${businessName} — QuickProList in ${city}`
+  return `QuickProList listing for ${businessName}`
+}
+
+function buildTransactionalEmailSubject(businessName: string, body: string): string {
+  if (body.includes('dashboard:')) return 'Your QuickProList dashboard is ready'
+  if (body.includes("weren't able to process")) return 'QuickProList payment issue — action needed'
+  return `QuickProList — ${businessName}`
 }
 
 /**
@@ -59,6 +81,8 @@ export interface SendEmailOptions {
   category?: string
   city?: string
   enrollUrl?: string
+  /** Overrides default subject (marketing vs transactional). */
+  subject?: string
 }
 
 export async function sendEmail(
@@ -67,16 +91,18 @@ export async function sendEmail(
   body: string,
   opts: SendEmailOptions = {}
 ): Promise<string> {
-  const from = process.env.RESEND_FROM_EMAIL
-  if (!from) throw new Error('RESEND_FROM_EMAIL not configured')
+  const fromRaw = process.env.RESEND_FROM_EMAIL
+  if (!fromRaw) throw new Error('RESEND_FROM_EMAIL not configured')
+  const from = formatFromAddress(fromRaw)
+  const isMarketing = (opts.kind ?? 'marketing') === 'marketing'
 
   let compliance: ComplianceFooter | null = null
-  if ((opts.kind ?? 'marketing') === 'marketing') {
+  if (isMarketing) {
     const normalized = normalizeEmail(to)
     if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
     compliance = marketingCompliance(
       to,
-      'You received this because your business is a local service provider we think would be a good fit for QuickProList.'
+      'You received this one-time note because your business offers home services in an area we cover on QuickProList.'
     )
   }
 
@@ -87,7 +113,7 @@ export async function sendEmail(
       : null
 
   const ctaUrl = opts.enrollUrl ?? searchUrl ?? siteUrl
-  const ctaLabel = opts.enrollUrl ? 'Claim Your Spot on QuickProList →' : 'See What Your Listing Looks Like →'
+  const ctaLabel = opts.enrollUrl ? 'Complete your listing' : 'See listings in your area'
 
   const paragraphs = body
     .split('\n')
@@ -117,25 +143,16 @@ export async function sendEmail(
 
     <!-- Body -->
     <div style="padding:36px 40px">
-      <p style="margin:0 0 6px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#f59e0b">Featured Listing Opportunity</p>
-      <h1 style="margin:0 0 24px;font-size:24px;font-weight:800;color:#0f172a;line-height:1.2">Hi ${escapeHtml(businessName)}!</h1>
+      ${isMarketing ? `<p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#64748b">Local home services</p>` : ''}
+      <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#0f172a;line-height:1.3">Hi ${escapeHtml(businessName)},</h1>
 
       ${paragraphs}
 
-      <!-- Pricing card -->
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px 24px;margin:24px 0">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-          <div>
-            <p style="margin:0 0 4px;font-size:13px;color:#92400e;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Permanent Listing</p>
-            <p style="margin:0;font-size:28px;font-weight:900;color:#0f172a">$29.99<span style="font-size:14px;font-weight:500;color:#64748b">/month</span></p>
-          </div>
-          <ul style="margin:0;padding:0;list-style:none">
-            <li style="font-size:13px;color:#334155;margin-bottom:6px">✓ &nbsp;Show up in local searches</li>
-            <li style="font-size:13px;color:#334155;margin-bottom:6px">✓ &nbsp;Dedicated pro profile page</li>
-            <li style="font-size:13px;color:#334155">✓ &nbsp;Cancel anytime</li>
-          </ul>
-        </div>
-      </div>
+      ${
+        isMarketing
+          ? `<p style="margin:20px 0 0;font-size:14px;line-height:1.6;color:#64748b">Pinned listings are $29.99/month. Cancel anytime.</p>`
+          : ''
+      }
 
       <!-- CTA button -->
       <div style="text-align:center;margin:28px 0">
@@ -171,11 +188,15 @@ export async function sendEmail(
 </body>
 </html>`
 
+  const subject =
+    opts.subject ??
+    (isMarketing ? buildMarketingEmailSubject(businessName, opts) : buildTransactionalEmailSubject(businessName, body))
+
   const client = getClient()
   const { data, error } = await client.emails.send({
     from,
     to,
-    subject: `🏠 Feature ${businessName} on QuickProList — $29.99/mo`,
+    subject,
     html,
     text:
       body +
@@ -216,8 +237,9 @@ export async function sendDigestEmail(
   businessName: string,
   stats: DigestStats
 ): Promise<string> {
-  const from = process.env.RESEND_FROM_EMAIL
-  if (!from) throw new Error('RESEND_FROM_EMAIL not configured')
+  const fromRaw = process.env.RESEND_FROM_EMAIL
+  if (!fromRaw) throw new Error('RESEND_FROM_EMAIL not configured')
+  const from = formatFromAddress(fromRaw)
 
   const normalized = normalizeEmail(to)
   if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)

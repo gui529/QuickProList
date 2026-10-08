@@ -1,7 +1,7 @@
 import { isDatabaseConfigured, query } from './db'
 
 export const DEFAULT_MESSAGE =
-  "Hi, I'm Jeremy from QuickProList. We'd like to feature your business on our website this month! Interested in a permanent listing? It's just $29.99/month. Reply STOP to opt out."
+  'Hi — we help homeowners find local home-service pros on QuickProList. If you would like to be listed in your area, I can send details. No obligation.'
 
 export interface CampaignContact {
   id: string
