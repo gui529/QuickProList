@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+## Git branches
+
+- Do all repo work on **`dev`** (`git checkout dev`, pull before you start).
+- **`main`** auto-deploys production — **never** merge or push to `main` unless the owner explicitly asks to promote `dev` → `main`.
+
 ## Backlog
 
 Open work for cloud agents lives in [GitHub Issues](https://github.com/gui529/QuickProList/issues),
@@ -28,6 +33,9 @@ Required in `.env.local`:
 - `AUTH_SECRET` — Auth.js (next-auth v5) JWT signing secret (`npx auth secret`)
 - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth web client credentials
 - `AUTH_TRUST_HOST=true` — only if Auth.js rejects the host (not needed on Vercel)
+
+Optional (local agents / DNS ops, not required for the app runtime):
+- `IMPROVMX_API_KEY` — ImprovMX API for inbound alias/DNS verify ([inbox setup](docs/inbox-improvmx-namecheap.md))
 
 ## Architecture
 

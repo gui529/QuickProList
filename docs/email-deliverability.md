@@ -1,6 +1,12 @@
 # Email deliverability — QuickProList
 
-Last updated: 2026-10-08.
+Last updated: 2026-10-09.
+
+## Inbound (replies & contact@)
+
+All mail to `*@quickprolist.com` is forwarded via **ImprovMX** to `gui529@hotmail.com` (catch-all alias). Apex MX/SPF point at ImprovMX; Resend outbound records on `send` / DKIM are separate.
+
+Full setup, API checks, and troubleshooting: [inbox-improvmx-namecheap.md](./inbox-improvmx-namecheap.md).
 
 ## Current Resend status
 
