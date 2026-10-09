@@ -11,7 +11,7 @@ From the marketing-agent pass (Resend + `lib/email.ts`). Goal: inbox placement, 
 - [x] **Resend domains** — `contact.quickprolist.com` is **verified** (inbound receiving disabled in Resend). Apex `quickprolist.com` still **not_started**.
 - [x] **DNS (contact)** — Inbound MX removed via Resend (receiving disabled).
 - [ ] **DNS (apex)** — Publish Resend records at registrar — see `docs/email-deliverability.md`.
-- [ ] **From address (Vercel prod)** — Set `RESEND_FROM_EMAIL` to `hello@contact.quickprolist.com` (code adds `QuickProList` display name).
+- [ ] **From address (Vercel prod)** — `RESEND_FROM_EMAIL=jeremy@quickprolist.com` and `CAMPAIGN_SENDER_NAME=Jeremy` on Production (and Preview/Dev if you send tests from there).
 - [x] **Subject + body (code)** — Plain subjects, softer template, shorter default campaign text on `dev`.
 - [ ] **Send tests** — Outlook (Hotmail) first, then mail-tester if needed, after prod env + DNS.
 

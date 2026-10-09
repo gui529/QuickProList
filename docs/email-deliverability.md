@@ -11,7 +11,7 @@ Last updated: 2026-10-08.
 
 ## Production env (Vercel)
 
-- `RESEND_FROM_EMAIL` — use a clean address on the **verified** subdomain, e.g. `hello@contact.quickprolist.com` (not `contact@contact.quickprolist.com`). Code adds display name `QuickProList <…>` automatically when the env value is a bare address.
+- `RESEND_FROM_EMAIL` — verified address on **apex** `quickprolist.com`, e.g. `jeremy@quickprolist.com` (person-like outreach). Set `CAMPAIGN_SENDER_NAME=Jeremy` so campaigns send as `Jeremy <jeremy@quickprolist.com>`; transactional mail uses `QuickProList <jeremy@quickprolist.com>` when the env value is bare.
 - `UNSUBSCRIBE_SECRET` (or `CRON_SECRET`) — required for marketing footers with one-click unsubscribe.
 
 ## Apex DNS (optional but recommended)
