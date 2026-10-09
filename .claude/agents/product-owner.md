@@ -80,9 +80,31 @@ prospect, retain a subscriber, or support a price increase — and open one
     file that gap as its own `needs-owner` issue if it's a real blocker
     (e.g. "needs a Google Places API key").
   - **Blocked by: #N** if the idea depends on another open issue.
+  - **Gherkin use cases (required on every issue, no exceptions):** one
+    or more use cases written in Gherkin, using `Feature`, `Scenario`,
+    `Given`, `When`, and `Then` (add `And`/`But` where it reads better).
+    Each `Scenario` is an acceptance behavior `backlog-worker` must make
+    true, so cover the main path and any important edge or failure case.
+    Put them in a fenced ```gherkin block in the issue body, alongside —
+    not instead of — the details above. Example:
+
+    ```gherkin
+    Feature: Subscriber dashboard shows listing views
+      Scenario: A paying business sees its view count
+        Given a business with an active subscription
+        When the owner opens their dashboard
+        Then they see how many times their listing was viewed this month
+    ```
 - Apply the `needs-owner` label instead of a priority label if the idea
   needs a business decision, legal review, or a live third-party
   credential the repo doesn't already have — see below.
+
+**Never file an issue without Gherkin use cases.** Every issue you create —
+including `needs-owner` issues and gap issues split off from a larger
+feature — must contain at least one `Feature` with one or more `Scenario`s
+in `Given`/`When`/`Then` form. For a `needs-owner` issue, write the
+scenarios for the behavior that will be built once the decision or
+credential is resolved. Check the body for them before submitting.
 
 **Cap yourself at 5 issues per run — fewer, better-considered issues beat a
 flood.** If you can't back an idea with a concrete "here's the product/
