@@ -14,10 +14,10 @@ export default function CampaignQueueTab() {
     try {
       const res = await fetch('/api/campaigns/prospects')
       const raw = await res.text()
-      const data = raw
+      const data: { prospects?: CampaignProspectClient[]; error?: string } = raw
         ? (JSON.parse(raw) as { prospects?: CampaignProspectClient[]; error?: string })
-        : ({} as { error?: string })
-      if (!res.ok) throw new Error(data.error ?? res.statusText || `HTTP ${res.status}`)
+        : {}
+      if (!res.ok) throw new Error(data.error ?? (res.statusText || `HTTP ${res.status}`))
       setProspects(data.prospects ?? [])
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -37,7 +37,7 @@ export default function CampaignQueueTab() {
       const res = await fetch(path, { method: 'POST' })
       const raw = await res.text()
       const data = raw ? (JSON.parse(raw) as { error?: string }) : {}
-      if (!res.ok) throw new Error(data.error ?? res.statusText || `HTTP ${res.status}`)
+      if (!res.ok) throw new Error(data.error ?? (res.statusText || `HTTP ${res.status}`))
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
