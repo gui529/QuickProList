@@ -48,7 +48,7 @@ export default function CampaignQueueTab() {
 
   async function sendAllApproved() {
     if (!confirm('Send campaign email to every approved prospect?')) return
-    const approved = prospects.filter((p) => p.status === 'approved')
+    const approved = prospects.filter((p) => p.status === 'approved' || p.status === 'failed')
     for (const p of approved) {
       await action(`/api/campaigns/prospects/${p.id}/send`, p.id)
     }
@@ -128,14 +128,14 @@ export default function CampaignQueueTab() {
                     </button>
                   </>
                 )}
-                {p.status === 'approved' && (
+                {(p.status === 'approved' || p.status === 'failed') && (
                   <button
                     type="button"
                     disabled={busyId === p.id}
                     onClick={() => action(`/api/campaigns/prospects/${p.id}/send`, p.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white disabled:opacity-50"
                   >
-                    Send email
+                    {p.status === 'failed' ? 'Retry send' : 'Send email'}
                   </button>
                 )}
               </div>

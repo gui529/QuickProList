@@ -22,7 +22,7 @@ export async function POST(
   const { id } = await context.params
   const row = await getCampaignProspect(id)
   if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (row.status !== 'approved') {
+  if (row.status !== 'approved' && row.status !== 'failed') {
     return NextResponse.json({ error: 'Approve before sending' }, { status: 400 })
   }
 

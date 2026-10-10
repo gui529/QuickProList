@@ -124,15 +124,26 @@ export async function setCampaignProspectStatus(
 ): Promise<CampaignProspectClient | null> {
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   const sentAt = status === 'sent' ? new Date().toISOString() : null
+  const clearError = status === 'approved' || status === 'sent'
+  const errorMessage =
+    extra?.errorMessage !== undefined
+      ? extra.errorMessage
+      : clearError
+        ? null
+        : undefined
   const rows = await query<CampaignProspect>(
     `UPDATE campaign_prospects
      SET status = $2,
-         error_message = COALESCE($3, error_message),
+         error_message = CASE
+           WHEN $3::text IS NOT NULL THEN $3
+           WHEN $5 THEN NULL
+           ELSE error_message
+         END,
          sent_at = COALESCE($4, sent_at),
          updated_at = NOW()
      WHERE id = $1
      RETURNING *`,
-    [id, status, extra?.errorMessage ?? null, sentAt]
+    [id, status, errorMessage ?? null, sentAt, clearError && extra?.errorMessage === undefined]
   )
   return rows[0] ? rowToClient(rows[0]) : null
 }
