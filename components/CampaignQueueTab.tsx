@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import type { CampaignProspectClient } from '@/lib/campaign-prospects'
+import { CampaignContactLines, ProResponseBadge } from '@/components/CampaignContactLines'
 
 export default function CampaignQueueTab() {
   const [prospects, setProspects] = useState<CampaignProspectClient[]>([])
@@ -102,9 +103,10 @@ export default function CampaignQueueTab() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold truncate">{p.businessName}</span>
                   <StatusBadge status={p.status} />
+                  <ProResponseBadge response={p.proResponse} />
                 </div>
-                <p className="text-sm text-slate-600 truncate">{p.email}</p>
-                <p className="text-xs text-slate-500">{p.city} · {p.category}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{p.city} · {p.category}</p>
+                <CampaignContactLines email={p.email} phone={p.phone} website={p.website} />
                 {p.errorMessage && <p className="text-xs text-rose-600 mt-1">{p.errorMessage}</p>}
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">

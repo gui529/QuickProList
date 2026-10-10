@@ -14,7 +14,7 @@ Tabs:
 
 - **Queue** — `CampaignQueueTab` — `campaign_prospects` in Neon (approve / send)
 - **Send** — `CampaignTab` — one-off manual outreach
-- **Reports** — `CampaignReportsTab` (Resend engagement when configured)
+- **Reports** — `CampaignReportsTab` — sent outreach log; **Mark approved** when the pro replies yes (stores `pro_response` on `campaign_contacts`)
 
 **AI discovery** is a separate local worker in **`outreach/`** (not deployed). It inserts rows via `POST /api/campaigns/prospects` (bearer). See [outreach-project.md](../outreach-project.md).
 

@@ -32,6 +32,8 @@ export async function POST(
       email: row.email,
       category: row.category,
       city: row.city,
+      phone: row.phone ?? undefined,
+      website: row.website ?? undefined,
     })
     if (result.status === 'failed') {
       const prospect = await setCampaignProspectStatus(id, 'failed', {

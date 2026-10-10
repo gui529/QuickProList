@@ -35,7 +35,10 @@ export interface AddCampaignProspectInput {
   searchQuery?: string
 }
 
-function rowToClient(row: CampaignProspect) {
+function rowToClient(
+  row: CampaignProspect,
+  extras?: { proResponse?: 'yes' | 'no' | null }
+) {
   return {
     id: row.id,
     businessName: row.business_name,
@@ -51,7 +54,25 @@ function rowToClient(row: CampaignProspect) {
     sentAt: row.sent_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    proResponse: extras?.proResponse ?? null,
   }
+}
+
+async function latestProResponseByEmail(
+  emails: string[]
+): Promise<Map<string, 'yes' | 'no' | null>> {
+  const normalized = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))]
+  if (!normalized.length) return new Map()
+  const rows = await query<{ email: string; pro_response: 'yes' | 'no' | null }>(
+    `SELECT DISTINCT ON (lower(trim(email)))
+       lower(trim(email)) AS email,
+       pro_response
+     FROM campaign_contacts
+     WHERE lower(trim(email)) = ANY($1::text[])
+     ORDER BY lower(trim(email)), sent_at DESC`,
+    [normalized]
+  )
+  return new Map(rows.map((r) => [r.email, r.pro_response]))
 }
 
 export type CampaignProspectClient = ReturnType<typeof rowToClient>
@@ -70,7 +91,10 @@ export async function listCampaignProspects(
          WHERE status <> 'rejected'
          ORDER BY created_at DESC`
       )
-  return rows.map(rowToClient)
+  const proByEmail = await latestProResponseByEmail(rows.map((r) => r.email))
+  return rows.map((row) =>
+    rowToClient(row, { proResponse: proByEmail.get(row.email.trim().toLowerCase()) ?? null })
+  )
 }
 
 export async function getCampaignProspect(id: string): Promise<CampaignProspectClient | null> {

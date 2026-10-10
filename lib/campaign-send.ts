@@ -11,6 +11,8 @@ export interface SendCampaignEmailInput {
   city: string
   yelpId?: string
   message?: string
+  phone?: string
+  website?: string
 }
 
 export interface SendCampaignEmailResult {
@@ -83,6 +85,8 @@ export async function sendCampaignEmail(
     yelpId: input.yelpId?.trim() || undefined,
     businessName,
     email,
+    phone: input.phone?.trim() || undefined,
+    website: input.website?.trim() || undefined,
     channel: 'email',
     category,
     city,

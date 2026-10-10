@@ -36,6 +36,9 @@ export async function recordContact(input: RecordContactInput): Promise<Campaign
     status: input.status,
     error_message: input.errorMessage ?? null,
     invitation_token: input.invitationToken ?? null,
+    website: input.website ?? null,
+    pro_response: null,
+    pro_response_at: null,
     sent_at: new Date().toISOString(),
   }
   contacts.push(contact)
