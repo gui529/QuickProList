@@ -37,6 +37,12 @@ Required in `.env.local`:
 Optional (local agents / DNS ops, not required for the app runtime):
 - `IMPROVMX_API_KEY` — ImprovMX API for inbound alias/DNS verify ([inbox setup](docs/inbox-improvmx-namecheap.md))
 
+Optional (campaign outreach):
+- `CAMPAIGN_SENDER_NAME` — e.g. `Jeremy` for outreach From line and `{senderIntro}`
+- `CAMPAIGN_OUTREACH_SECRET` — bearer token for local `outreach/` CLI → `POST /api/campaigns/send` (set on Vercel too for prod sends)
+
+Local outreach: `outreach/` discovery worker pushes to `campaign_prospects` via `POST /api/campaigns/prospects` + `CAMPAIGN_OUTREACH_SECRET`. Admin **Campaigns → Queue** approves/sends. See [docs/outreach-project.md](docs/outreach-project.md).
+
 ## Architecture
 
 **Next.js 16 App Router** — `params` and `searchParams` in page components are Promises and must be awaited.

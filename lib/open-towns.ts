@@ -32,6 +32,7 @@ export const OPEN_TOWNS: readonly OpenTown[] = [
   { name: 'Mableton', slug: 'mableton' },
   { name: 'Ball Ground', slug: 'ball ground' },
   { name: 'Alpharetta', slug: 'alpharetta' },
+  { name: 'Atlanta', slug: 'atlanta' },
 ]
 
 export const OPEN_AREA_STATE = 'GA'
@@ -58,19 +59,25 @@ export function formatTown(town: OpenTown): string {
   return `${town.name}, ${OPEN_AREA_STATE}`
 }
 
-/** Natural phrase for campaign copy, e.g. "Acworth, Marietta, Kennesaw, and nearby towns". */
+/** Natural phrase for campaign copy, e.g. "Atlanta, Marietta, Acworth, Kennesaw, and nearby towns". */
 export function formatCampaignAreasPhrase(citySlug?: string | null): string {
-  const names = OPEN_TOWNS.map((t) => t.name)
+  const openNames = new Set(OPEN_TOWNS.map((t) => t.name.toLowerCase()))
   const firstSegment = citySlug?.trim().split(',')[0]?.trim().toLowerCase()
-  const highlight = firstSegment
-    ? OPEN_TOWNS.find((t) => t.slug === firstSegment)?.name ?? null
-    : null
+  const highlight =
+    firstSegment ? OPEN_TOWNS.find((t) => t.slug === firstSegment)?.name ?? null : null
 
-  const featured = highlight
-    ? [highlight, ...names.filter((n) => n.toLowerCase() !== highlight.toLowerCase())].slice(0, 3)
-    : names.slice(0, 3)
-  const unique = [...new Set(featured)]
-  return `${unique.join(', ')}, and nearby towns`
+  const preferred = ['Atlanta', 'Marietta', 'Acworth', 'Kennesaw']
+  const seeds = [...preferred, ...(highlight ? [highlight] : []), ...OPEN_TOWNS.map((t) => t.name)]
+  const seen = new Set<string>()
+  const featured: string[] = []
+  for (const name of seeds) {
+    const key = name.toLowerCase()
+    if (!openNames.has(key) || seen.has(key)) continue
+    seen.add(key)
+    featured.push(name)
+    if (featured.length >= 4) break
+  }
+  return `${featured.join(', ')}, and nearby towns`
 }
 
 export const NOT_OPEN_MESSAGE = 'QuickProList is not open there yet. Choose a town from the list.'

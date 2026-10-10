@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { PUBLIC_CONTACT_EMAIL } from '@/lib/site-contact'
 
 // LEGAL DRAFT: pending owner/counsel review, not yet approved for production.
 // Drafted by legal-agent against the app's actual data flows as of the commit
@@ -208,8 +209,11 @@ export default function PrivacyPage() {
 
       <h2>10. Contact us</h2>
       <p>
-        Questions about this policy: <strong>[OWNER TO FILL — contact email]</strong>,{' '}
-        <strong>[OWNER TO FILL — physical postal address]</strong>.
+        Questions about this policy:{' '}
+        <a href={`mailto:${PUBLIC_CONTACT_EMAIL}`} className="text-amber-800 underline">
+          {PUBLIC_CONTACT_EMAIL}
+        </a>
+        , <strong>[OWNER TO FILL — physical postal address]</strong>.
       </p>
     </div>
   )

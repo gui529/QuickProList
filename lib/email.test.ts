@@ -89,9 +89,12 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(call.subject).toBe('Okay to add Acme Plumbing to our Marietta list?')
     expect(call.html).not.toContain('linear-gradient')
     expect(call.html).not.toContain('border-radius:50px')
-    expect(call.text).toContain('Hi Acme Plumbing,')
+    expect(call.text).toMatch(/^Hi,\n/)
+    expect(call.text).not.toContain('Hi Acme Plumbing,')
     expect(call.text).toContain('Preview what we would publish')
     expect(call.text).toContain('https://example.test/enroll/abc')
+    expect(call.text).toContain('We are going to launch soon')
+    expect(call.text).not.toContain('cancel anytime')
     expect(call.subject).not.toMatch(/🏠|\$29/)
     delete process.env.CAMPAIGN_SENDER_NAME
   })
@@ -113,7 +116,7 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(sendMock).toHaveBeenCalledTimes(1)
     const call = sendMock.mock.calls[0][0]
 
-    expect(call.html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+    expect(call.subject).toContain('<script>alert(1)</script>')
     expect(call.html).not.toContain('<script>alert(1)</script>')
     expect(call.html).toContain('Hello &lt;b&gt;there&lt;/b&gt;')
     expect(call.html).toContain('Second line &amp; &quot;quoted&quot; more')

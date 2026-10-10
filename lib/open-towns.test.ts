@@ -21,6 +21,7 @@ const OPEN_NAMES = [
   'Mableton',
   'Ball Ground',
   'Alpharetta',
+  'Atlanta',
 ]
 
 describe('open towns', () => {
@@ -31,7 +32,7 @@ describe('open towns', () => {
     expect(resolveOpenTown(name)?.slug).toBe(name.toLowerCase())
   })
 
-  it.each(['Atlanta', 'Atlanta, GA', 'Marietta, OH', 'Austin, TX', '', 'Kennesaw, GA, US'])(
+  it.each(['Marietta, OH', 'Austin, TX', '', 'Kennesaw, GA, US'])(
     'rejects %j',
     (input) => {
       expect(isOpenTown(input)).toBe(false)

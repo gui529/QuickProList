@@ -52,42 +52,47 @@ export function buildPersonalMarketingEmail(
   compliance: ComplianceFooter,
   siteUrl: string
 ): PersonalMarketingEmail {
+  const homeUrl = siteUrl.replace(/\/$/, '')
   const ctaUrl =
-    opts.enrollUrl ?? buildSearchUrl(siteUrl, opts.city, opts.category) ?? siteUrl
-  const linkIntro = opts.enrollUrl
-    ? 'Preview what we would publish (about two minutes):'
+    opts.enrollUrl ?? buildSearchUrl(homeUrl, opts.city, opts.category) ?? homeUrl
+  const actionIntro = opts.enrollUrl
+    ? 'Preview what we would publish for you (about two minutes):'
     : opts.city && opts.category
       ? `See how ${formatCategoryLabel(opts.category)} show up around ${formatCityLabel(opts.city)}:`
-      : 'QuickProList:'
+      : null
 
-  const bodyLines = body
-    .split('\n')
-    .map((line) => line.trim())
+  const bodyParagraphs = body
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s*\n\s*/g, ' ').trim())
     .filter(Boolean)
 
-  const textParts = [
-    `Hi ${businessName},`,
-    '',
-    ...bodyLines,
-    '',
-    linkIntro,
-    ctaUrl,
-    '',
-    'After the 30-day preview window, staying listed is $29.99/month if you choose to continue — cancel anytime.',
-    compliance.text.trim(),
-  ]
+  const launchNote = 'We are going to launch soon, so we are building it up right now.'
+  const pricingNote =
+    'After the 30-day preview window, staying listed is $29.99/month if you choose to continue.'
+
+  const textParts = ['Hi,', '', ...bodyParagraphs]
+  if (actionIntro && ctaUrl !== homeUrl) {
+    textParts.push('', actionIntro, ctaUrl)
+  }
+  textParts.push('', pricingNote, '', launchNote, compliance.text.trim())
 
   const text = textParts.join('\n')
 
+  const htmlLinkBlock = (intro: string, url: string) =>
+    [
+      `<p style="margin:16px 0 8px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(intro)}</p>`,
+      `<p style="margin:0 0 16px;font-size:15px;line-height:1.6"><a href="${escapeHtml(url)}" style="color:#2563eb">${escapeHtml(url)}</a></p>`,
+    ].join('\n')
+
   const htmlBody = [
-    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#222222">Hi ${escapeHtml(businessName)},</p>`,
-    ...bodyLines.map(
+    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#222222">Hi,</p>`,
+    ...bodyParagraphs.map(
       (line) =>
         `<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(line)}</p>`
     ),
-    `<p style="margin:16px 0 8px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(linkIntro)}</p>`,
-    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6"><a href="${escapeHtml(ctaUrl)}" style="color:#2563eb">${escapeHtml(ctaUrl)}</a></p>`,
-    `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">After the 30-day preview window, staying listed is $29.99/month if you choose to continue — cancel anytime.</p>`,
+    ...(actionIntro && ctaUrl !== homeUrl ? [htmlLinkBlock(actionIntro, ctaUrl)] : []),
+    `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">${escapeHtml(pricingNote)}</p>`,
+    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(launchNote)}</p>`,
     `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888">${compliance.html}</p>`,
   ].join('\n')
 

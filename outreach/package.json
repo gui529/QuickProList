@@ -1,0 +1,20 @@
+{
+  "name": "quickprolist-outreach",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local campaign dashboard for QuickProList — not part of the web app",
+  "type": "module",
+  "scripts": {
+    "dashboard": "tsx src/server.ts",
+    "find": "tsx src/cli.ts find",
+    "list": "tsx src/cli.ts list",
+    "approve": "tsx src/cli.ts approve",
+    "reject": "tsx src/cli.ts reject",
+    "send": "tsx src/cli.ts send",
+    "send-approved": "tsx src/cli.ts send-approved"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

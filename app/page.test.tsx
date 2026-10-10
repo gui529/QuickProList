@@ -112,26 +112,24 @@ describe('HomePage open area', () => {
       .getAllByRole('button')
       .map((b) => b.textContent)
     expect(offered).toEqual(OPEN_TOWNS.map((t) => t.name))
-    expect(offered).toEqual(expect.arrayContaining(['Smyrna', 'Canton', 'Fair Oaks', 'Alpharetta']))
-    expect(document.body.textContent).not.toContain('Atlanta')
+    expect(offered).toEqual(expect.arrayContaining(['Smyrna', 'Canton', 'Fair Oaks', 'Alpharetta', 'Atlanta']))
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Atl' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Zzz' } })
     expect(screen.queryByRole('list', { name: /towns/i })).toBeNull()
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it.each(['Atlanta, GA'])('shows "not open there yet" for %s and does not search', async (town) => {
-    searchParams = new URLSearchParams({ category: 'plumbing', location: town })
+  it('searches when Atlanta is in the URL', async () => {
+    searchParams = new URLSearchParams({ category: 'plumbing', location: 'Atlanta, GA' })
     render(<HomePage />)
 
-    await waitFor(() => expect(screen.getByText(/not open there yet/i)).toBeDefined())
-    expect(fetch).not.toHaveBeenCalled()
-    expect(screen.queryByText(/Plumbers in/)).toBeNull()
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    expect(screen.queryByText(/not open there yet/i)).toBeNull()
   })
 
   it('does not search from a typed town outside the area', () => {
     render(<HomePage />)
-    fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Atlanta' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Town' }), { target: { value: 'Austin' } })
     fireEvent.click(screen.getByRole('button', { name: /plumbers/i }))
 
     expect(screen.getByText(/not open there yet/i)).toBeDefined()

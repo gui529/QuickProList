@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import CampaignTab from '@/components/CampaignTab'
+import CampaignQueueTab from '@/components/CampaignQueueTab'
 import CampaignReportsTab from '@/components/CampaignReportsTab'
 
-type Tab = 'send' | 'reports'
+type Tab = 'queue' | 'send' | 'reports'
 
 export default function CampaignsClient() {
-  const [tab, setTab] = useState<Tab>('send')
+  const [tab, setTab] = useState<Tab>('queue')
 
   return (
     <div>
@@ -17,10 +18,12 @@ export default function CampaignsClient() {
       </div>
 
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit mb-6">
+        <TabButton active={tab === 'queue'} onClick={() => setTab('queue')}>Queue</TabButton>
         <TabButton active={tab === 'send'} onClick={() => setTab('send')}>Send</TabButton>
         <TabButton active={tab === 'reports'} onClick={() => setTab('reports')}>Reports</TabButton>
       </div>
 
+      {tab === 'queue' && <CampaignQueueTab />}
       {tab === 'send' && <CampaignTab />}
       {tab === 'reports' && <CampaignReportsTab />}
     </div>

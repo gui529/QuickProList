@@ -135,12 +135,14 @@ describe('getMergedResults', () => {
     }
   )
 
-  it.each(['Atlanta, GA', 'Marietta, OH'])(
-    'returns nothing for the unopened location %s',
-    async (location) => {
-      __seed({ category: 'plumbing', cities: ['marietta'] })
+  it('shares the opened-town pool for Atlanta, GA', async () => {
+    const pro = __seed({ category: 'plumbing', cities: ['marietta'] })
+    const results = await getMergedResults({ location: 'Atlanta, GA' }, 'plumbing')
+    expect(results.map((b) => b.id)).toEqual([pro.id])
+  })
 
-      await expect(getMergedResults({ location }, 'plumbing')).resolves.toEqual([])
-    }
-  )
+  it('returns nothing for an unopened location', async () => {
+    __seed({ category: 'plumbing', cities: ['marietta'] })
+    await expect(getMergedResults({ location: 'Marietta, OH' }, 'plumbing')).resolves.toEqual([])
+  })
 })

@@ -21,7 +21,22 @@ describe('expandCampaignMessage', () => {
 
   it('expands {areas} from open towns', () => {
     const out = expandCampaignMessage('{areas}', { businessName: 'Biz', city: 'marietta' })
+    expect(out).toContain('Atlanta')
     expect(out).toContain('Marietta')
     expect(out).toContain('nearby towns')
+  })
+
+  it('expands {senderIntro} from CAMPAIGN_SENDER_NAME', () => {
+    process.env.CAMPAIGN_SENDER_NAME = 'Jeremy'
+    const out = expandCampaignMessage('{senderIntro}', { businessName: 'Biz' })
+    expect(out).toBe("I'm Jeremy with QuickProList")
+    delete process.env.CAMPAIGN_SENDER_NAME
+  })
+
+  it('expands {siteUrl} from SITE_URL', () => {
+    process.env.SITE_URL = 'https://example.test/'
+    const out = expandCampaignMessage('Visit {siteUrl}', { businessName: 'Biz' })
+    expect(out).toBe('Visit https://example.test')
+    delete process.env.SITE_URL
   })
 })

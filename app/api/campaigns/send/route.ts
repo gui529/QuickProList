@@ -1,29 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AuthError, requireAdmin } from '@/lib/auth'
+import { gateAdminOrOutreach } from '@/lib/outreach-auth'
 import { recordContact, DEFAULT_MESSAGE, expandCampaignMessage } from '@/lib/campaigns'
+import { sendCampaignEmail } from '@/lib/campaign-send'
 import { sendSms, normalizePhone, SmsDisabledError } from '@/lib/sms'
 import { SuppressedError, isSuppressed, normalizeEmail } from '@/lib/suppressions'
-import { sendEmail } from '@/lib/email'
-import { createInvitation } from '@/lib/invitations'
 import { errorMessage as toErrorMessage } from '@/lib/errors'
 
 export const maxDuration = 60
 
-async function gate(): Promise<NextResponse | null> {
-  try {
-    await requireAdmin()
-    return null
-  } catch (err) {
-    if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.status })
-    }
-    throw err
-  }
-}
-
 export async function POST(req: NextRequest) {
-  const denied = await gate()
-  if (denied) return denied
+  const denied = await gateAdminOrOutreach(req)
+  if (denied) {
+    return NextResponse.json({ error: denied.error }, { status: denied.status })
+  }
 
   let body: {
     channel?: string
@@ -82,27 +71,6 @@ export async function POST(req: NextRequest) {
   let status: 'sent' | 'failed' = 'sent'
   let errorMessage: string | undefined
   let normalizedPhone: string | undefined
-  let invitationToken: string | undefined
-  let enrollUrl: string | undefined
-
-  // Auto-create enrollment invitation for email campaigns with city + category
-  if (channel === 'email' && category?.trim() && city?.trim()) {
-    try {
-      const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
-      invitationToken = await createInvitation({
-        businessName: businessName!.trim(),
-        category: category.trim(),
-        cities: [city.trim()],
-        monthlyPrice: 29.99,
-        yelpId: yelpId?.trim() || undefined,
-        contactEmail: email!.trim(),
-      })
-      enrollUrl = `${siteUrl}/enroll/${invitationToken}`
-    } catch (err) {
-      console.error('Failed to create invitation for campaign:', err)
-    }
-  }
-
   try {
     // Refused sends are not attempts: don't log them as sent/failed contacts.
     const refusal = (err: unknown) => {
@@ -137,17 +105,25 @@ export async function POST(req: NextRequest) {
       }
     } else {
       try {
-        messageSid = await sendEmail(email!.trim(), businessName.trim(), messageBody, {
+        const result = await sendCampaignEmail({
+          businessName: businessName.trim(),
+          email: email!.trim(),
+          category: category!.trim(),
+          city: city!.trim(),
           yelpId: yelpId?.trim(),
-          category: category?.trim(),
-          city: city?.trim(),
-          enrollUrl,
+          message: rawMessage,
         })
+        if (result.status === 'failed') {
+          return NextResponse.json(
+            { error: result.errorMessage, contact: result.contact },
+            { status: 502 }
+          )
+        }
+        return NextResponse.json({ contact: result.contact })
       } catch (err) {
         const refused = refusal(err)
         if (refused) return refused
-        status = 'failed'
-        errorMessage = toErrorMessage(err, String(err))
+        throw err
       }
     }
 
@@ -155,7 +131,6 @@ export async function POST(req: NextRequest) {
       yelpId: yelpId?.trim() || undefined,
       businessName: businessName.trim(),
       phone: normalizedPhone,
-      email: channel === 'email' ? email!.trim() : undefined,
       channel,
       category: category?.trim() || undefined,
       city: city?.trim() || undefined,
@@ -163,7 +138,6 @@ export async function POST(req: NextRequest) {
       messageSid,
       status,
       errorMessage,
-      invitationToken,
     })
 
     if (status === 'failed') {

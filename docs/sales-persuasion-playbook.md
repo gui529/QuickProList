@@ -168,3 +168,4 @@ _Append dated entries when marketing-agent runs a research pass._
 
 - **2026-10-08** — Playbook created. Canon: Cialdini (Influence expanded + Pre-Suasion), Rackham SPIN, Challenger, JOLT, Voss, Gap, Mom Test, Fanatical Prospecting, Pink, Carnegie, Kahneman, Dunford positioning, Made to Stick. Tier list cross-checked with public “best sales books” syntheses (field-study vs experience-based).
 - **2026-10-08** — Campaign email implemented: new `DEFAULT_MESSAGE` + `{placeholders}`, preview CTA, curiosity subject, price after button, email requires city+category, `campaign-email-reviewer` agent + marketing loop.
+- **2026-10-09** — Owner-approved cold email: `{senderIntro}`, personal direct ask (no “we came across”), `{siteUrl}` in body, `Hi,` greeting, areas lead with Atlanta cluster, preview link after signature, pre-launch footer line; see `lib/campaigns.ts` + `lib/email.ts`.

@@ -6,9 +6,8 @@ const { sendSmsMock, sendEmailMock, recordMock } = vi.hoisted(() => ({
   recordMock: vi.fn(async (i: unknown) => ({ id: 'c1', ...(i as object) })),
 }))
 
-vi.mock('@/lib/auth', () => ({
-  AuthError: class extends Error {},
-  requireAdmin: vi.fn(async () => {}),
+vi.mock('@/lib/outreach-auth', () => ({
+  gateAdminOrOutreach: vi.fn(async () => null),
 }))
 vi.mock('@/lib/campaigns', () => ({
   recordContact: recordMock,

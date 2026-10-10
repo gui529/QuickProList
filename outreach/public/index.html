@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QuickProList Outreach</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-2xl font-bold tracking-tight">Discovery worker</h1>
+      <p class="text-sm text-slate-600 mt-1">
+        Finds pros and pushes to <code class="text-xs bg-slate-200 px-1 rounded">campaign_prospects</code> on the live API.
+        Approve and send in <strong>Admin → Campaigns → Queue</strong>.
+      </p>
+      <p id="meta-line" class="text-xs text-slate-500 mt-2"></p>
+    </header>
+
+    <section class="bg-white rounded-2xl ring-1 ring-slate-200 p-5 mb-6">
+      <h2 class="font-semibold mb-3">Find pros (Cursor agent + web search)</h2>
+      <div class="flex flex-wrap gap-3 items-end">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-slate-600 uppercase">Town</label>
+          <select id="city" class="rounded-xl ring-1 ring-slate-200 px-3 py-2 text-sm min-w-[180px]"></select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-slate-600 uppercase">Trade</label>
+          <select id="category" class="rounded-xl ring-1 ring-slate-200 px-3 py-2 text-sm min-w-[160px]"></select>
+        </div>
+        <button id="find-btn" type="button" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-50">
+          Find pros
+        </button>
+      </div>
+      <p id="find-preview" class="text-xs text-slate-500 mt-3 font-mono break-all"></p>
+      <p id="find-status" class="text-sm mt-2 text-slate-600"></p>
+    </section>
+
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-semibold">Queue</h2>
+      <div class="flex gap-2">
+        <button id="refresh-btn" type="button" class="text-xs font-medium text-slate-600 hover:text-slate-900">Refresh</button>
+        <button id="send-all-btn" type="button" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-slate-900 hover:bg-amber-400">
+          Send all approved
+        </button>
+      </div>
+    </div>
+
+    <p id="error" class="hidden text-sm text-rose-700 bg-rose-50 ring-1 ring-rose-200 rounded-xl px-4 py-2 mb-3"></p>
+    <ul id="queue" class="flex flex-col gap-3"></ul>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id)
+
+    function showError(msg) {
+      const el = $('error')
+      if (!msg) { el.classList.add('hidden'); el.textContent = ''; return }
+      el.textContent = msg
+      el.classList.remove('hidden')
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || res.statusText)
+      return data
+    }
+
+    async function loadMeta() {
+      const meta = await api('/api/meta')
+      $('city').innerHTML = meta.towns.map((t) => `<option value="${t}">${t}</option>`).join('')
+      $('category').innerHTML = meta.categories.map((c) => `<option value="${c.value}">${c.label}</option>`).join('')
+      $('meta-line').textContent = `API target: ${meta.apiBaseUrl} · discovery: ${meta.discoveryProvider} · auto-send: ${meta.autoSendEnabled ? 'on' : 'off'}`
+      $('city').addEventListener('change', updateFindPreview)
+      $('category').addEventListener('change', updateFindPreview)
+      await updateFindPreview()
+    }
+
+    async function updateFindPreview() {
+      const city = $('city').value
+      const category = $('category').value
+      if (!city) return
+      const { command } = await api(`/api/discover-preview?city=${encodeURIComponent(city)}&category=${encodeURIComponent(category)}`)
+      $('find-preview').textContent = `Will run: ${command}`
+    }
+
+    function statusBadge(status) {
+      const colors = {
+        pending_review: 'bg-amber-100 text-amber-900',
+        approved: 'bg-emerald-100 text-emerald-900',
+        sent: 'bg-slate-200 text-slate-700',
+        failed: 'bg-rose-100 text-rose-800',
+        rejected: 'bg-slate-100 text-slate-500',
+      }
+      return `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${colors[status] || ''}">${status.replace('_', ' ')}</span>`
+    }
+
+    async function loadQueue() {
+      const { prospects } = await api('/api/queue')
+      const list = $('queue')
+      if (!prospects.length) {
+        list.innerHTML = '<li class="text-sm text-slate-500 text-center py-12 bg-white rounded-2xl ring-1 ring-slate-200">No prospects yet.</li>'
+        return
+      }
+      list.innerHTML = prospects.map((p) => `
+        <li class="bg-white rounded-2xl ring-1 ring-slate-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-semibold truncate">${escapeHtml(p.businessName)}</span>
+              ${statusBadge(p.status)}
+            </div>
+            <p class="text-sm text-slate-600 truncate">${escapeHtml(p.email)}</p>
+            <p class="text-xs text-slate-500">${escapeHtml(p.city)} · ${escapeHtml(p.category)}</p>
+            ${p.errorMessage ? `<p class="text-xs text-rose-600 mt-1">${escapeHtml(p.errorMessage)}</p>` : ''}
+          </div>
+          <div class="flex flex-wrap gap-2 shrink-0">
+            ${p.status === 'pending_review' ? `
+              <button data-approve="${p.id}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white">Approve</button>
+              <button data-reject="${p.id}" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100">Reject</button>
+            ` : ''}
+            ${p.status === 'approved' ? `
+              <button data-send="${p.id}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white">Send email</button>
+            ` : ''}
+          </div>
+        </li>
+      `).join('')
+
+      list.querySelectorAll('[data-approve]').forEach((btn) => {
+        btn.addEventListener('click', () => action(`/api/prospects/${btn.dataset.approve}/approve`))
+      })
+      list.querySelectorAll('[data-reject]').forEach((btn) => {
+        btn.addEventListener('click', () => action(`/api/prospects/${btn.dataset.reject}/reject`))
+      })
+      list.querySelectorAll('[data-send]').forEach((btn) => {
+        btn.addEventListener('click', () => action(`/api/prospects/${btn.dataset.send}/send`))
+      })
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    async function action(path) {
+      showError('')
+      try {
+        await api(path, { method: 'POST', body: '{}' })
+        await loadQueue()
+      } catch (e) {
+        showError(e.message)
+      }
+    }
+
+    $('find-btn').addEventListener('click', async () => {
+      showError('')
+      const btn = $('find-btn')
+      btn.disabled = true
+      const preview = $('find-preview').textContent.replace(/^Will run:\s*/, '')
+      $('find-status').textContent = `Running ${preview}… (often 1–3 min)`
+      try {
+        const data = await api('/api/discover', {
+          method: 'POST',
+          body: JSON.stringify({ city: $('city').value, category: $('category').value }),
+        })
+        let status = `Query: ${data.query} — found ${data.found}, added ${data.added}, skipped ${data.skipped}`
+        if (data.warning) status += `\n\n${data.warning}`
+        $('find-status').textContent = status
+        if (data.warning) showError(data.warning)
+        await loadQueue()
+      } catch (e) {
+        showError(e.message)
+        $('find-status').textContent = ''
+      }
+      btn.disabled = false
+    })
+
+    $('refresh-btn').addEventListener('click', () => loadQueue().catch((e) => showError(e.message)))
+    $('send-all-btn').addEventListener('click', async () => {
+      if (!confirm('Send campaign email to every approved prospect?')) return
+      showError('')
+      try {
+        await api('/api/send-approved', { method: 'POST', body: '{}' })
+        await loadQueue()
+      } catch (e) {
+        showError(e.message)
+      }
+    })
+
+    loadMeta().then(loadQueue).catch((e) => showError(e.message))
+  </script>
+</body>
+</html>
