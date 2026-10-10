@@ -130,7 +130,7 @@ redirects to `/login` and the header hides the Dashboard link.
 - `PRO_DASHBOARD_ENABLED` (optional) — set to `true` to expose `/dashboard/[token]` to pros, admin dashboard links, and performance digests (default **off**).
 - `TRIAL_REMINDER_HOURS` (optional) — how far before `trial_ends_at` to send the trial-ending email (default `72`).
 
-Apply SQL migrations in `migrations/` to Neon (including `016_invitation_contact_and_trial_reminder.sql` for invitation email + trial reminder timestamps).
+SQL migrations in `migrations/` run automatically on Vercel build (`npm run migrate`). See [docs/migrations.md](docs/migrations.md). Existing databases need a one-time `npm run migrate:baseline` per Neon branch before the first automated deploy.
 
 ### Twilio (SMS)
 

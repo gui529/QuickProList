@@ -18,5 +18,7 @@ Photos stay in the shared R2 bucket `quickprolist-photos`.
 
 ## Later
 
-- Schema changes go on the `dev` branch first.
-- Reset the `dev` branch from `production` when it should be a fresh copy of live data.
+- Schema changes go on the `dev` branch first; add a file under `migrations/` and push — **dev preview deploy runs new SQL automatically** (see [migrations.md](./migrations.md)).
+- Merge `dev` → `main` to run the same pending migrations on **production** during the production build.
+- One-time on each existing branch: `npm run migrate:baseline` with that branch’s `DATABASE_URL` if the schema was applied manually before the runner existed.
+- Reset the `dev` branch from `production` when it should be a fresh copy of live data (re-baseline or empty `schema_migrations` on the reset branch).

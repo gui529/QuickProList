@@ -21,9 +21,12 @@ before starting any task in this repo when no other instruction is given.
 
 ```bash
 npm run dev      # start dev server at http://localhost:3000
-npm run build    # production build (run this to catch type errors)
+npm run build    # run pending DB migrations, then production build
+npm run migrate  # apply pending migrations/ SQL (uses DATABASE_URL)
 npm run lint     # lint
 ```
+
+Database migrations: [docs/migrations.md](docs/migrations.md). `npm run build` migrates automatically on Vercel (dev preview + production on `main`).
 
 ## Environment Variables
 
