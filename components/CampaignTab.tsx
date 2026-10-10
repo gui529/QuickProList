@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { CATEGORIES } from '@/lib/categories'
 import { DEFAULT_MESSAGE } from '@/lib/campaigns'
 import type { CampaignContact } from '@/lib/campaigns'
+import { readJsonResponse } from '@/lib/read-json-response'
 
 type Channel = 'sms' | 'email'
 
@@ -48,13 +49,13 @@ function ManualSendModal({ onClose, onSent }: ManualModalProps) {
           message,
         }),
       })
-      const data = await res.json()
+      const data = await readJsonResponse<{ error?: string; contact?: CampaignContact }>(res)
       if (!res.ok && !data.contact) {
         setError(data.error ?? 'Failed to send')
         setSending(false)
         return
       }
-      onSent(data.contact)
+      if (data.contact) onSent(data.contact)
       onClose()
     } catch {
       setError('Network error')

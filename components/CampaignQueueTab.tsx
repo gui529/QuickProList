@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CampaignProspectClient } from '@/lib/campaign-prospects'
 import { CampaignContactLines, ProResponseBadge } from '@/components/CampaignContactLines'
+import { CampaignProspectLogo } from '@/components/CampaignProspectLogo'
+import { readJsonResponse } from '@/lib/read-json-response'
 
 export default function CampaignQueueTab() {
   const [prospects, setProspects] = useState<CampaignProspectClient[]>([])
@@ -14,10 +16,10 @@ export default function CampaignQueueTab() {
     setError('')
     try {
       const res = await fetch('/api/campaigns/prospects')
-      const raw = await res.text()
-      const data: { prospects?: CampaignProspectClient[]; error?: string } = raw
-        ? (JSON.parse(raw) as { prospects?: CampaignProspectClient[]; error?: string })
-        : {}
+      const data = await readJsonResponse<{
+        prospects?: CampaignProspectClient[]
+        error?: string
+      }>(res)
       if (!res.ok) throw new Error(data.error ?? (res.statusText || `HTTP ${res.status}`))
       setProspects(data.prospects ?? [])
     } catch (e) {
@@ -36,9 +38,14 @@ export default function CampaignQueueTab() {
     setError('')
     try {
       const res = await fetch(path, { method: 'POST' })
-      const raw = await res.text()
-      const data = raw ? (JSON.parse(raw) as { error?: string }) : {}
+      const data = await readJsonResponse<{
+        error?: string
+        logoFound?: boolean
+      }>(res)
       if (!res.ok) throw new Error(data.error ?? (res.statusText || `HTTP ${res.status}`))
+      if (path.includes('fetch-logo') && data.logoFound === false) {
+        setError(data.error ?? 'No logo found on website')
+      }
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -99,7 +106,9 @@ export default function CampaignQueueTab() {
               key={p.id}
               className="bg-white rounded-2xl ring-1 ring-slate-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
             >
-              <div className="min-w-0">
+              <div className="min-w-0 flex gap-3">
+                <CampaignProspectLogo name={p.businessName} logoUrl={p.logoUrl} size={44} />
+                <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold truncate">{p.businessName}</span>
                   <StatusBadge status={p.status} />
@@ -108,8 +117,19 @@ export default function CampaignQueueTab() {
                 <p className="text-xs text-slate-500 mt-0.5">{p.city} · {p.category}</p>
                 <CampaignContactLines email={p.email} phone={p.phone} website={p.website} />
                 {p.errorMessage && <p className="text-xs text-rose-600 mt-1">{p.errorMessage}</p>}
+                </div>
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
+                {p.website && (
+                  <button
+                    type="button"
+                    disabled={busyId === p.id}
+                    onClick={() => action(`/api/campaigns/prospects/${p.id}/fetch-logo`, p.id)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+                  >
+                    {p.logoUrl ? 'Refresh logo' : 'Fetch logo'}
+                  </button>
+                )}
                 {p.status === 'pending_review' && (
                   <>
                     <button

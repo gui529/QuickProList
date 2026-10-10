@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import type { CampaignContact } from '@/lib/campaigns'
 import { CampaignContactLines } from '@/components/CampaignContactLines'
+import { CampaignProspectLogo } from '@/components/CampaignProspectLogo'
+import { readJsonResponse } from '@/lib/read-json-response'
 
 export default function CampaignReportsTab() {
   const [contacts, setContacts] = useState<CampaignContact[]>([])
@@ -17,16 +19,16 @@ export default function CampaignReportsTab() {
         setError('')
         return fetch('/api/campaigns')
       })
-      .then((res) => res.json().then((data) => ({ res, data })))
-      .then(({ res, data }) => {
+      .then(async (res) => {
+        const data = await readJsonResponse<{ contacts?: CampaignContact[]; error?: string }>(res)
         if (!res.ok) {
           setError(data.error ?? 'Failed to load')
         } else {
           setContacts(data.contacts ?? [])
         }
       })
-      .catch(() => {
-        setError('Network error')
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Network error')
       })
       .finally(() => setLoading(false))
   }
@@ -44,9 +46,13 @@ export default function CampaignReportsTab() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ response }),
       })
-      const data = (await res.json()) as { error?: string }
+      const data = await readJsonResponse<{ error?: string; contact?: CampaignContact }>(res)
       if (!res.ok) throw new Error(data.error ?? res.statusText)
-      await load()
+      if (data.contact) {
+        setContacts((prev) => prev.map((c) => (c.id === id ? data.contact! : c)))
+      } else {
+        await load()
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -107,7 +113,9 @@ export default function CampaignReportsTab() {
                   minute: '2-digit',
                 })}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex gap-3">
+                <CampaignProspectLogo name={c.business_name} logoUrl={c.logo_url} size={40} />
+                <div className="min-w-0 flex-1">
                 <p className="font-medium text-slate-900 text-sm">{c.business_name}</p>
                 <CampaignContactLines
                   email={c.channel === 'email' ? c.email : null}
@@ -122,6 +130,7 @@ export default function CampaignReportsTab() {
                 {c.message_sid && (
                   <p className="text-xs text-slate-400 mt-0.5 font-mono">{c.message_sid.slice(0, 20)}…</p>
                 )}
+                </div>
               </div>
               <div>
                 <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
