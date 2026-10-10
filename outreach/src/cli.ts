@@ -14,10 +14,11 @@ function flag(name: string): string | undefined {
 
 function usage() {
   console.log(`
-QuickProList Outreach CLI — queue in data/queue.json
+QuickProList Outreach — discovery worker (pushes to campaign_prospects via API)
 
   npm run find -- --city "Marietta, GA" --category plumbing
-  Review queue in Admin → Campaigns → Queue (production app).
+
+  Review in Admin → Campaigns → Queue on your deployed app.
 `)
 }
 

@@ -34,7 +34,9 @@ Open **http://127.0.0.1:3847** (localhost only).
 
 ## CLI
 
-See `npm run` scripts in `package.json` (`find`, `list`, `approve`, `send`, …).
+```bash
+npm run find -- --city "Marietta, GA" --category plumbing
+```
 
 ## Sync with the app
 
@@ -43,6 +45,3 @@ When you add towns or trades in the main app, update:
 - `outreach/src/open-towns.ts` (mirror `lib/open-towns.ts`)
 - `outreach/src/categories.ts` (mirror `lib/categories.ts`)
 
-## Data
-
-Prospect queue: `data/queue.json` (gitignored).
