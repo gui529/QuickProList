@@ -28,6 +28,7 @@ export interface CampaignContact {
   error_message: string | null
   invitation_token: string | null
   website: string | null
+  logo_url: string | null
   pro_response: 'yes' | 'no' | null
   pro_response_at: string | null
   sent_at: string
@@ -49,6 +50,7 @@ export interface RecordContactInput {
   errorMessage?: string
   invitationToken?: string
   website?: string
+  logoUrl?: string
 }
 
 export async function recordContact(input: RecordContactInput): Promise<CampaignContact> {
@@ -56,8 +58,8 @@ export async function recordContact(input: RecordContactInput): Promise<Campaign
   const rows = await query<CampaignContact>(
     `INSERT INTO campaign_contacts (
        yelp_id, business_name, phone, email, channel, category, city, message_body,
-       message_sid, status, error_message, invitation_token, website
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       message_sid, status, error_message, invitation_token, website, logo_url
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      RETURNING *`,
     [
       input.yelpId ?? null,
@@ -73,6 +75,7 @@ export async function recordContact(input: RecordContactInput): Promise<Campaign
       input.errorMessage ?? null,
       input.invitationToken ?? null,
       input.website?.trim() || null,
+      input.logoUrl?.trim() || null,
     ]
   )
   if (!rows[0]) throw new Error('Failed to record campaign contact')

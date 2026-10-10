@@ -23,7 +23,8 @@ Tabs:
 ## Discovery worker (`outreach/`)
 
 1. `npm run find` or local dashboard **Find pros** → `POST /api/campaigns/prospects` with `CAMPAIGN_OUTREACH_SECRET`.
-2. Review in **Queue** tab on production (or local dev with `DATABASE_URL`).
+2. When a **website** is present, the API tries to store a **logo** (`og:image` / favicon) on the prospect row; use **Fetch logo** in Queue to retry.
+3. Review in **Queue** tab on production (or local dev with `DATABASE_URL`).
 
 ## Queue send
 

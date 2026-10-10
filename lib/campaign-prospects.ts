@@ -1,4 +1,5 @@
 import { isDatabaseConfigured, query } from './db'
+import { fetchLogoFromWebsite } from './website-logo'
 
 export type CampaignProspectStatus =
   | 'pending_review'
@@ -13,6 +14,7 @@ export interface CampaignProspect {
   email: string
   phone: string | null
   website: string | null
+  logo_url: string | null
   category: string
   city: string
   status: CampaignProspectStatus
@@ -45,6 +47,7 @@ function rowToClient(
     email: row.email,
     phone: row.phone,
     website: row.website,
+    logoUrl: row.logo_url,
     category: row.category,
     city: row.city,
     status: row.status,
@@ -115,18 +118,29 @@ export async function addCampaignProspectFromDiscovery(
     return { prospect: null, skipped: true }
   }
 
+  const website = input.website?.trim() || null
+  let logoUrl: string | null = null
+  if (website) {
+    try {
+      logoUrl = await fetchLogoFromWebsite(website)
+    } catch {
+      logoUrl = null
+    }
+  }
+
   try {
     const rows = await query<CampaignProspect>(
       `INSERT INTO campaign_prospects (
-         business_name, email, phone, website, category, city,
+         business_name, email, phone, website, logo_url, category, city,
          discovery_notes, search_query, status
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pending_review')
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending_review')
        RETURNING *`,
       [
         businessName,
         email,
         input.phone?.trim() || null,
-        input.website?.trim() || null,
+        website,
+        logoUrl,
         input.category.trim(),
         input.city.trim(),
         input.discoveryNotes?.trim() || null,
@@ -170,4 +184,31 @@ export async function setCampaignProspectStatus(
     [id, status, errorMessage ?? null, sentAt, clearError && extra?.errorMessage === undefined]
   )
   return rows[0] ? rowToClient(rows[0]) : null
+}
+
+/** Re-fetch logo from the prospect website and store on the row. */
+export async function refreshCampaignProspectLogo(id: string): Promise<CampaignProspectClient | null> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  const existing = await query<CampaignProspect>(
+    `SELECT * FROM campaign_prospects WHERE id = $1`,
+    [id]
+  )
+  const row = existing[0]
+  if (!row?.website?.trim()) return row ? rowToClient(row) : null
+
+  let logoUrl: string | null = null
+  try {
+    logoUrl = await fetchLogoFromWebsite(row.website)
+  } catch {
+    logoUrl = null
+  }
+
+  const updated = await query<CampaignProspect>(
+    `UPDATE campaign_prospects
+     SET logo_url = $2, updated_at = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [id, logoUrl]
+  )
+  return updated[0] ? rowToClient(updated[0]) : null
 }

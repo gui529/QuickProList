@@ -22,6 +22,10 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ contacts })
   } catch (err) {
     console.error('campaigns GET failed:', err)
-    return NextResponse.json({ error: 'Failed to load campaign contacts' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    const hint = /pro_response|logo_url|column|does not exist/i.test(msg)
+      ? 'Campaign database schema is out of date — wait for deploy or run pending migrations (020+).'
+      : 'Failed to load campaign contacts'
+    return NextResponse.json({ error: hint }, { status: 500 })
   }
 }

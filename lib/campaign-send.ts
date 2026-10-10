@@ -13,6 +13,7 @@ export interface SendCampaignEmailInput {
   message?: string
   phone?: string
   website?: string
+  logoUrl?: string
 }
 
 export interface SendCampaignEmailResult {
@@ -87,6 +88,7 @@ export async function sendCampaignEmail(
     email,
     phone: input.phone?.trim() || undefined,
     website: input.website?.trim() || undefined,
+    logoUrl: input.logoUrl?.trim() || undefined,
     channel: 'email',
     category,
     city,
