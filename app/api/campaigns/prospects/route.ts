@@ -27,8 +27,17 @@ export async function GET(req: NextRequest) {
       ? (statusParam as CampaignProspectStatus)
       : undefined
 
-  const prospects = await listCampaignProspects(status)
-  return NextResponse.json({ prospects })
+  try {
+    const prospects = await listCampaignProspects(status)
+    return NextResponse.json({ prospects })
+  } catch (err) {
+    console.error('list campaign prospects failed:', err)
+    const message =
+      err instanceof Error && /campaign_prospects|does not exist/i.test(err.message)
+        ? 'campaign_prospects table missing — run migration 019 on this database branch.'
+        : 'Failed to load prospects'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
