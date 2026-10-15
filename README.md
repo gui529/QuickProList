@@ -11,6 +11,8 @@ landing page with profile-view and contact-click tracking. Admins manage
 curated listings, enrollment invitations, paid subscriptions, and outreach
 campaigns from an authenticated `/admin` dashboard.
 
+**Production:** https://www.quickprolist.com — launch moment documented in [docs/production-launch.md](docs/production-launch.md).
+
 ## Getting Started
 
 Install dependencies, then run the dev server:
@@ -128,7 +130,7 @@ redirects to `/login` and the header hides the Dashboard link.
 - `RESEND_FROM_EMAIL` — verified address on your Resend domain (e.g. `jeremy@quickprolist.com`). Use a bare address; do not embed the display name here unless you want the same **From** on every email type.
 - `CAMPAIGN_SENDER_NAME` (optional) — human name for cold outreach **From** (`Jeremy <jeremy@quickprolist.com>`) and `{signature}` (e.g. `— Jeremy, QuickProList`). Transactional mail still uses `QuickProList <…>` when the env value is bare.
 - `ENROLL_PREVIEW_TRIAL_DAYS` (optional) — days for self-serve enroll preview from campaign links (default `30`).
-- `PRO_DASHBOARD_ENABLED` (optional) — set to `true` to expose `/dashboard/[token]` to pros, admin dashboard links, and performance digests (default **off**).
+- `PRO_DASHBOARD_ENABLED` (optional) — set to `true` to expose `/dashboard/[token]` to pros, admin dashboard links, and performance digests. Default **off**; production stays off (do not recommend enabling).
 - `TRIAL_REMINDER_HOURS` (optional) — how far before `trial_ends_at` to send the trial-ending email (default `72`).
 - `UNSUBSCRIBE_SECRET` — signs one-click unsubscribe links in marketing email (or set `CRON_SECRET` to the same value). Required before campaign or win-back sends.
 - `RESEND_WEBHOOK_SECRET` (optional) — verifies `POST /api/resend/webhook` for bounces/complaints → suppression list.
@@ -141,7 +143,7 @@ SQL migrations in `migrations/` run automatically on Vercel build (`npm run migr
 
 - `CRON_SECRET` — Vercel sends `Authorization: Bearer …` on cron invocations when this is set. Without it, crons return **401** and digests/reminders never run.
 
-Digest and win-back also need `PRO_DASHBOARD_ENABLED=true` and marketing email vars above.
+Performance digests are skipped unless `PRO_DASHBOARD_ENABLED=true` (we keep it off). Win-back and trial-reminder need the marketing email vars above.
 
 ### Campaign outreach (optional)
 

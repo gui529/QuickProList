@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+## Owner preferences
+
+- **`PRO_DASHBOARD_ENABLED` stays off** on production (and do not recommend enabling it). `/dashboard/[token]` and performance digests remain disabled by design.
+
 ## Git branches
 
 - Do all repo work on **`dev`** (`git checkout dev`, pull before you start).

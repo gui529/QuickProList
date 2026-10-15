@@ -42,11 +42,10 @@ Add for **Production** (not Preview):
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` from the **live** webhook in step 1.4 |
 | `SITE_URL` | `https://www.quickprolist.com` (no trailing slash) |
 
-Optional but recommended for paying pros:
+Optional (owner keeps pro dashboard **off** — do not suggest `PRO_DASHBOARD_ENABLED`):
 
 | Key | Value |
 |-----|--------|
-| `PRO_DASHBOARD_ENABLED` | `true` — welcome email + `/dashboard/[token]` |
 | `CRON_SECRET` | Random secret — Vercel cron auth for digest / win-back / trial-reminder |
 | `UNSUBSCRIBE_SECRET` | Random secret — marketing email unsubscribe links (or reuse `CRON_SECRET`) |
 | `RESEND_WEBHOOK_SECRET` | From Resend → Webhooks — bounces/complaints suppress outreach |

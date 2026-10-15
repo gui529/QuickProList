@@ -20,7 +20,7 @@ From the marketing-agent pass (Resend + `lib/email.ts`). Goal: inbox placement, 
 ## P1 — Product / admin (recent dev work)
 
 - [ ] **Smoke-test dev admin** — Pinned Pros **More** menu (fix is on `dev`, commit `cc847b8`). Dev: https://home-help-git-dev-gui-costas-projects.vercel.app/admin
-- [ ] **Merge `dev` → `main` when ready** — e.g. production legal pages + brand (`b01b995` and later). `main` is usually one commit behind `dev`, not a large drift.
+- [x] **Merge `dev` → `main`** — **2026-10-15** full production launch; see [production-launch.md](./production-launch.md).
 - [ ] **Dev DB cleanup** — Remove orphan **QA Stripe Check** invitation rows if any remain; cancel stray Stripe **test** subscriptions if still open.
 
 ---
@@ -32,7 +32,7 @@ See also `docs/payments-plan.md` (untracked).
 - [x] Live Stripe keys + webhook on **production** `SITE_URL` = https://www.quickprolist.com (smoke test + cancel done)
 - [ ] Enable Stripe **Customer Portal** for billing management (required for self-serve cancel/update card)
 - [x] One live payment smoke test on production
-- [ ] **Vercel Production:** `CRON_SECRET`, `UNSUBSCRIBE_SECRET` (and optional `PRO_DASHBOARD_ENABLED`, `RESEND_WEBHOOK_SECRET`) — see `docs/stripe-production-setup.md`
+- [x] **Vercel Production:** `CRON_SECRET` set; `UNSUBSCRIBE_SECRET` + `RESEND_WEBHOOK_SECRET` already present. Pro dashboard stays **off** (`PRO_DASHBOARD_ENABLED` not used).
 
 ---
 
