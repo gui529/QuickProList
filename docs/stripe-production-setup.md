@@ -47,6 +47,9 @@ Optional but recommended for paying pros:
 | Key | Value |
 |-----|--------|
 | `PRO_DASHBOARD_ENABLED` | `true` — welcome email + `/dashboard/[token]` |
+| `CRON_SECRET` | Random secret — Vercel cron auth for digest / win-back / trial-reminder |
+| `UNSUBSCRIBE_SECRET` | Random secret — marketing email unsubscribe links (or reuse `CRON_SECRET`) |
+| `RESEND_WEBHOOK_SECRET` | From Resend → Webhooks — bounces/complaints suppress outreach |
 
 **Redeploy production** after saving env vars (Deployments → … → Redeploy, or push to `main`).
 

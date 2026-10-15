@@ -17,7 +17,7 @@ Linked from enroll checkout footer (`EnrollClient.tsx`) and site footer where pr
 
 ## Content
 
-Static React/MDX-style content in page components (placeholders may exist for contact email / address per file content at read time).
+Static content in `app/privacy/page.tsx` and `app/terms/page.tsx`. Operator label and contact email come from `lib/legal-site.ts` and `lib/site-contact.ts` (`contact@quickprolist.com`; no postal address on the public pages).
 
 Privacy page mentions browser `localStorage` for preferences; the home page currently stores **`quickprolist:lastLocation`** only (`app/page.tsx`).
 

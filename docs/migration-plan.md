@@ -25,6 +25,6 @@ Order: database, then photos, then code. Production at `www.quickprolist.com` is
 - [x] Set `DATABASE_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, and `R2_PUBLIC_URL` in `.env.local` and on Vercel for Production, Development, and Preview (`dev` and `master`).
 - [x] Deployed to Vercel production and checked search for Kennesaw general contractors. The listing image loads from R2.
 - [x] Removed `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from Vercel.
-- [ ] Push to git `main` only when asked. GitHub `main` still has the old Supabase code, so a deploy from that branch would roll production back.
+- [x] App on `main` uses Neon + R2 (no Supabase runtime). Merge `dev` → `main` only when asked; `dev` may be ahead on product/legal commits.
 
 Google sign-in stays on NextAuth. It does not move.

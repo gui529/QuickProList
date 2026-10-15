@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   try {
     await createListingRequest({ businessName, contactName, email, phone, category, zip, message })
   } catch (err) {
-    // Persisting the lead is important, but a Supabase hiccup shouldn't
+    // Persisting the lead is important, but a database hiccup shouldn't
     // block the submitter from seeing a success response — log and move on.
     console.error('[list-business] failed to persist submission', err)
   }

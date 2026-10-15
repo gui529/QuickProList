@@ -20,7 +20,7 @@ From the marketing-agent pass (Resend + `lib/email.ts`). Goal: inbox placement, 
 ## P1 — Product / admin (recent dev work)
 
 - [ ] **Smoke-test dev admin** — Pinned Pros **More** menu (fix is on `dev`, commit `cc847b8`). Dev: https://home-help-git-dev-gui-costas-projects.vercel.app/admin
-- [ ] **Merge to `main` when ready** — Admin sidebar, drafts, QA sign-in, Stripe regression docs are on `dev` only; production `main` is behind. You decide when to merge/deploy.
+- [ ] **Merge `dev` → `main` when ready** — e.g. production legal pages + brand (`b01b995` and later). `main` is usually one commit behind `dev`, not a large drift.
 - [ ] **Dev DB cleanup** — Remove orphan **QA Stripe Check** invitation rows if any remain; cancel stray Stripe **test** subscriptions if still open.
 
 ---
@@ -29,9 +29,10 @@ From the marketing-agent pass (Resend + `lib/email.ts`). Goal: inbox placement, 
 
 See also `docs/payments-plan.md` (untracked).
 
-- [ ] Live Stripe keys + webhook on **production** `SITE_URL` = https://www.quickprolist.com
-- [ ] Enable Stripe **Customer Portal** for billing management
-- [ ] One live payment test only when you explicitly want go-live
+- [x] Live Stripe keys + webhook on **production** `SITE_URL` = https://www.quickprolist.com (smoke test + cancel done)
+- [ ] Enable Stripe **Customer Portal** for billing management (required for self-serve cancel/update card)
+- [x] One live payment smoke test on production
+- [ ] **Vercel Production:** `CRON_SECRET`, `UNSUBSCRIBE_SECRET` (and optional `PRO_DASHBOARD_ENABLED`, `RESEND_WEBHOOK_SECRET`) — see `docs/stripe-production-setup.md`
 
 ---
 

@@ -3,7 +3,7 @@
 QuickProList is a local-services directory. Visitors search for a category
 of pro (plumber, electrician, etc.) in a city and get the businesses an
 admin has added for that (category, city) pair, up to a cap of 3 results
-per search. Search reads only from Supabase; there is no third-party
+per search. Search reads only from Neon Postgres (curated listings); there is no third-party
 listing API.
 
 Paying businesses get a pinned search slot and an optional "ProSite"
@@ -27,7 +27,8 @@ see the result.
 
 ```bash
 npm run dev      # start dev server at http://localhost:3000
-npm run build    # production build (also catches type errors)
+npm run build    # run pending DB migrations, then production build
+npm run migrate  # apply pending migrations/ SQL (uses DATABASE_URL)
 npm run lint     # lint
 npm test         # run the test suite (vitest)
 ```
@@ -129,8 +130,23 @@ redirects to `/login` and the header hides the Dashboard link.
 - `ENROLL_PREVIEW_TRIAL_DAYS` (optional) — days for self-serve enroll preview from campaign links (default `30`).
 - `PRO_DASHBOARD_ENABLED` (optional) — set to `true` to expose `/dashboard/[token]` to pros, admin dashboard links, and performance digests (default **off**).
 - `TRIAL_REMINDER_HOURS` (optional) — how far before `trial_ends_at` to send the trial-ending email (default `72`).
+- `UNSUBSCRIBE_SECRET` — signs one-click unsubscribe links in marketing email (or set `CRON_SECRET` to the same value). Required before campaign or win-back sends.
+- `RESEND_WEBHOOK_SECRET` (optional) — verifies `POST /api/resend/webhook` for bounces/complaints → suppression list.
 
 SQL migrations in `migrations/` run automatically on Vercel build (`npm run migrate`). See [docs/migrations.md](docs/migrations.md). Existing databases need a one-time `npm run migrate:baseline` per Neon branch before the first automated deploy.
+
+### Scheduled jobs (Vercel Cron)
+
+`vercel.json` calls `/api/cron/digest`, `/api/cron/winback`, and `/api/cron/trial-reminder`. Each requires:
+
+- `CRON_SECRET` — Vercel sends `Authorization: Bearer …` on cron invocations when this is set. Without it, crons return **401** and digests/reminders never run.
+
+Digest and win-back also need `PRO_DASHBOARD_ENABLED=true` and marketing email vars above.
+
+### Campaign outreach (optional)
+
+- `CAMPAIGN_OUTREACH_SECRET` — bearer token for the local `outreach/` CLI → `POST /api/campaigns/prospects`.
+- `SMS_OUTREACH_ENABLED` — set to `true` to allow campaign SMS (`lib/sms.ts`; default off).
 
 ### Twilio (SMS)
 

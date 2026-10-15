@@ -12,21 +12,26 @@ export default function CampaignQueueTab() {
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    setError('')
-    try {
-      const res = await fetch('/api/campaigns/prospects')
-      const data = await readJsonResponse<{
-        prospects?: CampaignProspectClient[]
-        error?: string
-      }>(res)
-      if (!res.ok) throw new Error(data.error ?? (res.statusText || `HTTP ${res.status}`))
-      setProspects(data.prospects ?? [])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
+  const load = useCallback(() => {
+    return Promise.resolve()
+      .then(() => {
+        setError('')
+        return fetch('/api/campaigns/prospects')
+      })
+      .then((res) =>
+        readJsonResponse<{
+          prospects?: CampaignProspectClient[]
+          error?: string
+        }>(res).then((data) => ({ res, data }))
+      )
+      .then(({ res, data }) => {
+        if (!res.ok) throw new Error(data.error ?? (res.statusText || `HTTP ${res.status}`))
+        setProspects(data.prospects ?? [])
+      })
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
