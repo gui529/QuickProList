@@ -9,4 +9,6 @@
 | [../flows/admin-campaigns-outreach.md](../flows/admin-campaigns-outreach.md) | Send tab, API, placeholders |
 | [../email-deliverability.md](../email-deliverability.md) | DNS, inbox placement |
 
-**Run the manager:** invoke the `campaign-manager` agent (`.claude/agents/campaign-manager.md`) — e.g. *"campaign-manager: resume today's sends"* or *"run campaign manager"*.
+**Run the manager:** invoke `campaign-manager` (`.claude/agents/campaign-manager.md`).
+
+**Sends are off-app:** `npx tsx scripts/campaign-manager-send.ts` + Resend env — not Admin or `/api/campaigns/*`. See [skills/resend-api.md](./skills/resend-api.md).

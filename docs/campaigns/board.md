@@ -14,9 +14,36 @@
 |-------|--------|
 | **Status** | `IDLE` — set to `ACTIVE`, `PAUSED`, or `STOPPED` by campaign-manager |
 | **Current focus** | *(city + category + batch name)* |
-| **Daily email cap** | *(owner-approved; default 10 until deliverability proven)* |
+| **Daily email cap** | `10` (raise after inbox tests pass) |
+| **Send authority** | `STANDALONE` — agent sends via Resend script, not the app |
 | **Last session** | *(ISO date/time ET)* |
 | **Paused reason** | *(if PAUSED)* |
+
+---
+
+## Do not contact (board list)
+
+*Emails/domains campaign-manager must never mail, even if not in Neon.*
+
+| Email | Reason | Added |
+|-------|--------|-------|
+| | | |
+
+---
+
+## Prospect list (standalone — not app queue)
+
+| Business | Email | City | Category | Status |
+|----------|-------|------|----------|--------|
+| | | | | pending / sent / replied / subscribed |
+
+---
+
+## Sent log (standalone Resend — not `campaign_contacts`)
+
+| Date (ET) | To | Business | Batch | Resend id | Subject note |
+|-----------|-----|----------|-------|-----------|--------------|
+| | | | | | |
 
 ---
 
@@ -25,22 +52,19 @@
 | Metric | Value | As of |
 |--------|-------|--------|
 | Paying subscribers (prod) | | |
-| Emails sent (campaign_contacts, last 7d) | | |
-| Queue: pending_review / approved / sent | | |
-| Suppressions count | | |
-| Last inbox test (Outlook/Gmail) | | |
-
-*Pull numbers from Neon / Resend / admin when possible; note "estimate" if manual.*
+| Emails sent (board **Sent log**, 7d) | | |
+| Replies / interested | | |
+| Last inbox test (Outlook) | | |
 
 ---
 
-## Owner approvals (required for live sends)
+## Owner approvals (only if Send authority = `OWNER_EACH`)
 
 | Date | What | Approved? |
 |------|------|-----------|
-| | First production batch | |
+| 2026-10-15 | **STANDALONE** send authority for campaign-manager | Yes |
 
-*Campaign-manager never triggers live email without a row here or explicit owner message in the same thread.*
+*With `STANDALONE`, agent sends within daily cap when Status is `ACTIVE`; use this table only for one-off overrides or revoking authority.*
 
 ---
 

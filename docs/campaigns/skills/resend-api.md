@@ -1,86 +1,80 @@
 # Resend API skill (campaign-manager)
 
-**Mandatory before any send, inbox test, or deliverability check.** This doc is
-QuickProList’s runbook; pair it with the upstream **Resend skill** (gotchas,
-idempotency, errors).
+**Mandatory before any send.** Campaign email is **standalone** — not routed through
+the Next.js app, Admin UI, or `/api/campaigns/*`. No `DATABASE_URL` required to send
+(optional: Neon suppressions check if env is present).
 
-## 1. Read the canonical Resend skill
+Pair this doc with the upstream **Resend skill** (idempotency, `{ data, error }`).
 
-Read these files in order (absolute paths on owner machine):
+## 1. Canonical Resend skill
 
 1. `C:\Users\gui52\.cursor\plugins\cache\cursor-public\resend\4b1558df96241f0a7eb416a1ce262650f2a5f471\skills\resend\SKILL.md`
-2. If using CLI: same folder → `skills\resend-cli\SKILL.md` and
-   `skills\resend-cli\references\emails.md`
+2. CLI (optional): `skills\resend-cli\SKILL.md`, `skills\resend-cli\references\emails.md`
 
-**Do not use Resend MCP** unless the owner explicitly connects it. Prefer **SDK
-or CLI + this repo’s scripts** so keys stay in env files, not chat.
-
-### Non‑negotiables from Resend skill
-
-- SDK returns `{ data, error }` — always check `error`.
-- Use **idempotency keys** on every send:
-  `campaign/<batch-id>/<recipient-email-normalized>`.
-- **From** domain must match a **verified** Resend domain (production:
-  `jeremy@quickprolist.com` or whatever `RESEND_FROM_EMAIL` is).
-- Never blast fake addresses at Gmail/Outlook for tests; owner tests use real
-  addresses they control (e.g. Hotmail inbox test).
+**Do not use Resend MCP** unless the owner connects it. Use **SDK + scripts** below.
 
 ## 2. Credentials (never log or commit)
 
-| Variable | Purpose |
-|----------|---------|
-| `RESEND_API_KEY` | API auth |
-| `RESEND_FROM_EMAIL` | From line (bare; app adds `CAMPAIGN_SENDER_NAME`) |
-| `CAMPAIGN_SENDER_NAME` | e.g. `Jeremy` |
-| `UNSUBSCRIBE_SECRET` | Marketing footer + List-Unsubscribe (or `CRON_SECRET`) |
-| `SITE_URL` | `https://www.quickprolist.com` |
-
-**Local / agent send:**
+| Variable | Required to send |
+|----------|------------------|
+| `RESEND_API_KEY` | Yes |
+| `RESEND_FROM_EMAIL` | Yes |
+| `CAMPAIGN_SENDER_NAME` | Recommended (`Jeremy`) |
+| `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Yes (footer + List-Unsubscribe) |
+| `SITE_URL` | Yes (`https://www.quickprolist.com`) |
+| `DATABASE_URL` | **No** — only for optional suppression lookup |
 
 ```powershell
 cd C:\Projects\QuickProList
 npx vercel env pull .env.campaign-send.local --environment=production --yes
-npx tsx scripts/send-campaign-preview-once.ts <to> "<Business Name>"
 ```
 
-Script loads `.env.local` then **overrides** with `.env.campaign-send.local`
-for production sends. `.env*` is gitignored.
+`scripts/load-campaign-env.ts` loads `.env.local` then **overwrites** with
+`.env.campaign-send.local`.
 
-Windows User env may also hold `RESEND_API_KEY` — scripts do not print values.
+## 3. Primary send command (campaign-manager)
 
-## 3. QuickProList message shape
-
-Match production campaign mail:
-
-| Piece | Source |
-|-------|--------|
-| Body template | `lib/campaigns.ts` → `DEFAULT_MESSAGE` |
-| Placeholders | `lib/campaign-message.ts` → `expandCampaignMessage` |
-| Subject | `lib/email.ts` → `buildMarketingEmailSubject` |
-| HTML/text | `lib/email.ts` → `buildPersonalMarketingEmail` |
-| Unsubscribe | `lib/unsubscribe.ts` → `buildUnsubscribeUrl` |
-
-**Required for email sends:** `city` + `category` so enroll/search links work.
-
-**Production pipeline (logged in DB):** Admin Queue or `POST /api/campaigns/send`
-(session auth) — prefer for real batches after owner approval.
-
-**Owner test / preview:** `scripts/send-campaign-preview-once.ts` (Resend API
-direct, same copy as prod).
-
-## 4. After sending
-
-- Log on `docs/campaigns/board.md` (to, subject wedge, Resend `id`, batch).
-- Check Resend dashboard or `resend emails get <id>` (CLI) for `last_event`.
-- If bounces/complaints, pause campaign on board and investigate suppressions
-  (`lib/suppressions.ts`, Resend suppressions).
-
-## 5. Optional CLI examples
-
-```bash
-resend emails send --from "Jeremy <jeremy@quickprolist.com>" --to user@example.com \
-  --subject "..." --text-file ./body.txt --idempotency-key "campaign/test/1"
+```powershell
+npx tsx scripts/campaign-manager-send.ts `
+  --to pro@example.com `
+  --business "Acme Plumbing" `
+  --city marietta `
+  --category plumbers `
+  --batch 2026-10-15-atl-hvac `
+  [--enroll-url "https://www.quickprolist.com/enroll/TOKEN"]
 ```
 
-Use CLI only when it matches the same compliance footers as `lib/email.ts`; when
-in doubt, use the TypeScript script so unsubscribe headers stay correct.
+- **`--dry-run`** — print subject + plain text, no API call.
+- **`--enroll-url`** — optional; without it, mail links to **search** for city+category.
+- **Idempotency:** `campaign/<batch>/<email>` (Resend skill).
+
+Copy/template logic reuses shared **library** files only as text builders — no HTTP
+to the running site:
+
+| Piece | File |
+|-------|------|
+| Body | `lib/campaigns.ts` → `DEFAULT_MESSAGE` |
+| Placeholders | `lib/campaign-message.ts` |
+| Subject / HTML | `lib/email.ts` |
+| Unsubscribe token | `lib/unsubscribe.ts` |
+
+## 4. What campaign-manager does **not** use for sends
+
+- `/admin` Campaigns tabs
+- `POST /api/campaigns/send` or prospects queue APIs
+- Vercel production **runtime** (only env pull for secrets)
+- Recording in `campaign_contacts` (log sends on **`docs/campaigns/board.md`** instead)
+
+The in-app campaign UI remains available to **humans**; the agent’s path is **Resend-only**.
+
+## 5. After sending
+
+1. Append to `docs/campaigns/board.md` (to, business, batch, Resend `id`, subject).
+2. `resend emails get <id>` or Resend dashboard → `last_event`.
+3. On bounce/complaint: add to board **Do not contact**; pause if needed.
+
+## 6. Owner send authority
+
+When `board.md` → **Send authority** is `STANDALONE` and status is `ACTIVE`,
+campaign-manager may send within **Daily email cap** without per-message owner
+approval. Owner can set `PAUSED` or lower the cap anytime.
