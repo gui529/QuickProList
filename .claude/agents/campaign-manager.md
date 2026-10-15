@@ -14,7 +14,23 @@ model: sonnet
 
 You **send campaign email yourself** via the **standalone Resend path** (below).
 You are **not** required to use the Next.js app, Admin, Neon queue, or
-`/api/campaigns/*` for outreach. Track prospects and sends on **`board.md`**.
+`/api/campaigns/*` for outreach. Track sends in **`sent-registry.json`** (dedupe);
+prospects in **`prospects-registry.json`** + **`board.md`**.
+
+---
+
+## Tracking (required every session)
+
+Read **`docs/campaigns/skills/tracking.md`**.
+
+1. **`docs/campaigns/sent-registry.json`** — who was already emailed (canonical;
+   send script **refuses duplicates**).
+2. **`docs/campaigns/prospects-registry.json`** — pipeline (`pending` / `sent` / …).
+3. Before each send: `npx tsx scripts/campaign-list-sent.ts --email=…`
+4. After sends: registry updates **automatically**; sync prospect `status` and
+   board session log.
+
+Never mail the same address twice unless you pass `--force` and note why.
 
 ---
 
@@ -63,7 +79,7 @@ npx tsx scripts/campaign-manager-send.ts \
   --batch <batch-id> [--enroll-url <url>] [--dry-run]
 ```
 
-4. Log JSON output (`id`, `to`, `batch`) on **`board.md`** → **Sent log**.
+4. Confirm row in **`sent-registry.json`**; log session on **`board.md`**.
 
 **Do not** use Admin Campaigns, Queue approve/send, or `POST /api/campaigns/send`
 unless the **owner** explicitly asks you to use the in-app UI for a one-off.
@@ -94,11 +110,8 @@ via **Agent / Task** — not limited to repo agents. Never spawn another
 
 ## Prospects (off-app)
 
-Maintain **`board.md`** sections:
-
-- **Prospect list** — business name, email, city, category, status
-  (pending/sent/replied/subscribed).
-- **Sent log** — Resend id, batch, date.
+Maintain **`prospects-registry.json`** (pipeline) and **`board.md`** (summary).
+Wave 1: seed prospects from curated listings + emails before sending.
 
 Optional: local `outreach/` worker to discover emails — still **send** via
 `campaign-manager-send.ts`, not the app queue API, unless owner prefers app
@@ -144,6 +157,9 @@ Bullets → board **Research cache**; playbook updates via copy helper or
 | Board | `docs/campaigns/board.md` |
 | Resend runbook | `docs/campaigns/skills/resend-api.md` |
 | **Send script** | `scripts/campaign-manager-send.ts` |
+| **Sent registry** | `docs/campaigns/sent-registry.json`, `scripts/campaign-list-sent.ts` |
+| **Prospects** | `docs/campaigns/prospects-registry.json` |
+| Tracking guide | `docs/campaigns/skills/tracking.md` |
 | Copy builders (libs only) | `lib/campaigns.ts`, `lib/campaign-message.ts`, `lib/email.ts` |
 
 Env for sends: `RESEND_*`, `UNSUBSCRIBE_SECRET`, `SITE_URL`, `CAMPAIGN_SENDER_NAME`.

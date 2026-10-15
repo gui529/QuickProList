@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "sent": [
+    {
+      "email": "gui529@hotmail.com",
+      "businessName": "Gui's Quality Plumbing",
+      "city": "marietta",
+      "category": "plumbing",
+      "batch": "owner-inbox-test-2026-10-15",
+      "resendId": "01a14170-19ca-75ba-bd59-893a5c6c2c82",
+      "subject": "Okay to add Gui's Quality Plumbing to our Marietta list?",
+      "sentAt": "2026-10-15T21:20:00.000Z",
+      "wave": "test",
+      "notes": "Owner inbox test before category slug fix"
+    }
+  ]
+}

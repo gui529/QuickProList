@@ -19,6 +19,7 @@ import { buildUnsubscribeUrl } from '../lib/unsubscribe'
 import { isSuppressed, normalizeEmail, SuppressedError } from '../lib/suppressions'
 import { isDatabaseConfigured } from '../lib/db'
 import { getCampaignOwnerBccEmail } from '../lib/campaign-owner-bcc'
+import { findSentByEmail, recordSent } from '../lib/campaign-sent-registry'
 
 loadCampaignEnv()
 
@@ -40,10 +41,12 @@ const category = arg('--category')
 const enrollUrl = arg('--enroll-url')
 const batch = arg('--batch') ?? new Date().toISOString().slice(0, 10)
 const dryRun = process.argv.includes('--dry-run')
+const forceResend = process.argv.includes('--force')
+const waveArg = arg('--wave') as 'listed' | 'outreach' | 'test' | 'follow-up' | undefined
 
 if (!to || !businessName || !city || !category) {
   console.error(
-    'Usage: npx tsx scripts/campaign-manager-send.ts --to <email> --business "<name>" --city <slug> --category <slug> [--enroll-url <url>] [--batch <id>] [--dry-run]'
+    'Usage: npx tsx scripts/campaign-manager-send.ts --to <email> --business "<name>" --city <slug> --category <slug> [--enroll-url <url>] [--batch <id>] [--wave listed|outreach|test|follow-up] [--dry-run] [--force]'
   )
   process.exit(1)
 }
@@ -68,6 +71,24 @@ function requireSendEnv(): { apiKey: string; fromRaw: string } {
 
 async function main() {
   const normalized = normalizeEmail(to!)
+  const prior = findSentByEmail(to!)
+  if (prior && !forceResend && !dryRun) {
+    console.error(
+      JSON.stringify({
+        error: 'already_sent',
+        email: prior.email,
+        sentAt: prior.sentAt,
+        batch: prior.batch,
+        resendId: prior.resendId,
+      })
+    )
+    process.exit(1)
+  }
+  if (prior && dryRun) {
+    console.log('--- would skip (already in sent-registry); use --force to resend ---')
+    console.log(JSON.stringify(prior, null, 2))
+  }
+
   if (!dryRun && isDatabaseConfigured()) {
     if (await isSuppressed('email', normalized)) {
       throw new SuppressedError('email', normalized)
@@ -127,7 +148,24 @@ async function main() {
     console.error('Resend error:', error.message)
     process.exit(1)
   }
-  console.log(JSON.stringify({ id: data?.id, to, bcc, subject, batch, idempotencyKey }))
+
+  const resendId = data?.id ?? ''
+  recordSent(
+    {
+      email: to!,
+      businessName: businessName!,
+      city: city!,
+      category: category!,
+      batch,
+      resendId,
+      subject,
+      sentAt: new Date().toISOString(),
+      wave: waveArg,
+    },
+    { force: forceResend }
+  )
+
+  console.log(JSON.stringify({ id: resendId, to, bcc, subject, batch, idempotencyKey, registered: true }))
 }
 
 main().catch((err) => {

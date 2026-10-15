@@ -33,7 +33,22 @@
 
 ---
 
-## Prospect list (standalone — not app queue)
+## Tracking files (canonical)
+
+| File | Purpose |
+|------|---------|
+| **`sent-registry.json`** | Every **email** already sent — send script blocks duplicates |
+| **`prospects-registry.json`** | Companies pipeline (`pending` → `sent` → …) |
+
+```bash
+npx tsx scripts/campaign-list-sent.ts
+```
+
+See `docs/campaigns/skills/tracking.md`. Board tables below are **summaries** only.
+
+---
+
+## Prospect list (mirror — edit `prospects-registry.json` first)
 
 | Business | Email | City | Category | Status |
 |----------|-------|------|----------|--------|
@@ -41,11 +56,11 @@
 
 ---
 
-## Sent log (standalone Resend — not `campaign_contacts`)
+## Sent log (mirror — see `sent-registry.json`)
 
 | Date (ET) | To | Business | Batch | Resend id | Subject note |
 |-----------|-----|----------|-------|-----------|--------------|
-| 2026-10-15 ~17:20 | gui529@hotmail.com | Gui's Quality Plumbing | owner-inbox-test-2026-10-15 | 01a14170-19ca-75ba-bd59-893a5c6c2c82 | Marietta plumbers (standalone script) |
+| 2026-10-15 | gui529@hotmail.com | Gui's Quality Plumbing | owner-inbox-test-2026-10-15 | 01a14170-… | owner test |
 
 ---
 
