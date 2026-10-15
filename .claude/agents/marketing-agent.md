@@ -177,6 +177,9 @@ When drafting or reviewing email, SMS, homepage, enroll, or admin campaign flows
 
 **Always fill city + category** in Campaigns when possible so enroll links auto-generate.
 
+**Orchestration:** For multi-day send cadence, queue ops, and board memory, the owner may
+run `campaign-manager` instead — it may spawn you or a **custom copy helper** for playbook work.
+
 **Campaign email loop:** After copy or template changes, spawn `campaign-email-reviewer`
 (`.claude/agents/campaign-email-reviewer.md`) to audit code vs playbook. If verdict is
 **CHANGES NEEDED**, file or hand off fixes to `backlog-worker` (or owner-directed
