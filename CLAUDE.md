@@ -20,11 +20,17 @@ before starting any task in this repo when no other instruction is given.
 ## Commands
 
 ```bash
-npm run dev      # start dev server at http://localhost:3000
-npm run build    # run pending DB migrations, then production build
-npm run migrate  # apply pending migrations/ SQL (uses DATABASE_URL)
-npm run lint     # lint
+npm run dev           # start dev server at http://localhost:3000
+npm run build         # run pending DB migrations, then production build
+npm run migrate       # apply pending migrations/ SQL (uses DATABASE_URL)
+npm run lint          # lint
+npm run seed:pros     # insert curated pros from JSON + set images (dev; see docs/dev-seed-pros.md)
+npm run backfill:logos # backfill image_url on published curated rows (website → R2 or category stock)
 ```
+
+Dev-only seeding (real pros for search, no campaign email): [docs/dev-seed-pros.md](docs/dev-seed-pros.md).
+
+Stripe live on production: [docs/stripe-production-setup.md](docs/stripe-production-setup.md).
 
 Database migrations: [docs/migrations.md](docs/migrations.md). `npm run build` migrates automatically on Vercel (dev preview + production on `main`).
 

@@ -35,14 +35,9 @@ See also `docs/payments-plan.md` (untracked).
 
 ---
 
-## P2 — Legal pages (blocked on you)
+## P2 — Legal pages
 
-Privacy / Terms still need your inputs before edits:
-
-- [ ] **Public contact email** for the site
-- [ ] **Postal address** — same as `MAILING_ADDRESS` in Vercel or different?
-
-Decisions already made: operator name “QuickProList”; no arbitration clause; Georgia law; no prorated refunds; no “Featured” label on cards; remove draft legal banner when editing; replace Supabase mentions with Neon + R2.
+- [x] **Privacy & Terms** — production copy on `dev` (`lib/legal-site.ts`, `app/privacy/page.tsx`, `app/terms/page.tsx`). Public contact: `contact@quickprolist.com` only (no personal name/address on site). CAN-SPAM may still require a postal line in campaign email footers — see `lib/email.ts` / marketing templates.
 
 ---
 

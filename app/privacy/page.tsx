@@ -1,219 +1,187 @@
 import type { Metadata } from 'next'
+import { LEGAL_LAST_UPDATED, LEGAL_OPERATOR, legalContactMailto } from '@/lib/legal-site'
 import { PUBLIC_CONTACT_EMAIL } from '@/lib/site-contact'
-
-// LEGAL DRAFT: pending owner/counsel review, not yet approved for production.
-// Drafted by legal-agent against the app's actual data flows as of the commit
-// that added this file (see lib/kv.ts, lib/invitations.ts, lib/campaigns.ts,
-// lib/stripe.ts, app/layout.tsx). Do not treat as final or binding. Bracketed
-// [OWNER TO FILL] values must be supplied by the owner before this can be
-// treated as complete, and the whole document needs owner/counsel sign-off
-// regardless. See GitHub issue #19.
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — QuickProList',
+  description: 'How QuickProList collects, uses, and shares information.',
 }
 
 export default function PrivacyPage() {
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <h1 className="text-3xl font-bold text-slate-900 mb-4">Privacy Policy</h1>
-      <div className="bg-amber-50 ring-1 ring-amber-200 rounded-xl p-4 text-sm text-amber-900 mb-6 not-prose">
-        <strong>Draft — pending legal review, see GitHub issue #19.</strong> This text was
-        drafted by an AI agent from the app&apos;s current code and is not legal advice. It is
-        not binding, not final, and must be reviewed and approved by QuickProList&apos;s owner
-        (and, where noted, counsel) before it governs the site. Bracketed items marked{' '}
-        <code>[OWNER TO FILL]</code> are placeholders the owner must complete.
-      </div>
-
-      <p className="text-sm text-slate-500">Last updated: [OWNER TO FILL — date of owner approval]</p>
+    <div className="max-w-2xl mx-auto py-8 prose prose-slate prose-headings:text-slate-900">
+      <h1 className="text-3xl font-bold text-slate-900 mb-2 not-prose">Privacy Policy</h1>
+      <p className="text-sm text-slate-500 not-prose">Last updated: {LEGAL_LAST_UPDATED}</p>
 
       <h2>1. Who we are</h2>
       <p>
         QuickProList (&quot;QuickProList,&quot; &quot;we,&quot; &quot;us&quot;) operates
-        quickprolist.com, a directory site that helps visitors find local home-service
-        businesses (plumbers, electricians, HVAC, and similar categories) and lets those
-        businesses pay for a featured listing. This policy explains what information we
-        collect, from whom, why, and what choices are available.
+        quickprolist.com, a directory that helps visitors find local home-service businesses
+        (plumbers, electricians, HVAC, and similar categories) and lets those businesses pay for
+        a featured listing. This policy explains what information we collect, from whom, why, and
+        what choices you have.
       </p>
       <p>
-        Legal entity and contact details: <strong>[OWNER TO FILL — legal entity name]</strong>,{' '}
-        <strong>[OWNER TO FILL — physical postal address]</strong>. Privacy questions or
-        requests: <strong>[OWNER TO FILL — contact email]</strong>.
+        Operator: <strong>{LEGAL_OPERATOR}</strong>. Privacy questions or requests:{' '}
+        <a href={legalContactMailto}>{PUBLIC_CONTACT_EMAIL}</a>.
       </p>
 
       <h2>2. Information we collect</h2>
       <h3>2.1 Visitors searching the site</h3>
       <p>
         You can search QuickProList without creating an account. Search queries (location and
-        category) are sent to our server to run the search; we do not require or knowingly
-        collect your name, email, or phone number just to search.
+        category) are sent to our servers to return results; we do not require your name, email, or
+        phone number to search.
       </p>
       <p>
-        <strong>&quot;Starred&quot; favorites</strong> are saved only in your browser&apos;s{' '}
-        <code>localStorage</code> — never sent to or stored on our servers. Clearing your
-        browser data removes them.
+        <strong>Starred favorites</strong> are stored only in your browser&apos;s{' '}
+        <code>localStorage</code> and are not sent to our servers. Clearing browser data removes
+        them.
       </p>
       <p>
-        We also process your IP address transiently, in server memory only, to apply rate
-        limits that protect the Site from abuse (e.g. excessive search or checkout requests);
-        this is not written to our database or retained after the request completes.
+        We process your IP address transiently in server memory to apply rate limits that protect
+        the site from abuse (for example, excessive search or checkout requests). We do not store
+        IP addresses in our database for that purpose.
       </p>
       <p>
-        We use <strong>Vercel Analytics</strong> and <strong>Vercel Speed Insights</strong> to
-        collect aggregated, privacy-oriented usage and performance metrics (e.g. page views,
-        load times). These do not use third-party advertising cookies as configured today.
+        We use <strong>Vercel Analytics</strong> and <strong>Vercel Speed Insights</strong> for
+        aggregated usage and performance metrics (such as page views and load times). As configured
+        today, these tools do not use third-party advertising cookies.
       </p>
 
-      <h3>2.2 Business listings shown in search results</h3>
+      <h3>2.2 Business listings in search results</h3>
       <p>
-        Search results show businesses we have &quot;curated&quot; — stored in our own
-        database. Some older curated listings were originally created from a snapshot of
-        Yelp-provided information (business name, phone, address, photo, rating, review count,
-        and category) stored in our database together with a Yelp business ID; we no longer
-        query Yelp.
-        {/* OWNER NOTE: our retention posture for this Yelp-sourced snapshot data is under
-            internal review for compliance with Yelp's API terms and may change (e.g. to store
-            only the Yelp business ID long-term and fetch display details live at request time).
-            Do not publish this internal-review status in the public policy text; update this
-            section to reflect the final posture once decided. */}
+        Search results show businesses we have added to our directory (&quot;curated&quot;
+        listings), stored in our database. Some older listings may include information originally
+        obtained from third-party directories; we do not rely on live feeds from those sources
+        today.
       </p>
       <p>
-        If you submit your business through our &quot;List your business&quot; form, we store
-        the business name, your name, email, phone (if provided), category, ZIP code, and any
-        message you include, so we can follow up about a listing.
+        If you submit your business through our &quot;List your business&quot; form, we store the
+        business name, your name, email, phone (if provided), category, ZIP code, and any message
+        you include so we can follow up.
       </p>
       <p>
-        For businesses we add manually (not sourced from Yelp), we store the information the
-        business or our admin team provides directly (name, phone, address, website, and
-        similar listing details).
+        For businesses we add manually, we store the information the business or our team
+        provides (name, phone, address, website, photos, and similar listing details).
       </p>
 
-      <h3>2.3 Business owners who subscribe to a featured listing</h3>
-      <p>When a business subscribes to a paid featured listing, we collect and store:</p>
+      <h3>2.3 Business owners with a featured listing</h3>
+      <p>When a business enrolls in a paid featured listing, we collect and store:</p>
       <ul>
+        <li>Enrollment and listing details (business name, category, service area, and price).</li>
         <li>
-          Listing and enrollment details (business name, category, cities, price, and — if
-          sourced from Yelp — the Yelp snapshot described above) in our{' '}
-          <code>enrollment_invitations</code> table.
+          The billing email address collected by <strong>Stripe</strong> during checkout, so we can
+          contact you about billing (for example, a failed payment).
         </li>
         <li>
-          The billing email address Stripe collects during checkout (
-          <code>customer_details.email</code>), stored so we can contact you about billing
-          issues (e.g. a failed payment).
+          Payment card details, which are collected and processed only by Stripe. We do not store
+          your full card number.
         </li>
         <li>
-          Payment card details are collected and processed entirely by{' '}
-          <strong>Stripe</strong>, our payment processor. We never see or store your full card
-          number.
-        </li>
-        <li>
-          A private, unguessable <strong>dashboard token</strong> that lets you view your own
-          listing&apos;s view/click statistics without creating a password-based account.
+          A private dashboard link (unguessable token) so you can view listing statistics without a
+          password-based account, when that feature is enabled.
         </li>
       </ul>
 
-      <h3>2.4 Outreach / campaign contacts</h3>
+      <h3>2.4 Outreach and campaign contacts</h3>
       <p>
-        We sometimes contact local businesses (or businesses that reach out to us) by SMS or
-        email to invite them to a paid listing. When we do, we record the business name, phone
-        number and/or email address, the message sent, and delivery status in a{' '}
-        <code>campaign_contacts</code> table, as a log of who was contacted.
-        We keep a separate do-not-contact list of email addresses and phone numbers that have
-        opted out, bounced, or reported our messages as spam, and check it before every
-        marketing message so we do not contact them again.
+        We may contact local businesses by email or SMS to invite them to a featured listing. When
+        we do, we log the business name, contact information, message content, and delivery status.
+        We maintain a suppression list of addresses and numbers that have opted out, bounced, or
+        reported spam, and we check it before sending marketing messages.
       </p>
 
-      <h3>2.5 Admin accounts</h3>
+      <h3>2.5 Admin access</h3>
       <p>
-        QuickProList staff who manage listings and campaigns sign in with
-        their Google account (via Google OAuth) and must be on an internal admin allow-list. This is
-        separate from any consumer- or business-facing account; consumers do not have login
-        accounts on QuickProList today.
+        QuickProList operators who manage listings and campaigns sign in with Google (OAuth) and
+        must be on an internal allow-list. Consumers and businesses do not have general login
+        accounts on QuickProList.
       </p>
 
       <h2>3. How we use information</h2>
       <ul>
-        <li>To operate the search directory and display listings.</li>
-        <li>To process and administer paid featured-listing subscriptions via Stripe.</li>
+        <li>Operate the directory and display listings.</li>
+        <li>Process paid featured-listing subscriptions through Stripe.</li>
         <li>
-          To contact businesses about featured-listing opportunities, and to contact
-          subscribed businesses about billing or their subscription status.
+          Contact businesses about listing opportunities and, for subscribers, about billing or
+          subscription status.
         </li>
-        <li>To measure and improve site performance and usage (aggregated analytics).</li>
-        <li>To comply with legal obligations and enforce our Terms of Service.</li>
+        <li>Measure and improve site performance (aggregated analytics).</li>
+        <li>Comply with law and enforce our Terms of Service.</li>
       </ul>
-      <p>We do not sell personal information, and we do not use it for third-party advertising.</p>
+      <p>We do not sell personal information and we do not use it for third-party advertising.</p>
 
       <h2>4. Who we share information with</h2>
-      <p>We share information with the following service providers, each acting on our behalf:</p>
+      <p>We use service providers that process data on our behalf, including:</p>
       <ul>
         <li><strong>Stripe</strong> — payment processing and subscription billing.</li>
-        <li><strong>Supabase</strong> — our database and file storage (business photos).</li>
-        <li><strong>Google</strong> — sign-in for QuickProList staff (Google OAuth).</li>
-        <li><strong>Twilio</strong> — sends SMS outreach messages on our behalf.</li>
-        <li><strong>Resend</strong> — sends outreach and transactional emails on our behalf.</li>
+        <li><strong>Neon</strong> — hosted PostgreSQL database for listings and account data.</li>
+        <li><strong>Cloudflare R2</strong> — storage for business photos we host.</li>
+        <li><strong>Google</strong> — sign-in for QuickProList operators (OAuth).</li>
+        <li><strong>Twilio</strong> — SMS messages, when used.</li>
+        <li><strong>Resend</strong> — email delivery.</li>
         <li><strong>Vercel</strong> — hosting, analytics, and performance monitoring.</li>
       </ul>
       <p>
-        We do not otherwise sell, rent, or share personal information with third parties for
-        their own marketing purposes.
+        We may also disclose information if required by law, to protect rights and safety, or in
+        connection with a business transfer. We do not sell or share personal information for
+        others&apos; independent marketing.
       </p>
 
       <h2>5. Data retention</h2>
       <p>
-        We retain curated-listing and enrollment data for as long as a listing is active plus a
-        reasonable period after cancellation for billing/records purposes. Campaign contact
-        records are retained as a log of outreach activity.
-        {/* OWNER NOTE: our retention posture for Yelp-sourced data specifically is under
-            internal review; see the note in section 2.2 above. Update this section once that
-            review concludes rather than leaving an internal-review admission in public text. */}
+        We keep listing and enrollment data while a listing is active and for a reasonable period
+        afterward for billing, tax, and dispute records. Outreach logs and suppression lists are
+        retained as needed to honor opt-outs and document compliance.
       </p>
 
       <h2>6. Your choices</h2>
       <ul>
         <li>
-          <strong>Businesses contacted by SMS:</strong> reply <strong>STOP</strong> to any text
-          to opt out of future messages. Your opt-out is recorded automatically.
+          <strong>SMS:</strong> reply <strong>STOP</strong> to opt out of further texts.
         </li>
         <li>
-          <strong>Businesses contacted by email:</strong> click the <strong>Unsubscribe</strong>{' '}
-          link at the bottom of any marketing email. Your opt-out is recorded automatically.
+          <strong>Email marketing:</strong> use the <strong>Unsubscribe</strong> link in any
+          marketing email.
         </li>
         <li>
-          <strong>Subscribed businesses:</strong> you can cancel your subscription at any time
-          from your dashboard (Stripe Billing Portal) or by contacting us.
+          <strong>Subscribers:</strong> cancel anytime through the Stripe billing portal (linked
+          from your dashboard when available) or by emailing us.
         </li>
         <li>
-          <strong>Everyone:</strong> you may ask us what information we hold about you and
-          request its deletion, subject to legal/billing retention needs, by contacting{' '}
-          <strong>[OWNER TO FILL — contact email]</strong>.
+          <strong>Privacy requests:</strong> email{' '}
+          <a href={legalContactMailto}>{PUBLIC_CONTACT_EMAIL}</a> to ask what we hold about you or
+          to request deletion, subject to legal and billing retention requirements.
         </li>
       </ul>
 
-      <h2>7. California and other state privacy rights</h2>
+      <h2>7. U.S. state privacy rights</h2>
       <p>
-        Depending on your state of residence, you may have additional rights over your personal
-        information (e.g. under the California Consumer Privacy Act). We do not sell personal
-        information. <strong>[OWNER TO FILL / NEEDS COUNSEL — confirm applicability and add any
-        required state-specific disclosures once business volume/geography is known.]</strong>
+        Depending on where you live, you may have rights to know, access, correct, or delete
+        personal information, or to opt out of certain processing. We do not sell personal
+        information. To exercise rights, contact{' '}
+        <a href={legalContactMailto}>{PUBLIC_CONTACT_EMAIL}</a>. We will verify requests as
+        required by law. California residents may designate an authorized agent; we may deny
+        requests that are excessive, repetitive, or unfounded.
       </p>
 
       <h2>8. Children&apos;s privacy</h2>
-      <p>QuickProList is not directed to children under 13, and we do not knowingly collect personal information from them.</p>
-
-      <h2>9. Changes to this policy</h2>
       <p>
-        We may update this policy as the product changes. Material changes will be reflected by
-        updating the &quot;Last updated&quot; date above.
+        QuickProList is not directed to children under 13, and we do not knowingly collect personal
+        information from them.
       </p>
 
-      <h2>10. Contact us</h2>
+      <h2>9. Changes</h2>
       <p>
-        Questions about this policy:{' '}
-        <a href={`mailto:${PUBLIC_CONTACT_EMAIL}`} className="text-amber-800 underline">
-          {PUBLIC_CONTACT_EMAIL}
-        </a>
-        , <strong>[OWNER TO FILL — physical postal address]</strong>.
+        We may update this policy as our practices change. We will post the revised policy on this
+        page and update the &quot;Last updated&quot; date. Material changes may also be noted on
+        the site where appropriate.
+      </p>
+
+      <h2>10. Contact</h2>
+      <p>
+        <a href={legalContactMailto}>{PUBLIC_CONTACT_EMAIL}</a>
       </p>
     </div>
   )

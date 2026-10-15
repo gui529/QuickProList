@@ -16,6 +16,8 @@ Production and the dev site use separate Neon branches of Project Alpha.
 
 Photos stay in the shared R2 bucket `quickprolist-photos`.
 
+To add real pros for tryouts (with profile images), see [dev-seed-pros.md](./dev-seed-pros.md).
+
 ## Later
 
 - Schema changes go on the `dev` branch first; add a file under `migrations/` and push — **dev preview deploy runs new SQL automatically** (see [migrations.md](./migrations.md)).

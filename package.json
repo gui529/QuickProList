@@ -10,7 +10,9 @@
     "build": "npm run migrate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed:pros": "npx tsx scripts/seed-curated-pros.ts",
+    "backfill:logos": "npx tsx scripts/backfill-curated-logos.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1147.0",

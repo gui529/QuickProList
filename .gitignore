@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Live Stripe keys for scripts/push-stripe-env-production.ps1 (never commit)
+secrets/stripe-vercel-production.txt
+
 # vercel
 .vercel
 

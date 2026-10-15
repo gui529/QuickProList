@@ -1,0 +1,22 @@
+{
+  "pros": [
+    {
+      "category": "plumbing",
+      "cities": ["atlanta"],
+      "name": "Example Plumbing Co.",
+      "phone": "404-555-0100",
+      "address": "123 Peachtree St NE, Atlanta, GA 30308",
+      "websiteUrl": "https://www.atlantisplumbing.com/",
+      "published": true
+    },
+    {
+      "category": "electricians",
+      "cities": ["marietta"],
+      "name": "Example Electric LLC",
+      "phone": "770-555-0200",
+      "address": "456 Cobb Pkwy, Marietta, GA 30062",
+      "websiteUrl": "https://patriotpowerelectrical.com/",
+      "published": true
+    }
+  ]
+}

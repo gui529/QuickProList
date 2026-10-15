@@ -293,11 +293,12 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   const cities = input.cities.map(normalizeCity).filter(Boolean)
   if (cities.length === 0) throw new Error('At least one city is required')
-  await query(
+  const rows = await query<{ id: string }>(
     `INSERT INTO curated_businesses (
        source, category, cities, name, phone, address, image_url, website_url, review_url,
        categories, trial_ends_at, is_trial, is_draft
-     ) VALUES ('manual',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,TRUE)`,
+     ) VALUES ('manual',$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,TRUE)
+     RETURNING id`,
     [
       input.category,
       cities,
@@ -312,6 +313,13 @@ export async function addCuratedManual(input: ManualBusinessInput): Promise<void
       input.trialEndsAt !== undefined,
     ]
   )
+  const id = rows[0]?.id
+  if (id && !input.imageUrl?.trim() && input.websiteUrl?.trim()) {
+    const { ensureCuratedBusinessImage } = await import('./curated-image')
+    await ensureCuratedBusinessImage(id).catch((err) => {
+      console.error('ensureCuratedBusinessImage after manual add:', err)
+    })
+  }
 }
 
 export async function updateCuratedManual(id: string, input: Partial<ManualBusinessInput>): Promise<void> {
@@ -488,6 +496,10 @@ export async function setCuratedTrial(
 export async function publishCurated(id: string): Promise<void> {
   if (!id || !isDatabaseConfigured()) return
   await query('UPDATE curated_businesses SET is_draft = FALSE WHERE id = $1', [id])
+  const { ensureCuratedBusinessImage } = await import('./curated-image')
+  await ensureCuratedBusinessImage(id).catch((err) => {
+    console.error('ensureCuratedBusinessImage after publish:', err)
+  })
 }
 
 export async function uploadBusinessPhoto(

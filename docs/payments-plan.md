@@ -1,6 +1,8 @@
 # Payments plan
 
-The enroll flow is built. A pro opens `/enroll/[token]`, pays a monthly Stripe subscription (default $29.99), and the webhook activates the listing. Production is not connected to Stripe yet.
+The enroll flow is built. A pro opens `/enroll/[token]`, pays a monthly Stripe subscription (default $29.99), and the webhook activates the listing.
+
+**Production go-live:** step-by-step [stripe-production-setup.md](./stripe-production-setup.md).
 
 ## Already in the app
 
