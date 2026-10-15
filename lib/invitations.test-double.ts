@@ -1,9 +1,9 @@
 // Test-only in-memory double for lib/invitations.ts.
 //
 // Mirrors the exported function signatures of lib/invitations.ts, backed by
-// a plain in-memory array instead of Supabase, so tests can exercise
+// a plain in-memory array instead of Neon, so tests can exercise
 // enrollment-invitation logic (expiry, cancellation, idempotency, multi-city
-// enrollment, etc.) without live Supabase credentials.
+// enrollment, etc.) without live DATABASE_URL.
 //
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.

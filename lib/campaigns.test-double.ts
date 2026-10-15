@@ -1,7 +1,7 @@
 // Test-only in-memory double for lib/campaigns.ts.
 //
 // Mirrors the exported function signatures of lib/campaigns.ts, backed by a
-// plain in-memory array instead of Supabase.
+// plain in-memory array instead of Neon.
 //
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.

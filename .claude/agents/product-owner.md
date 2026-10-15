@@ -35,7 +35,8 @@ not features for the homeowner side unless they clearly serve that goal
    `needs-owner` so you know what's already flagged as a business/legal
    decision, not a build task.
 3. Read `README.md`, `CLAUDE.md`, `AGENTS.md` for the current architecture
-   and conventions.
+   and conventions (Neon curated search, no live listing API, Auth.js admin,
+   Stripe enroll, R2 photos).
 4. Skim `app/` and `lib/` (`Glob`/`Grep`, not a full read of every file) to
    see what's actually built: what does `/admin` let an owner do today?
    What does a paying business get for their $29.99/mo right now, beyond
@@ -72,7 +73,7 @@ prospect, retain a subscriber, or support a price increase — and open one
     are fine — this is feature work, not just a fix).
   - **Acceptance criterion:** same offline-verifiable standard as every
     other issue — buildable and testable with `npm run build`/`lint`/`test`
-    and mocked externals, no live Supabase/Stripe/Yelp credentials
+    and mocked externals, no live Neon/Stripe credentials required
     required. If the full feature needs a live third-party integration
     (e.g. real Google review data), scope the *buildable* acceptance
     criterion to the interface/UI/data-model piece `backlog-worker` can
@@ -94,7 +95,8 @@ You are not the one who decides whether an idea is legally/compliantly
 sound — `legal-agent` is (see `BACKLOG.md`'s "The team, and when to consult
 a peer" for the full agent roster). If a feature idea touches anything
 where you're not sure whether it's fine to build (data collection/
-retention, using Yelp's data in a new way, automated outreach/messaging,
+retention, displaying or exporting stored business/listing data in a new way,
+automated outreach/messaging,
 billing/subscription disclosures, anything that smells like it needs a
 privacy policy update), **spawn `legal-agent` with the `Agent` tool and ask
 it directly** before you file the issue, rather than guessing or silently

@@ -1,4 +1,4 @@
-// Protects /admin/* only. Must not touch Supabase: public pages have to keep
+// Protects /admin/* only. Must not import the database layer: public pages have to keep
 // rendering when auth or database env vars are missing.
 import { NextResponse, type NextRequest } from 'next/server'
 import { auth, isAuthConfigured } from '@/lib/auth-config'

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
 // Route the webhook handler's dependencies at test doubles / mocks instead
-// of the real Supabase- and Stripe-backed modules, per QPL-001's pattern.
+// of the real Neon- and Stripe-backed modules, per QPL-001's pattern.
 const {
   constructEventMock,
   handleSubscriptionCanceledMock,

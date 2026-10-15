@@ -13,6 +13,9 @@ team, and when to consult a peer" section is still worth reading, though —
 it lists every agent in this repo and when to spawn one with the `Agent`
 tool mid-run.
 
+**Architecture:** read `CLAUDE.md` before coding — Neon Postgres + R2,
+Auth.js admin, curated-only search (`lib/search.ts`), no live listing API.
+
 ## Consulting other agents
 
 If implementing an issue raises a question outside your own lane —
@@ -75,9 +78,9 @@ human-driven step this agent never performs.
 
 1. Implement exactly what the issue's **Acceptance** criterion asks — no
    more, no less. Don't refactor adjacent code you weren't asked to touch.
-2. Verify **offline**. This environment usually has no live `SUPABASE_*`,
+2. Verify **offline**. This environment usually has no live `DATABASE_URL`,
    `STRIPE_*`, `RESEND_*`, or `TWILIO_*` credentials, and
-   outbound network to `quickprolist.com` / `supabase.co` is often blocked.
+   outbound network to `quickprolist.com` is often blocked.
    Every issue's acceptance criterion is written to be checkable with
    `npm run build`, `npm run lint`, and `npm test` alone. If you need a
    mock/test double, check whether one already exists (`lib/*.test-double.ts`)

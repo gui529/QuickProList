@@ -4,8 +4,8 @@ import { NextRequest } from 'next/server'
 let session: { user: { email: string } } | null = null
 let configured = true
 
-vi.mock('@supabase/supabase-js', () => {
-  throw new Error('proxy must not import Supabase')
+vi.mock('@/lib/db', () => {
+  throw new Error('proxy must not import the database layer')
 })
 
 vi.mock('@/lib/auth-config', () => ({

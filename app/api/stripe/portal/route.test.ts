@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
 // Route this route's dependencies at mocks / test doubles instead of the
-// real Supabase- and Stripe-backed modules, per QPL-001's pattern.
+// real Neon- and Stripe-backed modules, per QPL-001's pattern.
 const { getCuratedByDashboardTokenMock, createBillingPortalSessionMock } = vi.hoisted(() => ({
   getCuratedByDashboardTokenMock: vi.fn(),
   createBillingPortalSessionMock: vi.fn().mockResolvedValue('https://billing.stripe.test/session'),

@@ -11,7 +11,7 @@ vi.mock('./suppressions', async (orig) => ({
   isSuppressed: isSuppressedMock,
 }))
 
-// lib/reports.ts hits live Supabase directly; swap it for the in-memory
+// lib/reports.ts hits live Neon directly; swap it for the in-memory
 // test double (which itself composes lib/kv.test-double +
 // lib/invitations.test-double) so this test can exercise real
 // status-deriving logic without live credentials. Also swap lib/kv.ts and

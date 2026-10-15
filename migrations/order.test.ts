@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 
-// Regression test for QPL-007-QA1: a fresh Supabase project bootstraps by
+// Regression test for QPL-007-QA1: a fresh Neon database bootstraps by
 // running migrations/*.sql in plain alphabetical order (no migration
 // framework/history table involved). That means a table's CREATE TABLE must
 // always appear, in run order, before any ALTER TABLE or REFERENCES that

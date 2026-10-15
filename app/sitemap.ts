@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
 
-  // Without Supabase credentials configured, listAllCurated() resolves to [] —
+  // Without DATABASE_URL configured, listAllCurated() resolves to [] —
   // the sitemap still builds successfully with just the static routes above.
   const curated = (await listAllCurated().catch(() => [])).map(toPublicBusiness)
   const proRoutes: MetadataRoute.Sitemap = curated

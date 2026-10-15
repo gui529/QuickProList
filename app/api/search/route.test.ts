@@ -89,7 +89,7 @@ describe('GET /api/search open area', () => {
   })
 
   it('returns a generic 502 without leaking the underlying error', async () => {
-    getMergedResults.mockRejectedValue(new Error('supabase exploded: secret detail'))
+    getMergedResults.mockRejectedValue(new Error('database exploded: secret detail'))
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const res = await GET(get('category=plumbing&location=Marietta'))

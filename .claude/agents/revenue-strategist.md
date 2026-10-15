@@ -40,9 +40,11 @@ QuickProList is a local-services directory. Homeowners search for free;
 local businesses (plumbers, electricians, HVAC) pay a monthly subscription
 (default $29.99/mo, see `lib/invitations.ts`, `lib/stripe.ts`,
 `app/api/stripe/*`) for a featured/pinned listing, with a free-trial path.
-Search results come from curated listings plus live Yelp results (`lib/yelp.ts`,
-`lib/search.ts`). Re-read the code on `dev` to confirm — the model may have
-changed since this file was written.
+Search results come from **curated listings in Neon only** (`lib/search.ts`,
+`lib/kv.ts`). There is no live third-party listing API; some legacy rows may
+still carry `source = 'yelp'` from old stored snapshots. Re-read the code on
+`dev` to confirm pricing and funnel — the model may have changed since this
+file was written.
 
 ## Step 1 — Ground yourself in what actually exists
 
@@ -74,10 +76,11 @@ on the things that decide whether this works, including:
   Google Maps/Local Services Ads, Yelp, Angi, and Nextdoor? Is there a
   credible, affordable acquisition channel, or does the plan quietly assume
   traffic that won't exist?
-- **Dependence on Yelp.** QuickProList's search shows Yelp data. What do
-  Yelp's API terms and rate/display limits mean for a business built on it?
-  Treat that as a platform risk, and escalate legal specifics to
-  `legal-agent`.
+- **Listing supply.** Search quality depends on admin-curated (and paying)
+  businesses in each town/category — not on a live feed. What does it cost
+  to fill slots and keep them subscribed? Legacy third-party snapshot rows
+  are a disclosure/retention question for `legal-agent`, not a platform API
+  dependency today.
 - **Unit economics.** Using the real price: customer acquisition cost
   (cold outreach, ads), expected trial-to-paid conversion, monthly churn for
   small-business SaaS, payment-processing and email/SMS costs, and support

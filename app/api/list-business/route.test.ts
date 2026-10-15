@@ -69,7 +69,7 @@ describe('POST /api/list-business', () => {
   })
 
   it('still returns ok when persistence fails, so the submitter sees success', async () => {
-    createListingRequestMock.mockRejectedValueOnce(new Error('supabase down'))
+    createListingRequestMock.mockRejectedValueOnce(new Error('database down'))
 
     const res = await POST(makeRequest(validSubmission) as never)
 

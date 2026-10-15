@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 
 // Only stub out `getInvitationByToken` (so the test doesn't need live
-// Supabase credentials) — keep the real `isInvitationExpired` so this test
+// DATABASE_URL) — keep the real `isInvitationExpired` so this test
 // exercises the checkout route's actual expiration enforcement, not a mock
 // of it.
 const { getInvitationByTokenMock, createCheckoutSessionMock } = vi.hoisted(() => ({

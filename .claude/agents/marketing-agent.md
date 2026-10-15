@@ -76,7 +76,8 @@ issues** — not app code unless the owner asks in the same thread.
 | SMS outreach | `lib/sms.ts`, `README.md` |
 | Suppressions / unsubscribe | `lib/suppressions.ts`, `lib/unsubscribe.ts`, `app/api/unsubscribe/` |
 | Public brand & CTAs | `app/page.tsx`, `app/enroll/` |
-| Env | `RESEND_*`, `UNSUBSCRIBE_SECRET`, `SITE_URL` |
+| Env | `RESEND_*`, `UNSUBSCRIBE_SECRET`, `CRON_SECRET`, `SITE_URL`, `CAMPAIGN_OUTREACH_SECRET` |
+| Legal links in email/enroll | `app/privacy/page.tsx`, `app/terms/page.tsx`, `lib/legal-site.ts` |
 
 Use **Resend MCP** (`list-domains`, `get-domain`, `list-emails`, `get-email`,
 `get-suppression`) and **Vercel CLI** (`vercel ls`, `vercel inspect <alias>`,

@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 import type { ReactElement, ReactNode } from 'react'
 
 // Only stub out `getCuratedByDashboardToken`/`listInvitations` (so the test
-// doesn't need live Supabase credentials) — keep the real `deriveStatus` so
+// doesn't need live DATABASE_URL) — keep the real `deriveStatus` so
 // this test exercises the page's actual status-deriving logic, not a mock
 // of it.
 const { getCuratedByDashboardTokenMock, listInvitationsMock } = vi.hoisted(() => ({

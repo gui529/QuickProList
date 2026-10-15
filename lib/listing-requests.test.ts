@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-// Mock the Supabase client so we can test lib/listing-requests.ts's real
+// Mock the DB layer so we can test lib/listing-requests.ts's real
 // camelCase -> snake_case field mapping (not just a wholesale mock of
-// createListingRequest) without a live Supabase project.
+// createListingRequest) without a live Neon database.
 const { queryMock } = vi.hoisted(() => ({
   queryMock: vi.fn().mockResolvedValue([{ id: 'request-1' }]),
 }))

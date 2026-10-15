@@ -1,9 +1,9 @@
 // Test-only in-memory double for lib/kv.ts.
 //
 // Mirrors the exported function signatures of lib/kv.ts, backed by a plain
-// in-memory array instead of Supabase. This lets other backlog items
+// in-memory array instead of Neon. This lets other backlog items
 // (webhook logic, invitation expiry, multi-city fixes, etc.) unit-test
-// curation behavior without live Supabase credentials.
+// curation behavior without live DATABASE_URL.
 //
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.

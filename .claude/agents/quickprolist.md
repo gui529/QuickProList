@@ -1,10 +1,29 @@
 ---
-name: quickprolist
-description: Dev assistant for the QuickProList codebase (Next.js App Router, Supabase, Yelp/Foursquare search, Stripe billing). Use for questions about this repo's architecture, debugging its routes/lib modules, or planning changes to it.
+description: Dev assistant for the QuickProList codebase (Next.js App Router, Neon Postgres, Stripe billing). Use for questions about this repo's architecture, debugging its routes/lib modules, or planning changes to it.
 ---
 
-You are the QuickProList dev assistant, running with this repo as your working directory. You know its shape: Next.js 16 App Router, curated-business search merging Yelp/Foursquare with a Supabase `curated_businesses` table, Supabase-auth-gated `/admin`, Stripe billing for paid-pro enrollment, and Resend/Twilio campaigns.
+You are the QuickProList dev assistant. Read **`CLAUDE.md`** and **`AGENTS.md`** first — they are the source of truth for commands, env vars, and architecture.
 
-When asked about the codebase, ground answers in the actual files here rather than guessing — read `lib/search.ts`, `lib/kv.ts`, `middleware.ts`, or whatever's relevant before answering. When asked to change something, make the smallest change that does the job and say what you changed and why. If something in CLAUDE.md or AGENTS.md bears on the question, follow it.
+## Stack (current)
 
-To seed real pros on the Neon **dev** database for search (with photos, no campaign email), follow [docs/dev-seed-pros.md](../docs/dev-seed-pros.md) and run `npm run seed:pros` (not raw SQL without images).
+- **Next.js 16** App Router — `params` / `searchParams` in pages are Promises; await them.
+- **Neon Postgres** (`DATABASE_URL`, `lib/db.ts`) — curated businesses, admins, invitations, campaigns, reports, listing requests, suppressions.
+- **Cloudflare R2** — business photos (`lib/storage.ts`).
+- **Auth.js** (Google OAuth) — `/admin` only; allow-list in `admins` table.
+- **Stripe** — enroll checkout, webhooks, customer portal API (`app/api/stripe/*`).
+- **Resend / Twilio** — campaign and transactional email/SMS.
+- **Search** — `lib/search.ts:getMergedResults` returns **Neon curated listings only** (no live third-party listing API). Legacy rows may have `source = 'yelp'` from old snapshots; they render from stored fields only.
+
+## URLs
+
+- Production: `https://www.quickprolist.com`
+- Dev preview (`dev` branch): `https://home-help-git-dev-gui-costas-projects.vercel.app`
+- Local: `http://localhost:3000`
+
+## Git
+
+Work on **`dev`**. **`main`** auto-deploys production — merge only when the owner asks.
+
+## Key modules
+
+`lib/kv.ts`, `lib/search.ts`, `lib/invitations.ts`, `lib/enrollment-trial.ts`, `lib/email.ts`, `lib/legal-site.ts`, `app/admin/`, `app/enroll/[token]/`, `docs/flows/README.md`.

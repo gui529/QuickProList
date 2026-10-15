@@ -12,7 +12,8 @@ for the narrow cases below — fix forward. **GitHub Issues are the
 backlog** — there is no work-item list in `BACKLOG.md`; the issue itself
 is where you record the review. `BACKLOG.md`'s "The team, and when to
 consult a peer" section lists every agent in this repo and when to spawn
-one with the `Agent` tool mid-run.
+one with the `Agent` tool mid-run. Skim `CLAUDE.md` when unsure how search,
+auth, or billing work today.
 
 ## Consulting other agents
 
@@ -78,8 +79,10 @@ this plan and skips "Find the work to review".
 
 ### How to run it
 
-Open the live site in a real browser and walk it as a visitor. Prefer
-https://www.quickprolist.com. Use the browser tooling you actually have:
+Open the live site in a real browser and walk it as a visitor. Use
+https://www.quickprolist.com for production regression, or the dev preview
+`https://home-help-git-dev-gui-costas-projects.vercel.app` when the task
+says dev. Use the browser tooling you actually have:
 the `computerUse` subagent, or a browser automation tool (Chrome,
 Playwright, or the equivalent) that loads the page, types, clicks, and
 reads rendered text. The walk is:
@@ -117,28 +120,22 @@ Do not disable protection to get in.
    - The footer does not say "Powered by Yelp" or "Yelp Fusion". No Yelp
      branding anywhere on the page. No error banner.
 
-2. **A search that should find a pro.** Type or select Marietta, then
-   click Cleaners.
-   - The results heading looks like "N Cleaners in Marietta".
-   - The screen shows the curated pro as a business card. The expected
-     name is "Ella's cleaning" unless live data has changed — then record
-     the name you actually see (a curly apostrophe still counts as that
-     listing).
-   - The card shows the business name. It does not show a "Yelp reviews"
-     label or a Yelp rating badge. There is no red error banner.
+2. **A search that should find a pro.** Type or select Marietta (or another
+   opened town), then click Cleaners (or another category with listings on
+   that environment).
+   - The results heading looks like "N Cleaners in Marietta" (or similar).
+   - At least one curated business card with a name. No star ratings or
+     third-party review badges. No red error banner.
 
-3. **A search with no pros.** An opened town (for example Marietta, Smyrna,
-   or Canton — any town in the picker) plus a category that has no listing.
-   If the first category you try shows a pro, try another and record the
-   pair you used.
-   - The screen shows exactly "No pros found here yet. Check back soon."
-   - That is the friendly empty state, not a red error.
+3. **Empty state (when reachable).** Opened town + category with no rows.
+   On a heavily seeded **dev** DB this may be **incomplete** — say so. When
+   reachable: "No pros found here yet. Check back soon." (not a red error).
 
 4. **A town outside the open area.** Type a town that is not open (for
    example Bozeman) and click a category.
    - The screen says QuickProList is not open there yet. The sentence stays
      short and points at the town list; it does not name every opened town.
-   - It does not show a 502, "Something went wrong", or "Yelp API error".
+   - It does not show a 502 or a generic "Something went wrong" error page.
 
 5. **Desktop and a narrow viewport.** Repeat the Marietta + Cleaners
    results screen at about 390px wide. The business name is still readable.
@@ -146,12 +143,15 @@ Do not disable protection to get in.
 
 6. **API spot-check, after the screen walk. This does not replace steps
    1–5.** `GET /api/search?category=homecleaning&location=Marietta,%20GA`
-   returns 200, not a Yelp 502. The JSON has no `dashboardToken`,
-   `contactEmail`, `isTrial`, `trialEndsAt`, or `reviewUrl`, and no
-   "Yelp API error" or `api.yelp.com`. A town outside the area returns the
-   not-open JSON, not a 502.
+   returns 200. The JSON has no `dashboardToken`, `contactEmail`, `isTrial`,
+   `trialEndsAt`, or `reviewUrl`. A town outside the open area returns the
+   not-open JSON, not 5xx.
 
-7. **Dev-only QA admin sign-in.**
+7. **Legal pages (when regression includes a recent legal deploy).**
+   `/privacy` and `/terms` show a "Last updated" date, `contact@quickprolist.com`,
+   and no `[OWNER TO FILL]` or "pending legal review" draft banner.
+
+8. **Dev-only QA admin sign-in.**
    - On https://www.quickprolist.com/login the page offers "Sign in with
      Google" and does not show "QA sign-in" or "Sign in for QA".
    - On the dev preview
@@ -169,7 +169,7 @@ Do not disable protection to get in.
      on production. https://www.quickprolist.com must not show the form,
      and a regression must not sign in as admin there.
 
-7b. **Dev admin — Pinned Pros More menu.** After step 7 on the dev
+8b. **Dev admin — Pinned Pros More menu.** After step 8 on the dev
    preview, stay on `/admin` (Pinned Pros).
    - At least one pinned pro card is visible.
    - Click **More** on the first card. A dropdown opens with actions such
@@ -182,10 +182,10 @@ Do not disable protection to get in.
    - Save a screenshot of the open More menu under `.qa-screenshots/admin/`
      when that folder exists in the workspace.
 
-8. **Dev-only Stripe checkout.** This can only be done on the dev site.
+9. **Dev-only Stripe checkout.** This can only be done on the dev site.
    Do not start checkout, pay, or create a test pro on
    https://www.quickprolist.com.
-   - Sign in with the QA admin sign-in from step 7 on
+   - Sign in with the QA admin sign-in from step 8 on
      https://home-help-git-dev-gui-costas-projects.vercel.app.
    - On `/admin`, click **+ Add Pro**. Name the business `QA Stripe Check`,
      category Locksmiths, city Marietta. Save it.

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
 // Route lib/stripe.ts's dependencies at the in-memory test doubles instead
-// of the real Supabase-backed modules, per QPL-001's pattern.
+// of the real Neon-backed modules, per QPL-001's pattern.
 vi.mock('./invitations', async () => import('./invitations.test-double'))
 vi.mock('./kv', async () => import('./kv.test-double'))
 

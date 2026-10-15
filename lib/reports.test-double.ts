@@ -2,7 +2,7 @@
 //
 // Mirrors the exported function signature of lib/reports.ts, composing the
 // in-memory stores from lib/kv.test-double.ts and
-// lib/invitations.test-double.ts instead of hitting Supabase.
+// lib/invitations.test-double.ts instead of hitting Neon.
 //
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.

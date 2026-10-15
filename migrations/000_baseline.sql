@@ -1,4 +1,4 @@
--- Baseline schema for a fresh Supabase project.
+-- Baseline schema for a fresh Neon Postgres database.
 --
 -- The rest of migrations/*.sql are incremental ALTER/CREATE statements that
 -- assume `curated_businesses` and `admins` already exist. Neither table had
@@ -6,7 +6,7 @@
 -- bootstrapped from `migrations/` alone. This file fills that gap.
 --
 -- Run this FIRST, before any other file in migrations/, when bootstrapping a
--- new Supabase project. All other migrations remain additive (ALTER TABLE ...
+-- new database. All other migrations remain additive (ALTER TABLE ...
 -- ADD COLUMN IF NOT EXISTS / CREATE TABLE) and are safe to run after this one
 -- in their existing order.
 --

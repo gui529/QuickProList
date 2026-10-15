@@ -48,7 +48,7 @@ describe('curated area lookups (lib/kv.ts)', () => {
     expect(area.map((b) => b.id)).toEqual(['a', 'b'])
   })
 
-  it('returns an empty list when Supabase has no matching rows', async () => {
+  it('returns an empty list when the database has no matching rows', async () => {
     await expect(getCuratedInArea('homecleaning', ['marietta'])).resolves.toEqual([])
   })
 })

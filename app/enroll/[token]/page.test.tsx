@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 import type { ReactElement, ReactNode } from 'react'
 
 // Only stub out `getInvitationByToken` (so the test doesn't need live
-// Supabase credentials) — keep the real `isInvitationExpired` so this test
+// DATABASE_URL) — keep the real `isInvitationExpired` so this test
 // exercises the page's actual expiration enforcement, not a mock of it.
 const { getInvitationByTokenMock } = vi.hoisted(() => ({ getInvitationByTokenMock: vi.fn() }))
 vi.mock('@/lib/invitations', async (importOriginal) => {
