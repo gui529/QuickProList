@@ -18,6 +18,7 @@ import {
 import { buildUnsubscribeUrl } from '../lib/unsubscribe'
 import { isSuppressed, normalizeEmail, SuppressedError } from '../lib/suppressions'
 import { isDatabaseConfigured } from '../lib/db'
+import { getCampaignOwnerBccEmail } from '../lib/campaign-owner-bcc'
 
 loadCampaignEnv()
 
@@ -100,9 +101,12 @@ async function main() {
   const { text, html } = buildPersonalMarketingEmail(businessName!, body, emailOpts, compliance, siteUrl)
   const subject = buildMarketingEmailSubject(businessName!, emailOpts)
 
+  const bcc = getCampaignOwnerBccEmail()
+
   if (dryRun) {
     console.log('--- dry-run ---')
     console.log('To:', to)
+    console.log('Bcc:', bcc)
     console.log('Subject:', subject)
     console.log(text)
     return
@@ -115,7 +119,7 @@ async function main() {
   const idempotencyKey = `campaign/${batch}/${normalized}`
 
   const { data, error } = await resend.emails.send(
-    { from, to: [to!], subject, text, html, headers: compliance.headers },
+    { from, to: [to!], bcc: [bcc], subject, text, html, headers: compliance.headers },
     { idempotencyKey }
   )
 
@@ -123,7 +127,7 @@ async function main() {
     console.error('Resend error:', error.message)
     process.exit(1)
   }
-  console.log(JSON.stringify({ id: data?.id, to, subject, batch, idempotencyKey }))
+  console.log(JSON.stringify({ id: data?.id, to, bcc, subject, batch, idempotencyKey }))
 }
 
 main().catch((err) => {

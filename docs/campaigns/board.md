@@ -15,7 +15,9 @@
 | **Status** | `ACTIVE` |
 | **Current focus** | *(city + category + batch name)* |
 | **Daily email cap** | `10` (raise after inbox tests pass) |
-| **Send authority** | `STANDALONE` — agent sends via Resend script, not the app |
+| **Send authority** | `STANDALONE` — agent sends fast without per-email approval |
+| **Owner BCC** | `gui529@hotmail.com` (every outbound campaign; hidden from pros) |
+| **Pace** | Fast — see `docs/campaigns/skills/campaign-strategy.md` |
 | **Last session** | *(ISO date/time ET)* |
 | **Paused reason** | *(if PAUSED)* |
 

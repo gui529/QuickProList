@@ -96,6 +96,7 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(call.text).toContain('We are going to launch soon')
     expect(call.text).not.toContain('cancel anytime')
     expect(call.subject).not.toMatch(/🏠|\$29/)
+    expect(call.bcc).toEqual(['gui529@hotmail.com'])
     delete process.env.CAMPAIGN_SENDER_NAME
   })
 
@@ -103,7 +104,9 @@ describe('sendEmail (lib/email.ts)', () => {
     await sendEmail('owner@example.com', 'Acme', "We weren't able to process your payment.", {
       kind: 'transactional',
     })
-    expect(sendMock.mock.calls[0][0].subject).toBe('QuickProList payment issue — action needed')
+    const txCall = sendMock.mock.calls[0][0]
+    expect(txCall.subject).toBe('QuickProList payment issue — action needed')
+    expect(txCall.bcc).toBeUndefined()
   })
 
   it('escapes HTML-unsafe characters in marketing HTML', async () => {

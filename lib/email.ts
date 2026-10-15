@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { getCampaignOwnerBccEmail } from './campaign-owner-bcc'
 import { normalizeCategory } from './categories'
 import { formatCategoryLabel, formatCityLabel } from './display'
 import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
@@ -249,6 +250,7 @@ export async function sendEmail(
     subject,
     html,
     text,
+    ...(isMarketing ? { bcc: [getCampaignOwnerBccEmail()] } : {}),
     ...(compliance ? { headers: compliance.headers } : {}),
   })
   if (error) throw new Error(error.message)

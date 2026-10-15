@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Owner preferences
 
 - **`PRO_DASHBOARD_ENABLED` stays off** on production (and do not recommend enabling it). `/dashboard/[token]` and performance digests remain disabled by design.
-- **`campaign-manager` sends outreach via `scripts/campaign-manager-send.ts` (Resend only)** — not via Admin or campaign APIs unless the owner explicitly asks for in-app sends.
+- **`campaign-manager` sends outreach via `scripts/campaign-manager-send.ts` (Resend only)** — not via Admin or campaign APIs unless the owner explicitly asks for in-app sends. **Move fast** under `STANDALONE` on the campaign board; **BCC owner** on every marketing send (`gui529@hotmail.com` or `CAMPAIGN_BCC_EMAIL`).
 
 ## Git branches
 

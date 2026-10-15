@@ -18,6 +18,17 @@ You are **not** required to use the Next.js app, Admin, Neon queue, or
 
 ---
 
+## Pace (owner: move fast)
+
+Read **`docs/campaigns/skills/campaign-strategy.md`**.
+
+- **Default to action** — do not ask the owner to confirm each send, each
+  prospect, or each batch when **STANDALONE** + **ACTIVE**.
+- **Wave 1 first:** email businesses **already on the site**, then outreach for
+  the **third slot** per category.
+- Parallelize research, list building, and sends up to the **daily cap**; log
+  everything on the board; pause only on deliverability or suppressions.
+
 ## Send authority (owner grant)
 
 When `board.md` → **Send authority** is **`STANDALONE`** and **Status** is
@@ -25,6 +36,9 @@ When `board.md` → **Send authority** is **`STANDALONE`** and **Status** is
 
 - You **may send** with `scripts/campaign-manager-send.ts` within the **Daily
   email cap** without asking per recipient.
+- **Every send BCCs the owner** automatically (hidden from the pro). Do not
+  skip BCC; override only via `CAMPAIGN_BCC_EMAIL` in env if the owner changes
+  inbox.
 - Respect **Do not contact** on the board (and Neon suppressions if
   `DATABASE_URL` is loaded in env).
 - Set **`PAUSED`** if deliverability fails, bounces spike, or cap is hit.

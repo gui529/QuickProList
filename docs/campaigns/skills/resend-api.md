@@ -22,6 +22,7 @@ Pair this doc with the upstream **Resend skill** (idempotency, `{ data, error }`
 | `CAMPAIGN_SENDER_NAME` | Recommended (`Jeremy`) |
 | `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Yes (footer + List-Unsubscribe) |
 | `SITE_URL` | Yes (`https://www.quickprolist.com`) |
+| `CAMPAIGN_BCC_EMAIL` | Optional — owner hidden copy (default `gui529@hotmail.com`) |
 | `DATABASE_URL` | **No** — only for optional suppression lookup |
 
 ```powershell
@@ -62,7 +63,13 @@ to the running site:
 | Subject / HTML | `lib/email.ts` |
 | Unsubscribe token | `lib/unsubscribe.ts` |
 
-## 4. What campaign-manager does **not** use for sends
+## 4. Owner BCC (required)
+
+`campaign-manager-send.ts` and marketing `sendEmail` always set Resend **`bcc`**
+to `getCampaignOwnerBccEmail()` (`lib/campaign-owner-bcc.ts`). The pro only sees
+**To**; the owner gets a copy in Hotmail (or `CAMPAIGN_BCC_EMAIL`).
+
+## 5. What campaign-manager does **not** use for sends
 
 - `/admin` Campaigns tabs
 - `POST /api/campaigns/send` or prospects queue APIs
@@ -71,13 +78,13 @@ to the running site:
 
 The in-app campaign UI remains available to **humans**; the agent’s path is **Resend-only**.
 
-## 5. After sending
+## 6. After sending
 
 1. Append to `docs/campaigns/board.md` (to, business, batch, Resend `id`, subject).
 2. `resend emails get <id>` or Resend dashboard → `last_event`.
 3. On bounce/complaint: add to board **Do not contact**; pause if needed.
 
-## 6. Owner send authority
+## 7. Owner send authority
 
 When `board.md` → **Send authority** is `STANDALONE` and status is `ACTIVE`,
 campaign-manager may send within **Daily email cap** without per-message owner
