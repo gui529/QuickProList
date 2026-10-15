@@ -12,7 +12,7 @@
 
 | Field | Value |
 |-------|--------|
-| **Status** | `IDLE` — set to `ACTIVE`, `PAUSED`, or `STOPPED` by campaign-manager |
+| **Status** | `ACTIVE` |
 | **Current focus** | *(city + category + batch name)* |
 | **Daily email cap** | `10` (raise after inbox tests pass) |
 | **Send authority** | `STANDALONE` — agent sends via Resend script, not the app |
@@ -43,7 +43,7 @@
 
 | Date (ET) | To | Business | Batch | Resend id | Subject note |
 |-----------|-----|----------|-------|-----------|--------------|
-| | | | | | |
+| 2026-10-15 ~17:20 | gui529@hotmail.com | Gui's Quality Plumbing | owner-inbox-test-2026-10-15 | 01a14170-19ca-75ba-bd59-893a5c6c2c82 | Marietta plumbers (standalone script) |
 
 ---
 
@@ -87,6 +87,12 @@
 ## Session log (newest first)
 
 <!-- campaign-manager: append below this line -->
+
+### 2026-10-15 — Owner inbox test (Hotmail)
+
+**Agent:** campaign-manager  
+**Sent:** 1 via `campaign-manager-send.ts` → gui529@hotmail.com (Resend `01a14170-19ca-75ba-bd59-893a5c6c2c82`)  
+**Notes:** Subject *Okay to add Gui's Quality Plumbing to our Marietta list?* Check junk folder on Outlook/Hotmail.
 
 ### 2026-10-15 — Board created
 

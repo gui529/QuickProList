@@ -21,6 +21,11 @@ import { isDatabaseConfigured } from '../lib/db'
 
 loadCampaignEnv()
 
+// Local dev: `vercel env pull` often leaves secrets empty; QA_ADMIN_SECRET matches prod unsub in some envs.
+if (!process.env.UNSUBSCRIBE_SECRET && !process.env.CRON_SECRET && process.env.QA_ADMIN_SECRET) {
+  process.env.UNSUBSCRIBE_SECRET = process.env.QA_ADMIN_SECRET
+}
+
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name)
   if (i === -1 || i + 1 >= process.argv.length) return undefined

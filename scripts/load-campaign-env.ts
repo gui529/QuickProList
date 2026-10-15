@@ -17,6 +17,11 @@ export function loadCampaignEnv(): void {
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1)
     }
-    process.env[key] = val
+    if (!val) continue
+    const existing = process.env[key]
+    // `vercel env pull` may write empty secrets; keep longer local values.
+    if (!existing || val.length > existing.length) {
+      process.env[key] = val
+    }
   }
 }

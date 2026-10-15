@@ -29,8 +29,12 @@ cd C:\Projects\QuickProList
 npx vercel env pull .env.campaign-send.local --environment=production --yes
 ```
 
-`scripts/load-campaign-env.ts` loads `.env.local` then **overwrites** with
-`.env.campaign-send.local`.
+`scripts/load-campaign-env.ts` loads `.env.local` then merges
+`.env.campaign-send.local` (skips empty pulled secrets; keeps longer local values).
+
+If `UNSUBSCRIBE_SECRET` is missing locally, the send script may fall back to
+`QA_ADMIN_SECRET` from `.env.local` for **dev-only** sends — add production
+`UNSUBSCRIBE_SECRET` to `.env.local` for unsubscribe links that match prod.
 
 ## 3. Primary send command (campaign-manager)
 
