@@ -150,15 +150,14 @@ function HomePageInner() {
     <div className="-mx-4 sm:-mx-6 -mt-6 sm:-mt-8">
       <section className="relative z-20 hero-bg">
         <div className="absolute inset-0 grid-dots opacity-60 pointer-events-none" />
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-16 sm:pt-14 sm:pb-20">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-8 sm:pt-14 sm:pb-20">
           <div className="flex flex-col items-center text-center">
             <h1 className="mt-4 sm:mt-5 text-[28px] leading-[1.15] sm:text-4xl md:text-5xl font-bold tracking-tight text-slate-900 max-w-3xl px-2">
               The right hand for every{' '}
               <span className="relative inline-block whitespace-nowrap">
-                <span className="relative z-10">home project</span>
-                <span className="absolute inset-x-0 bottom-0.5 sm:bottom-1 h-2 sm:h-3 bg-amber-300/50 rounded-sm -z-0" />
+                <span className="relative z-10">home project.</span>
+                <span className="absolute inset-x-0 bottom-1 h-2 sm:h-3 bg-amber-300/50 rounded-sm -z-10" />
               </span>
-              .
             </h1>
             <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-500 max-w-xl px-2">
               Plumbers, electricians, HVAC and more — find pros in your city.
@@ -231,29 +230,29 @@ function HomePageInner() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-6 sm:-mt-10 relative">
-        <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-[0_10px_40px_rgba(15,23,42,0.06)] p-4 sm:p-6">
-          <div className="flex items-baseline justify-between mb-3 sm:mb-4">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-4 sm:-mt-10 relative">
+        <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-[0_10px_40px_rgba(15,23,42,0.06)] p-3 sm:p-6">
+          <div className="flex items-baseline justify-between mb-3 sm:mb-4 px-1">
             <h2 className="text-sm font-semibold text-slate-900">Pick a category</h2>
             <span className="text-xs text-slate-500">{CATEGORIES.length} services</span>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-2.5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-2.5 lg:grid-cols-10">
             {CATEGORIES.map(({ label, value, icon }) => {
               const active = activeCategory === value
               return (
                 <button
                   key={value}
                   onClick={() => handleCategoryClick(value)}
-                  className={`group relative flex flex-col items-center gap-1.5 sm:gap-2 px-1.5 py-3 sm:px-2 sm:py-4 rounded-xl text-[11.5px] sm:text-[12.5px] font-medium transition-all cursor-pointer ${
+                  className={`group relative flex flex-row items-center gap-2 min-h-11 px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all cursor-pointer sm:flex-col sm:justify-center sm:gap-2 sm:min-h-0 sm:px-2 sm:py-4 sm:text-[12.5px] ${
                     active
                       ? 'bg-slate-900 text-white shadow-md'
                       : 'bg-slate-50 active:bg-slate-100 hover:bg-white hover:ring-1 hover:ring-slate-200 hover:shadow-sm text-slate-700'
                   }`}
                 >
-                  <span className="text-xl sm:text-2xl transition-transform group-hover:scale-110">
+                  <span className="text-xl leading-none sm:text-2xl transition-transform group-hover:scale-110">
                     {icon}
                   </span>
-                  <span className="text-center leading-tight break-words">{label}</span>
+                  <span className="text-left leading-tight whitespace-nowrap sm:whitespace-normal sm:text-center">{label}</span>
                   {active && (
                     <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-amber-400" />
                   )}
@@ -311,7 +310,7 @@ function HomePageInner() {
         )}
 
         {!loading && !searched && results.length === 0 && (
-          <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+          <div className="mt-6 sm:mt-12 grid sm:grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto">
             {[
               { icon: '🔎', title: 'Find local pros', body: 'Search home-service businesses by city and category.' },
               { icon: '⚡', title: 'Quick search', body: 'Pick a category to see businesses in your city.' },
