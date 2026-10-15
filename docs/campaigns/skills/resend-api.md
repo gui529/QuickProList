@@ -43,7 +43,7 @@ npx tsx scripts/campaign-manager-send.ts `
   --to pro@example.com `
   --business "Acme Plumbing" `
   --city marietta `
-  --category plumbers `
+  --category plumbing `
   --batch 2026-10-15-atl-hvac `
   [--enroll-url "https://www.quickprolist.com/enroll/TOKEN"]
 ```

@@ -1,4 +1,4 @@
-import { CATEGORIES } from './categories'
+import { CATEGORIES, normalizeCategory } from './categories'
 
 export function formatCityLabel(city: string): string {
   const name = city.split(',')[0].trim()
@@ -8,5 +8,6 @@ export function formatCityLabel(city: string): string {
 
 export function formatCategoryLabel(value: string | null | undefined): string {
   if (!value) return ''
-  return CATEGORIES.find((category) => category.value === value)?.label ?? value
+  const key = normalizeCategory(value)
+  return CATEGORIES.find((category) => category.value === key)?.label ?? value
 }

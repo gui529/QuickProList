@@ -25,7 +25,7 @@ const r = spawnSync(
     '--city',
     'marietta',
     '--category',
-    'plumbers',
+    'plumbing',
     '--batch',
     'preview',
   ],

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { CATEGORIES } from '@/lib/categories'
+import { CATEGORIES, normalizeCategory } from '@/lib/categories'
 import BusinessCard from '@/components/BusinessCard'
 import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
@@ -78,7 +78,8 @@ function HomePageInner() {
 
   // Initial mount: auto-run the search if the URL already specified a city + category
   useEffect(() => {
-    const cat = CATEGORIES.find((c) => c.value === urlCategory)
+    const categoryKey = urlCategory ? normalizeCategory(urlCategory) : ''
+    const cat = CATEGORIES.find((c) => c.value === categoryKey)
     if (urlLocation && cat && !autoFiredRef.current) {
       autoFiredRef.current = true
       void runSearch(cat.value, urlLocation, urlHighlight || undefined)

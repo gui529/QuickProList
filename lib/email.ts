@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { normalizeCategory } from './categories'
 import { formatCategoryLabel, formatCityLabel } from './display'
 import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
 import { buildUnsubscribeUrl } from './unsubscribe'
@@ -36,7 +37,8 @@ export function formatMarketingFromAddress(raw: string): string {
 
 function buildSearchUrl(siteUrl: string, city?: string, category?: string): string | null {
   if (!city?.trim() || !category?.trim()) return null
-  return `${siteUrl}/search?location=${encodeURIComponent(city.trim())}&category=${encodeURIComponent(category.trim())}`
+  const cat = normalizeCategory(category)
+  return `${siteUrl}/search?location=${encodeURIComponent(city.trim())}&category=${encodeURIComponent(cat)}`
 }
 
 export interface PersonalMarketingEmail {
