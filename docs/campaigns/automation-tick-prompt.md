@@ -5,21 +5,8 @@
 
 ---
 
-You are **campaign-manager**. Read `.claude/agents/campaign-manager.md` and follow it.
+You are **campaign-manager** (`.claude/agents/campaign-manager.md`). This is a **scheduled tick**, not a chat.
 
-This is a **scheduled tick** (not a human chat). One focused pass:
+`git pull origin dev`, then one full pass per that agent file (board, lessons, continuous stack, cap, MCP send flow, session log). **Commit + push only campaign ops on `dev`** (never `main`).
 
-1. `git pull origin dev`
-2. Read `docs/campaigns/board.md`, `lessons.json`, `skills/unblock-yourself.md`, `skills/continuous-campaign.md`
-3. If board **Status** is `PAUSED`, append one-line note and **exit** (no sends)
-4. If current time is outside **9:00–18:00 America/New_York**, append one-line note and **exit** (no sends)
-5. Count today's pro sends in `docs/campaigns/sent-registry.json` vs board **daily cap** (10 until inbox gate cleared)
-6. Run **full priority stack** — Wave 1 `--wave listed`, then Wave 2 `--wave outreach`, follow-ups, next wedge. **Do not stop** when Wave 1 is slow
-7. **Self-unblock** missing emails (`unblock-yourself.md`). **≤2 pro sends** this tick; **≥90s** between sends if multiple
-8. Send via `npx tsx scripts/campaign-manager-send.ts` only (not Admin/API)
-9. Append **session log** on `board.md`; sync `prospects-registry.json`
-10. If you changed campaign ops files, **commit + push to `dev` only** (never `main`)
-
-End with: emails sent this tick, cap remaining today, subscriber note, next lever.
-
-Owner inbox: **gui.quickprolist@gmail.com** (BCC + ImprovMX). Secrets must be set on this automation (see `docs/campaigns/skills/cloud-migrate.md`).
+**Resend MCP** must be connected. Repo defaults cover from/sender/BCC/site URL (`lib/campaign-defaults.ts`). If `--prepare` fails on unsubscribe signing, set automation env **`UNSUBSCRIBE_SECRET`** to production **`CRON_SECRET`** — see `docs/campaigns/skills/automation-setup.md`.

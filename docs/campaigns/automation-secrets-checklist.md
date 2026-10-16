@@ -1,19 +1,9 @@
-# Step 3 — Secrets for cloud campaign automation
+# Automation env (optional)
 
-Copy these into your **Cursor Automation** environment variables (same values as Vercel Production / your local `.env.local` where applicable). **Do not commit values.**
+Most campaign config is **in code** (`lib/campaign-defaults.ts`, `lib/campaign-owner-bcc.ts`). Full setup: **`skills/automation-setup.md`**.
 
-| Variable | Required | Notes |
-|----------|----------|--------|
-| `RESEND_API_KEY` | Yes | Resend dashboard |
-| `RESEND_FROM_EMAIL` | Yes | e.g. `jeremy@quickprolist.com` |
-| `UNSUBSCRIBE_SECRET` | Yes* | Or `CRON_SECRET` (production has both on Vercel `home-help`) |
-| `SITE_URL` | Yes | `https://www.quickprolist.com` |
-| `CAMPAIGN_SENDER_NAME` | Yes | e.g. `Jeremy` |
-| `CAMPAIGN_BCC_EMAIL` | Optional | Defaults to `gui.quickprolist@gmail.com` in code |
-| `DATABASE_URL` | Recommended | Neon **production** branch for `campaign-sync-listed-prospects.ts` |
+| Variable | When |
+|----------|------|
+| `UNSUBSCRIBE_SECRET` | Only if `--prepare` cannot sign unsub links — use Vercel Production `CRON_SECRET` |
 
-\* Send script also accepts `CRON_SECRET` if `UNSUBSCRIBE_SECRET` unset.
-
-**Where to copy from:** Vercel → Project **home-help** → Settings → Environment Variables → Production (re-enter into Cursor; do not paste into git).
-
-After saving secrets, run **one manual** automation execution (Step 4).
+**Required (not env):** Resend MCP on the automation.

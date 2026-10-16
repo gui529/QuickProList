@@ -1,43 +1,20 @@
-# Resend API skill (campaign-manager)
+# Resend skill (campaign-manager)
 
-**Mandatory before any send.** Campaign email is **standalone** — not routed through
-the Next.js app, Admin UI, or `/api/campaigns/*`. No `DATABASE_URL` required to send
-(optional: Neon suppressions check if env is present).
+**Mandatory before any send.** Campaign email is **standalone** — not Admin or
+`/api/campaigns/*`. Delivery is **Resend MCP only** (owner policy). This script
+builds mail and updates **`sent-registry.json`**; MCP sends it.
 
-Pair this doc with the upstream **Resend skill** (idempotency, `{ data, error }`).
+Pair with the upstream **Resend skill** (idempotency, `{ data, error }`).
 
-## 1. Canonical Resend skill
+## 1. Upstream skill
 
-1. `C:\Users\gui52\.cursor\plugins\cache\cursor-public\resend\4b1558df96241f0a7eb416a1ce262650f2a5f471\skills\resend\SKILL.md`
-2. CLI (optional): `skills\resend-cli\SKILL.md`, `skills\resend-cli\references\emails.md`
+`C:\Users\gui52\.cursor\plugins\cache\cursor-public\resend\4b1558df96241f0a7eb416a1ce262650f2a5f471\skills\resend\SKILL.md`
 
-**Do not use Resend MCP** unless the owner connects it. Use **SDK + scripts** below.
+Connect **Resend MCP** on the agent (cloud automation or local session).
 
-## 2. Credentials (never log or commit)
+## 2. Every send (three steps)
 
-| Variable | Required to send |
-|----------|------------------|
-| `RESEND_API_KEY` | Yes |
-| `RESEND_FROM_EMAIL` | Yes |
-| `CAMPAIGN_SENDER_NAME` | Recommended (`Jeremy`) |
-| `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Yes (footer + List-Unsubscribe) |
-| `SITE_URL` | Yes (`https://www.quickprolist.com`) |
-| `CAMPAIGN_BCC_EMAIL` | Optional — owner hidden copy (default `gui.quickprolist@gmail.com`) |
-| `DATABASE_URL` | **No** — only for optional suppression lookup |
-
-```powershell
-cd C:\Projects\QuickProList
-npx vercel env pull .env.campaign-send.local --environment=production --yes
-```
-
-`scripts/load-campaign-env.ts` loads `.env.local` then merges
-`.env.campaign-send.local` (skips empty pulled secrets; keeps longer local values).
-
-If `UNSUBSCRIBE_SECRET` is missing locally, the send script may fall back to
-`QA_ADMIN_SECRET` from `.env.local` for **dev-only** sends — add production
-`UNSUBSCRIBE_SECRET` to `.env.local` for unsubscribe links that match prod.
-
-## 3. Primary send command (campaign-manager)
+**1. Prepare** — copy, BCC, unsubscribe, dedupe check:
 
 ```powershell
 npx tsx scripts/campaign-manager-send.ts `
@@ -46,46 +23,63 @@ npx tsx scripts/campaign-manager-send.ts `
   --city marietta `
   --category plumbing `
   --batch 2026-10-15-atl-hvac `
-  [--enroll-url "https://www.quickprolist.com/enroll/TOKEN"]
+  --wave listed `
+  --prepare
 ```
 
-- **`--dry-run`** — print subject + plain text, no API call.
-- **`--enroll-url`** — optional; without it, mail links to **search** for city+category.
-- **Idempotency:** `campaign/<batch>/<email>` (Resend skill).
+Stdout JSON: `resend` payload, `idempotencyKey`, `registry` metadata.
 
-Copy/template logic reuses shared **library** files only as text builders — no HTTP
-to the running site:
+**2. Resend MCP** — send using that payload; pass **`idempotencyKey`** when the tool allows.
+
+**3. Finalize** — write the notebook after MCP returns an email id:
+
+```powershell
+npx tsx scripts/campaign-manager-send.ts `
+  --to pro@example.com `
+  --business "Acme Plumbing" `
+  --city marietta `
+  --category plumbing `
+  --batch 2026-10-15-atl-hvac `
+  --wave listed `
+  --finalize --resend-id <id-from-mcp>
+```
+
+Skipping **finalize** means **`sent-registry.json` is not updated** → dedupe breaks.
+
+## 3. Env (minimal)
+
+**In code (`lib/campaign-defaults.ts`, `lib/campaign-owner-bcc.ts`):** site URL, from, sender, BCC.
+
+| Variable | When |
+|----------|------|
+| `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Unsub link signing — set on automation if not inherited; must match Vercel prod |
+| `DATABASE_URL` | Optional suppression lookup / listing sync |
+
+Local agent runs may use `.env.local` via `load-campaign-env.ts`.
+
+## 4. Flags
+
+- **`--dry-run`** — preview text only (no MCP, no registry).
+- **`--wave listed`** — Wave 1 on-site pros (`LISTED_MESSAGE`).
+- **`--force`** — override dedupe (note why on board).
 
 | Piece | File |
 |-------|------|
-| Body | `lib/campaigns.ts` → `DEFAULT_MESSAGE` |
+| Body | `lib/campaigns.ts` |
 | Placeholders | `lib/campaign-message.ts` |
 | Subject / HTML | `lib/email.ts` |
-| Unsubscribe token | `lib/unsubscribe.ts` |
+| Unsubscribe | `lib/unsubscribe.ts` |
 
-## 4. Owner BCC (required)
+## 5. Owner BCC
 
-`campaign-manager-send.ts` and marketing `sendEmail` always set Resend **`bcc`**
-to `getCampaignOwnerBccEmail()` (`lib/campaign-owner-bcc.ts`). The pro only sees
-**To**; the owner gets a copy in **gui.quickprolist@gmail.com** (or `CAMPAIGN_BCC_EMAIL`).
-
-## 5. What campaign-manager does **not** use for sends
-
-- `/admin` Campaigns tabs
-- `POST /api/campaigns/send` or prospects queue APIs
-- Vercel production **runtime** (only env pull for secrets)
-- Recording in `campaign_contacts` (log sends on **`docs/campaigns/board.md`** instead)
-
-The in-app campaign UI remains available to **humans**; the agent’s path is **Resend-only**.
+Prepare JSON always includes **`bcc`** → `getCampaignOwnerBccEmail()`.
 
 ## 6. After sending
 
-1. Append to `docs/campaigns/board.md` (to, business, batch, Resend `id`, subject).
-2. `resend emails get <id>` or Resend dashboard → `last_event`.
-3. On bounce/complaint: add to board **Do not contact**; pause if needed.
+1. **`board.md`** session log + sent mirror.
+2. Resend MCP or dashboard for delivery status.
+3. Bounce/complaint → **Do not contact**; pause if needed.
 
-## 7. Owner send authority
+## 7. Send authority
 
-When `board.md` → **Send authority** is `STANDALONE` and status is `ACTIVE`,
-campaign-manager may send within **Daily email cap** without per-message owner
-approval. Owner can set `PAUSED` or lower the cap anytime.
+`STANDALONE` + `ACTIVE` → send within daily cap. Owner may `PAUSE` anytime.

@@ -41,35 +41,14 @@ PowerShell loop, or kill the sleeper process).
 
 ---
 
-## 3. Secrets (cloud agent must send without your `.env.local`)
+## 3. Cloud setup (minimal)
 
-Local sends use **`.env.local`** / **`.env.campaign-send.local`**. Cloud has **no**
-access to your PC files unless you configure secrets on the **automation / cloud
-agent** environment (Cursor UI — exact name varies; use “environment variables”
-for that automation or repo).
+See **`automation-setup.md`**.
 
-**Minimum for `campaign-manager-send.ts`:**
-
-| Variable | Purpose |
-|----------|---------|
-| `RESEND_API_KEY` | Send |
-| `RESEND_FROM_EMAIL` | e.g. `jeremy@quickprolist.com` |
-| `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Marketing unsub links |
-| `SITE_URL` | `https://www.quickprolist.com` |
-| `CAMPAIGN_SENDER_NAME` | e.g. `Jeremy` |
-| `CAMPAIGN_BCC_EMAIL` | Optional; default code → `gui.quickprolist@gmail.com` |
-
-**Recommended for Wave 1 sync:**
-
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | Neon **production** branch URL if listed pros must match live site |
-
-Do **not** rely on `vercel env pull` in cloud unless you verified secrets are
-non-empty (see `lessons.json` — empty pull breaks unsub).
-
-**Optional:** mirror the same vars on **Vercel Production** for parity; campaign
-sends do **not** require a Vercel deploy — only the env values.
+- **Resend MCP** on the automation (delivery).
+- **Repo defaults** for from, sender, BCC, site URL (`lib/campaign-defaults.ts`, `lib/campaign-owner-bcc.ts`).
+- **Optional env:** `UNSUBSCRIBE_SECRET` (= Vercel Production `CRON_SECRET`) if `--prepare` cannot sign unsub links.
+- **Optional env:** `DATABASE_URL` only when a tick must sync live Neon listings (`campaign-sync-listed-prospects.ts`); otherwise use `prospects-registry.json` on `dev`.
 
 ---
 
@@ -112,7 +91,7 @@ No Admin UI, no `POST /api/campaigns/send` unless owner opts in.
 
 | Symptom | Fix |
 |---------|-----|
-| Tick runs but no sends | Missing `RESEND_*` / `UNSUBSCRIBE_SECRET` in cloud secrets |
+| Tick runs but no sends | Resend MCP disconnected, or missing `UNSUBSCRIBE_SECRET` / `CRON_SECRET` |
 | `already_sent` | Normal — registry on `dev` is working |
 | No registry updates on `dev` | Agent lacked push permission or didn’t commit |
 | Duplicate sends | Two schedulers (local loop **and** automation) — stop one |

@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { getCampaignSiteUrl } from './campaign-defaults'
 import { normalizeEmail } from './suppressions'
 
 function secret(): string {
@@ -30,6 +31,5 @@ export function verifyUnsubscribeToken(token: string): string | null {
 }
 
 export function buildUnsubscribeUrl(email: string): string {
-  const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
-  return `${siteUrl}/api/unsubscribe?token=${encodeURIComponent(createUnsubscribeToken(email))}`
+  return `${getCampaignSiteUrl()}/api/unsubscribe?token=${encodeURIComponent(createUnsubscribeToken(email))}`
 }

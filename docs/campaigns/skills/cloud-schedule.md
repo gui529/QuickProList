@@ -41,14 +41,7 @@ routes in the Next.js app).
    - End with: emails sent this tick, cap remaining, paying subs note, next subscriber lever
    ```
 
-7. **Secrets / env** (required for sends from cloud):
-   - Configure **repo or automation secrets** so the agent can send: at minimum
-     `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `UNSUBSCRIBE_SECRET` (or
-     `CRON_SECRET` / `QA_ADMIN_SECRET` per send script), `SITE_URL`,
-     `CAMPAIGN_SENDER_NAME`, optional `CAMPAIGN_BCC_EMAIL`, `DATABASE_URL`
-     (production branch if syncing live listings).
-   - Use `npx vercel env pull` only if the automation runtime allows it and
-     secrets are non-empty (see lessons on empty pulled secrets).
+7. **Owner setup:** `automation-setup.md` (MCP + optional `UNSUBSCRIBE_SECRET`).
 
 8. **Enable** the automation.
 

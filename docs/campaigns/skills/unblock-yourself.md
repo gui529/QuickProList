@@ -56,7 +56,7 @@ Then **send** if under cap — do not park the whole campaign on one hard site.
 
 | Error | Self-fix |
 |-------|----------|
-| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | `.env.local` or `vercel env pull` + verify non-empty |
+| Resend MCP not connected | Connect MCP in Cursor; retry MCP send |
 | `UNSUBSCRIBE_SECRET` empty after pull | `.env.local` secret or `QA_ADMIN_SECRET` fallback (see lessons) |
 | `already_sent` | Next prospect — dedupe working |
 | `SuppressedError` | Mark prospect `skip`; check Neon suppressions |

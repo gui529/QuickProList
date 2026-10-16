@@ -5,7 +5,7 @@
 **File:** `docs/campaigns/sent-registry.json`
 
 - **One row per recipient email** (ever, unless owner uses `--force`).
-- Updated **automatically** when `campaign-manager-send.ts` succeeds.
+- Updated when **`--finalize --resend-id`** runs after each Resend MCP send.
 - **Read before every batch** — never send blind.
 
 ```bash

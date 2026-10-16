@@ -21,8 +21,8 @@
 
 **Schedule (cloud):** [skills/cloud-schedule.md](./skills/cloud-schedule.md) — Cursor Automations, e.g. every 20 min 9–6 ET.
 
-**Local → cloud:** [skills/cloud-migrate.md](./skills/cloud-migrate.md) — stop PC `/loop`, secrets, automation on `dev`.
+**Local → cloud:** [skills/automation-setup.md](./skills/automation-setup.md) — cron, tick prompt, Resend MCP, optional unsub secret.
 
-**Sends are off-app:** `npx tsx scripts/campaign-manager-send.ts` + Resend env — not Admin or `/api/campaigns/*`. See [skills/resend-api.md](./skills/resend-api.md).
+**Sends are off-app:** `campaign-manager-send.ts` (`--prepare` / `--finalize`) + **Resend MCP** — not Admin or `/api/campaigns/*`. See [skills/resend-api.md](./skills/resend-api.md).
 
 **Wave 1 sync:** `npx tsx scripts/campaign-sync-listed-prospects.ts` (needs `DATABASE_URL` for the branch that matches live listings).

@@ -70,7 +70,7 @@
       "subscriberImpact": "No working send or compliant unsub means zero outreach and compliance risk — no subscribers.",
       "lesson": "vercel env pull can leave UNSUBSCRIBE_SECRET empty; local sends fail or break unsub links without a fallback.",
       "evidence": "Empty strings in .env.campaign-send.local; vercel env run on Windows did not inject secrets.",
-      "do": "Use RESEND_API_KEY in .env.local; set UNSUBSCRIBE_SECRET or rely on QA_ADMIN_SECRET fallback in send script.",
+      "do": "Set UNSUBSCRIBE_SECRET (or CRON_SECRET) in env for --prepare; verify non-empty before a wave.",
       "dont": "Assume pulled env is send-ready without checking secret length.",
       "status": "active"
     },
@@ -120,6 +120,18 @@
       "evidence": "Owner 2026-10-15: keep running past Wave 1 for subscribers.",
       "do": "Follow continuous-campaign.md priority stack; shift to outreach discovery when listed pipeline is slow.",
       "dont": "End session with only Wave 1 work done while cap or hours remain.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-16-cloud-resend-mcp",
+      "addedAt": "2026-10-16T12:30:00-04:00",
+      "tags": ["deliverability", "tracking"],
+      "severity": "high",
+      "subscriberImpact": "MCP send without --finalize skips sent-registry dedupe and risks double-emailing pros.",
+      "lesson": "Campaign delivery is Resend MCP only: --prepare → MCP (idempotencyKey) → --finalize --resend-id.",
+      "evidence": "Owner 2026-10-16: MCP-only policy for all campaign outreach.",
+      "do": "Connect Resend MCP; defaults in lib/campaign-defaults.ts; UNSUBSCRIBE_SECRET only if prepare fails; always --finalize after MCP.",
+      "dont": "Skip --finalize after MCP send.",
       "status": "active"
     }
   ]
