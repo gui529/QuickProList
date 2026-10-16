@@ -130,7 +130,7 @@
       "subscriberImpact": "MCP send without --finalize skips sent-registry dedupe and risks double-emailing pros.",
       "lesson": "Campaign delivery is Resend MCP only: --prepare → MCP (idempotencyKey) → --finalize --resend-id.",
       "evidence": "Owner 2026-10-16: MCP-only policy for all campaign outreach.",
-      "do": "Connect Resend MCP; defaults in lib/campaign-defaults.ts; UNSUBSCRIBE_SECRET only if prepare fails; always --finalize after MCP.",
+      "do": "Connect Resend MCP + Neon MCP (neon-mcp.md); UNSUBSCRIBE_SECRET runtime secret; always --finalize after MCP.",
       "dont": "Skip --finalize after MCP send.",
       "status": "active"
     }

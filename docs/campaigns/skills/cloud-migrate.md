@@ -48,14 +48,14 @@ See **`automation-setup.md`**.
 - **Resend MCP** on the automation (delivery).
 - **Repo defaults** for from, sender, BCC, site URL (`lib/campaign-defaults.ts`, `lib/campaign-owner-bcc.ts`).
 - **Optional env:** `UNSUBSCRIBE_SECRET` (= Vercel Production `CRON_SECRET`) if `--prepare` cannot sign unsub links.
-- **Optional env:** `DATABASE_URL` only when a tick must sync live Neon listings (`campaign-sync-listed-prospects.ts`); otherwise use `prospects-registry.json` on `dev`.
+- **Neon MCP** on automation for DB (see `neon-mcp.md`). **No `DATABASE_URL`** on automation.
 
 ---
 
 ## 4. Permissions the cloud agent needs
 
 - **Git:** read/write **`dev`** (pull + push campaign commits).
-- **Network:** Resend API, WebFetch/WebSearch for email discovery, Neon if `DATABASE_URL` set.
+- **Network:** Resend MCP, Neon MCP, WebFetch/WebSearch for email discovery.
 - **Shell:** `npx tsx scripts/campaign-manager-send.ts`, `campaign-sync-listed-prospects.ts`, tests not required each tick.
 
 No Admin UI, no `POST /api/campaigns/send` unless owner opts in.
@@ -95,4 +95,4 @@ No Admin UI, no `POST /api/campaigns/send` unless owner opts in.
 | `already_sent` | Normal — registry on `dev` is working |
 | No registry updates on `dev` | Agent lacked push permission or didn’t commit |
 | Duplicate sends | Two schedulers (local loop **and** automation) — stop one |
-| Wrong city/listings | `DATABASE_URL` points at wrong Neon branch |
+| Wrong city/listings | Neon MCP scoped to wrong project/branch — use production |

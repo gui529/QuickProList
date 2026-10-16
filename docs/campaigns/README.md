@@ -10,6 +10,7 @@
 | [skills/tracking.md](./skills/tracking.md) | **Sent registry** + prospects JSON |
 | [skills/lessons.md](./skills/lessons.md) | **Lessons learned** — session memory → rules |
 | [skills/unblock-yourself.md](./skills/unblock-yourself.md) | **Self-serve** — find emails, fix env, don’t idle |
+| [skills/neon-mcp.md](./skills/neon-mcp.md) | **Neon MCP** — revenue, suppressions, listing sync (cloud; no `DATABASE_URL`) |
 | [lessons.json](./lessons.json) | Active/superseded lessons (campaign-manager reads every run) |
 | [sent-registry.json](./sent-registry.json) | Emails already sent (dedupe) |
 | [prospects-registry.json](./prospects-registry.json) | Company pipeline |
@@ -21,8 +22,8 @@
 
 **Schedule (cloud):** [skills/cloud-schedule.md](./skills/cloud-schedule.md) — Cursor Automations, e.g. every 20 min 9–6 ET.
 
-**Local → cloud:** [skills/automation-setup.md](./skills/automation-setup.md) — cron, tick prompt, Resend MCP, optional unsub secret.
+**Local → cloud:** [skills/automation-setup.md](./skills/automation-setup.md) — cron, tick prompt, Resend + Neon MCP, unsub secret.
 
 **Sends are off-app:** `campaign-manager-send.ts` (`--prepare` / `--finalize`) + **Resend MCP** — not Admin or `/api/campaigns/*`. See [skills/resend-api.md](./skills/resend-api.md).
 
-**Wave 1 sync:** `npx tsx scripts/campaign-sync-listed-prospects.ts` (needs `DATABASE_URL` for the branch that matches live listings).
+**Wave 1 sync:** Neon MCP on cloud (`neon-mcp.md`); local script `campaign-sync-listed-prospects.ts` + `DATABASE_URL`.

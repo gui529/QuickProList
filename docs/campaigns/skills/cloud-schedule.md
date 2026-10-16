@@ -41,7 +41,7 @@ routes in the Next.js app).
    - End with: emails sent this tick, cap remaining, paying subs note, next subscriber lever
    ```
 
-7. **Owner setup:** `automation-setup.md` (MCP + optional `UNSUBSCRIBE_SECRET`).
+7. **Owner setup:** `automation-setup.md` (Resend + Neon MCP + `UNSUBSCRIBE_SECRET`).
 
 8. **Enable** the automation.
 

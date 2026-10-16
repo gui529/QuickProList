@@ -96,8 +96,8 @@ When `board.md` → **Send authority** is **`STANDALONE`** and **Status** is
 - **Every send BCCs the owner** automatically (hidden from the pro). Do not
   skip BCC; override only via `CAMPAIGN_BCC_EMAIL` in env if the owner changes
   inbox.
-- Respect **Do not contact** on the board (and Neon suppressions if
-  `DATABASE_URL` is loaded in env).
+- Respect **Do not contact** on the board and **Neon suppressions** (Neon MCP
+  before each send — `neon-mcp.md`, `lib/campaign-neon-queries.ts`).
 - Set **`PAUSED`** if deliverability fails, bounces spike, or cap is hit.
 
 When authority is `OWNER_EACH` or status is not `ACTIVE`, only send when the
@@ -109,12 +109,13 @@ Default for this repo: **`STANDALONE`** (owner opted in).
 
 ## Scheduled runs (cloud)
 
-Owner setup: **`docs/campaigns/skills/automation-setup.md`** (cron + short tick prompt + Resend MCP; optional **`UNSUBSCRIBE_SECRET`** only).
+Owner setup: **`automation-setup.md`** — Resend MCP + **Neon MCP** + runtime **`UNSUBSCRIBE_SECRET`**. **No `DATABASE_URL`** on cloud automation.
 
 Run **every 20 minutes, 9:00–17:40 ET** via Cursor Automations — **`cloud-schedule.md`** for design notes.
 
 On each **scheduled tick** (no human in chat):
 
+- **`neon-mcp.md`** — revenue count, suppression checks, optional listing sync via **Neon MCP** (not `DATABASE_URL`).
 - Treat as a **short session**: pull `dev`, read board + lessons + **continuous-campaign.md**, act, log, stop.
 - Run the **full priority stack** — not Wave 1 only. If listed pros are stuck,
   spend the tick on Wave 2 discovery/sends or follow-ups.
@@ -134,8 +135,8 @@ each tick checks **9:00–18:00 ET** before sending). See `cloud-schedule.md`.
 
 ## Standalone send (primary — not the app)
 
-1. Read **`docs/campaigns/skills/resend-api.md`** + upstream Resend skill; **Resend MCP** connected.
-2. Per pro email:
+1. Read **`resend-api.md`** + **`neon-mcp.md`**; **Resend MCP** + **Neon MCP** connected on cloud ticks.
+2. Per pro email (Neon suppression check first when MCP available):
 
 ```bash
 npx tsx scripts/campaign-manager-send.ts ... --prepare
@@ -190,7 +191,7 @@ logging.
 | Pipeline | Prospect list on board |
 | Send | Resend `delivered`; row in **Sent log** |
 | Interest | Owner inbox **gui.quickprolist@gmail.com** (ImprovMX + campaign BCC) |
-| Revenue | Stripe subscriber (check admin or Neon when needed) |
+| Revenue | Neon MCP → `SQL_PAYING_SUBSCRIBER_COUNT` (`neon-mcp.md`) |
 
 ---
 

@@ -53,7 +53,7 @@ Skipping **finalize** means **`sent-registry.json` is not updated** → dedupe b
 | Variable | When |
 |----------|------|
 | `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Unsub link signing — set on automation if not inherited; must match Vercel prod |
-| `DATABASE_URL` | Optional suppression lookup / listing sync |
+| Suppressions / revenue / listing sync | **Neon MCP** on cloud ticks (`neon-mcp.md`); local may use `DATABASE_URL` + scripts |
 
 Local agent runs may use `.env.local` via `load-campaign-env.ts`.
 

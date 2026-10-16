@@ -29,8 +29,8 @@ Work **top to bottom** until cap or time for that tick is used ( **≤ 2 pro sen
 20m tick**, **≥ 90s** apart if multiple in one session — see `campaign-strategy.md`):
 
 
-1. **Revenue check** — note paying subscriber count on board (Neon/Stripe when
-   `DATABASE_URL` available). Log enroll/reply signals: **replies to
+1. **Revenue check** — Neon MCP `run_sql` → paying subscriber count on board
+   (`neon-mcp.md`). Log enroll/reply signals: **replies to
    `@quickprolist.com`** and campaign **BCC** land in **gui.quickprolist@gmail.com**
    (`CAMPAIGN_BCC_EMAIL` overrides default).
 2. **Hot leads** — prospects `replied` / interested → push enroll URL, admin

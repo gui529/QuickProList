@@ -18,7 +18,7 @@
 | **Cap ramp** | Stay at **10** until owner confirms **inbox** (not Junk) on recent BCC copies + ~3–5 clean business days → then **15** → **20–25** week 2+; ceiling **~30** until reply data |
 | **Send authority** | `STANDALONE` — agent sends fast without per-email approval |
 | **Send transport** | **Resend MCP only** — `--prepare` → MCP → `--finalize` (owner policy) |
-| **Automation setup** | `docs/campaigns/skills/automation-setup.md` — MCP + optional `UNSUBSCRIBE_SECRET` |
+| **Automation setup** | `automation-setup.md` — Resend MCP + Neon MCP + `UNSUBSCRIBE_SECRET` |
 | **Owner inbox** | **`gui.quickprolist@gmail.com`** — ImprovMX inbound `*@quickprolist.com` + campaign BCC |
 | **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per `/loop` tick when possible; spread cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |

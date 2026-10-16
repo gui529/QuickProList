@@ -1,9 +1,9 @@
-# Automation env (optional)
+# Automation secrets / MCP
 
-Most campaign config is **in code** (`lib/campaign-defaults.ts`, `lib/campaign-owner-bcc.ts`). Full setup: **`skills/automation-setup.md`**.
+| Item | Required |
+|------|----------|
+| **Resend MCP** | Yes — sends |
+| **Neon MCP** | Yes — subscriber count, suppressions, optional listing sync (`neon-mcp.md`) |
+| **`UNSUBSCRIBE_SECRET`** (runtime) | Yes — `--prepare` unsub links (`automation-setup.md`) |
 
-| Variable | When |
-|----------|------|
-| `UNSUBSCRIBE_SECRET` | Only if `--prepare` cannot sign unsub links — use Vercel Production `CRON_SECRET` |
-
-**Required (not env):** Resend MCP on the automation.
+**Not on automation:** `DATABASE_URL`, Resend API key, from/sender/BCC/site (in code).

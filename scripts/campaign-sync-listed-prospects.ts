@@ -1,6 +1,6 @@
 /**
  * Pull published curated_businesses into docs/campaigns/prospects-registry.json (Wave 1).
- * Requires DATABASE_URL (use production branch URL for live listings).
+ * Local: requires DATABASE_URL. Cloud automation: use Neon MCP + neon-mcp.md instead.
  *
  *   npx tsx scripts/campaign-sync-listed-prospects.ts
  *   npx tsx scripts/campaign-sync-listed-prospects.ts --dry-run

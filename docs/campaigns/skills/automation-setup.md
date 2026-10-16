@@ -8,9 +8,10 @@
 | 2 | Schedule: cron **`0,20,40 9-17 * * *`**, timezone **`America/New_York`** |
 | 3 | Instructions: paste **`docs/campaigns/automation-tick-prompt.md`** |
 | 4 | Enable **Resend MCP** on the automation |
-| 5 | **Environment (.env paste):** run `npm run fetch:campaign-automation-env` (or `.\scripts\fetch-campaign-automation-env.ps1`), then paste **`secrets/campaign-automation-paste.env`** into the automation env UI |
+| 5 | Enable **Neon MCP** on the automation (production QuickProList DB) — see **`neon-mcp.md`** |
+| 6 | **Runtime secret** **`UNSUBSCRIBE_SECRET`** (= Vercel Production) if not already set — `secrets/campaign-automation-paste.env` via `npm run fetch:campaign-automation-env` |
 
-Everything else (from, sender, BCC, site URL, cap, copy, send flow) lives in **repo + `campaign-manager` agent** — see `lib/campaign-defaults.ts`, `lib/campaign-owner-bcc.ts`, `board.md`.
+Everything else (from, sender, BCC, site URL, cap, copy, send flow, **DB via Neon MCP**) lives in **repo + `campaign-manager` agent** — `lib/campaign-defaults.ts`, `neon-mcp.md`, `board.md`. **No `DATABASE_URL`** on the automation.
 
 ## Agent does each tick
 

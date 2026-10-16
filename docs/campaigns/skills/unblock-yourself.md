@@ -66,7 +66,7 @@ Then **send** if under cap — do not park the whole campaign on one hard site.
 
 ## Missing enroll link / invitation
 
-1. Neon: invitation row for `curated_business_id` if `DATABASE_URL` set.
+1. Neon MCP: invitation row for `curated_business_id` (`neon-mcp.md`).
 2. If none: send Wave 1 with **search URL** only (`--wave listed`); note on
    board to generate invite via admin flow later.
 3. Do **not** block send on missing enroll URL for listed pros.
@@ -83,7 +83,7 @@ Fix on **`dev`** in `lib/campaigns.ts` / `lib/email.ts` if broken; use
 ## Missing prospect list
 
 ```bash
-npx tsx scripts/campaign-sync-listed-prospects.ts   # needs DATABASE_URL
+Neon MCP listed-pros SQL + merge registry (`neon-mcp.md`); local: `campaign-sync-listed-prospects.ts` + `DATABASE_URL`
 ```
 
 Use production branch URL when mailing pros on **www.quickprolist.com**.
