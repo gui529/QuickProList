@@ -22,7 +22,7 @@
 | **Owner inbox** | **`gui.quickprolist@gmail.com`** — ImprovMX inbound `*@quickprolist.com` + campaign BCC |
 | **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per `/loop` tick when possible; spread cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |
-| **Last session** | 2026-10-16 ~5:54 PM ET (scheduled tick) |
+| **Last session** | 2026-10-16 ~6:08 PM ET (scheduled tick) |
 | **Paused reason** | *(if PAUSED)* |
 
 ---
@@ -75,7 +75,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 
 | Metric | Value | As of |
 |--------|-------|--------|
-| Paying subscribers (prod) | | |
+| Paying subscribers (prod) | **0** | 2026-10-16 |
 | Emails sent (board **Sent log**, 7d) | 6 (1 test + 5 Wave 1 listed) | 2026-10-16 |
 | Replies / interested | | |
 | Last inbox test | **Unconfirmed** — check **gui.quickprolist@gmail.com** (inbox + spam) |
@@ -95,7 +95,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Next actions (ordered)
 
 1. **Owner:** confirm BCC copies land **inbox** (not Junk) — unlocks cap ramp per table above.
-2. **Agent:** continuous stack; **≤2** pro sends per 20m tick; **≥90s** apart; **10** pro slots available today (cap reset 2026-10-16); **next send:** Paces Construction `info@pacesconstruction.com` (`--wave listed`).
+2. **Agent:** **first tick ≥9:00 ET 2026-10-17** — send Paces Construction `info@pacesconstruction.com` (`--wave listed`, batch `wave-atl-2026-10`); then **≤2** pro sends per tick, **≥90s** apart; **10**/day cap; continue `needs_email` discovery (Hammersmith = form-only).
 3. Track paying subscribers + replies each tick; promote `dev` → `main` when ready.
 
 ---
@@ -126,6 +126,17 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Session log (newest first)
 
 <!-- campaign-manager: append below this line -->
+
+### 2026-10-16 — Scheduled tick (18:08 ET)
+
+**Agent:** campaign-manager (cron)  
+**Send window:** After **17:40 ET** cutoff — **no pro sends** (log + prep only).  
+**Neon MCP:** paying subscribers **0**; `info@pacesconstruction.com` **not** suppressed.  
+**Pipeline:** `--prepare` OK for Paces (listed copy, BCC, unsub signed); Resend MCP connected.  
+**Discovery:** Mike Hammersmith — contact page is **form-only** (phone 404-351-5227; no public email).  
+**Sent:** 0  
+**Cap:** 0/10 pro sends today (2026-10-16).  
+**Next tick (in window):** MCP send Paces + email discovery on remaining Wave 1 `needs_email`.
 
 ### 2026-10-16 — Scheduled tick (17:52 ET)
 
