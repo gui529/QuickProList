@@ -22,7 +22,7 @@ Pair this doc with the upstream **Resend skill** (idempotency, `{ data, error }`
 | `CAMPAIGN_SENDER_NAME` | Recommended (`Jeremy`) |
 | `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Yes (footer + List-Unsubscribe) |
 | `SITE_URL` | Yes (`https://www.quickprolist.com`) |
-| `CAMPAIGN_BCC_EMAIL` | Optional — owner hidden copy (default `gui529@hotmail.com`) |
+| `CAMPAIGN_BCC_EMAIL` | Optional — owner hidden copy (default `gui.quickprolist@gmail.com`) |
 | `DATABASE_URL` | **No** — only for optional suppression lookup |
 
 ```powershell
@@ -67,7 +67,7 @@ to the running site:
 
 `campaign-manager-send.ts` and marketing `sendEmail` always set Resend **`bcc`**
 to `getCampaignOwnerBccEmail()` (`lib/campaign-owner-bcc.ts`). The pro only sees
-**To**; the owner gets a copy in Hotmail (or `CAMPAIGN_BCC_EMAIL`).
+**To**; the owner gets a copy in **gui.quickprolist@gmail.com** (or `CAMPAIGN_BCC_EMAIL`).
 
 ## 5. What campaign-manager does **not** use for sends
 

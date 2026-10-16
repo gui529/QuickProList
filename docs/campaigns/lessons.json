@@ -1,0 +1,126 @@
+{
+  "version": 2,
+  "northStar": "Paying subscribers ($29.99/mo). Every active lesson must include subscriberImpact.",
+  "lessons": [
+    {
+      "id": "2026-10-15-search-category-slug",
+      "addedAt": "2026-10-15T17:00:00-04:00",
+      "tags": ["copy", "urls", "conversion"],
+      "severity": "high",
+      "subscriberImpact": "Broken search links kill trust and enroll clicks from listed pros who check the site.",
+      "lesson": "Campaign search links must use canonical category slugs (e.g. plumbing), not informal plurals (plumbers).",
+      "evidence": "Links with category=plumbers did not match opened search until normalizeCategory fix on dev.",
+      "do": "Pass --category from lib/categories.ts; dry-run and click search URL before a wave.",
+      "dont": "Guess category strings from trade names.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-listed-pro-copy",
+      "addedAt": "2026-10-15T17:00:00-04:00",
+      "tags": ["copy", "wave-1", "conversion"],
+      "severity": "high",
+      "subscriberImpact": "Listed pros ignore or distrust add-me cold copy; honest listed copy is required for enroll replies.",
+      "lesson": "Wave 1 pros are already on the site — subject/body must say that honestly, not ask permission to add them.",
+      "evidence": "DEFAULT_MESSAGE still reads like cold add-request; strategy doc calls for listed-pro copy.",
+      "do": "Use --wave listed and listed-pro copy when implemented; until then customize body or pause Wave 1 mass send.",
+      "dont": "Send Wave 1 at scale with can-I-add-you copy.",
+      "status": "superseded"
+    },
+    {
+      "id": "2026-10-15-wave-listed-send-flag",
+      "addedAt": "2026-10-15T17:43:00-04:00",
+      "tags": ["copy", "wave-1", "conversion"],
+      "severity": "high",
+      "subscriberImpact": "Listed-pro subject/body increases trust and enroll clicks vs cold add-me copy.",
+      "lesson": "Wave 1 sends must use --wave listed (LISTED_MESSAGE + listed subject in lib/campaigns.ts / lib/email.ts).",
+      "evidence": "First live Wave 1 to TE Certified 2026-10-15 with listed copy; Resend 01a14184-b0d2-798c-98d4-651077c168c7.",
+      "do": "campaign-manager-send.ts --wave listed for every curated on-site pro.",
+      "dont": "Use DEFAULT_MESSAGE for businesses already in search results.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-curated-no-contact-email",
+      "addedAt": "2026-10-15T17:43:00-04:00",
+      "tags": ["targeting", "wave-1"],
+      "severity": "high",
+      "subscriberImpact": "No email on curated row means zero outreach until discovery — blocks all Wave 1 revenue.",
+      "lesson": "Production curated_businesses had contact_email null for all 20 listings; discover from public website contact pages only.",
+      "evidence": "Neon production query 2026-10-15; TE email found on /contact as info@emailte.com.",
+      "do": "Run campaign-sync-listed-prospects.ts; discover via unblock-yourself.md; verify on site before send; update prospects row; keep going same session.",
+      "dont": "Guess emails, scrape purchased lists, or stop the run waiting on owner for routine discovery.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-self-unblock",
+      "addedAt": "2026-10-15T17:50:00-04:00",
+      "tags": ["targeting", "wave-1"],
+      "severity": "high",
+      "subscriberImpact": "Campaign stalls with zero sends if agent waits on owner for emails that are findable on public sites.",
+      "lesson": "Under STANDALONE, missing email means run discovery (WebFetch contact pages, WebSearch, helpers) — not end session or ask owner.",
+      "evidence": "Owner directive 2026-10-15; early session stopped after one send while 16 prospects still needs_email.",
+      "do": "Follow docs/campaigns/skills/unblock-yourself.md until cap hit or prospects skipped with skipReason.",
+      "dont": "Report blocked for missing email without attempting contact/home/search passes.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-local-env-unsub",
+      "addedAt": "2026-10-15T17:00:00-04:00",
+      "tags": ["env", "reach"],
+      "severity": "medium",
+      "subscriberImpact": "No working send or compliant unsub means zero outreach and compliance risk — no subscribers.",
+      "lesson": "vercel env pull can leave UNSUBSCRIBE_SECRET empty; local sends fail or break unsub links without a fallback.",
+      "evidence": "Empty strings in .env.campaign-send.local; vercel env run on Windows did not inject secrets.",
+      "do": "Use RESEND_API_KEY in .env.local; set UNSUBSCRIBE_SECRET or rely on QA_ADMIN_SECRET fallback in send script.",
+      "dont": "Assume pulled env is send-ready without checking secret length.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-outlook-inbox-test",
+      "addedAt": "2026-10-15T17:00:00-04:00",
+      "tags": ["deliverability", "reach"],
+      "severity": "medium",
+      "subscriberImpact": "Mail in junk never produces replies or trials; ramp only when inbox placement is acceptable.",
+      "lesson": "Owner mail (ImprovMX inbound + campaign BCC) goes to gui.quickprolist@gmail.com — check inbox and spam before raising cap.",
+      "evidence": "ImprovMX forward off Hotmail 2026-10-16; default BCC updated to same Gmail.",
+      "do": "Log Gmail placement after tests (BCC on sends + mail to contact@quickprolist.com).",
+      "dont": "Raise daily cap before clean Gmail placement; do not document Hotmail as owner inbox.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-send-pacing",
+      "addedAt": "2026-10-15T17:30:00-04:00",
+      "tags": ["deliverability", "reach"],
+      "severity": "high",
+      "subscriberImpact": "Reputation damage from bursts reduces inbox placement — fewer pros ever see the offer.",
+      "lesson": "Fast campaign means fast decisions, not API bursts — ≥90s between sends, ≤2 pro sends per 20m tick, cap 10 until inbox confirmed.",
+      "evidence": "Owner asked about mass send; 4 pros in ~4 min on 2026-10-15 was faster than policy.",
+      "do": "One send process; ≥90s apart; ≤2 pro sends per tick; spread daily cap; stay at 10 until owner confirms BCC inbox.",
+      "dont": "Parallel scripts, send-all-at-once, or raise cap before inbox gate.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-dedupe-registry",
+      "addedAt": "2026-10-15T17:00:00-04:00",
+      "tags": ["tracking", "conversion"],
+      "severity": "high",
+      "subscriberImpact": "Double-emailing a pro destroys trust and unsubscribes — kills the only path to that subscriber.",
+      "lesson": "sent-registry.json is canonical for who was emailed; board tables are summaries only.",
+      "evidence": "Double-email risk without registry; send script enforces dedupe.",
+      "do": "campaign-list-sent.ts --email= before send; sync prospects-registry status after success.",
+      "dont": "Rely on board Sent log alone to decide if someone was mailed.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-15-continuous-not-wave1-only",
+      "addedAt": "2026-10-15T17:55:00-04:00",
+      "tags": ["targeting", "conversion"],
+      "severity": "high",
+      "subscriberImpact": "Stopping after listed pros leaves 3rd-slot and cold pipeline empty — no path to more paid subs.",
+      "lesson": "Campaign runs continuously: Wave 1 → Wave 2 → follow-up → next wedge in every session/tick until PAUSED or daily cap.",
+      "evidence": "Owner 2026-10-15: keep running past Wave 1 for subscribers.",
+      "do": "Follow continuous-campaign.md priority stack; shift to outreach discovery when listed pipeline is slow.",
+      "dont": "End session with only Wave 1 work done while cap or hours remain.",
+      "status": "active"
+    }
+  ]
+}

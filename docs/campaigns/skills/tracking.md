@@ -32,7 +32,9 @@ Track companies you plan to mail or have listed on the site:
 |-------|---------|
 | `businessName`, `email`, `city`, `category` | Who |
 | `source` | `curated` \| `discovery` \| `manual` |
-| `status` | `pending` → `sent` → `replied` → `subscribed` \| `declined` \| `skip` |
+| `status` | `needs_email` → `pending` → `sent` → `replied` → `subscribed` \| `declined` \| `skip` |
+| `emailSource` | Where the address was verified (URL + date) |
+| `skipReason` | Why no send after discovery attempts |
 | `curatedId` | Optional UUID from Neon |
 
 **Agent:** refresh from admin/Neon at session start for Wave 1; set `status: sent` when registry gains that email.
@@ -54,3 +56,9 @@ Example prospect row:
 ## Board (`board.md`)
 
 Session narrative + **summary** tables. **Registry JSON wins** for dedupe; mirror highlights on the board Sent log when useful.
+
+## Lessons (`lessons.json`)
+
+Operational memory across days — only what improves **paid subscribers** (see
+`subscriberImpact` in each row). See `docs/campaigns/skills/lessons.md`. Not a
+substitute for `sent-registry.json` (who was mailed).

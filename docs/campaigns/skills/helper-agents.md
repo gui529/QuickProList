@@ -11,6 +11,7 @@ Log spawns on `docs/campaigns/board.md` (session log → **Spawns:**).
 
 | Need | Example helper name (in prompt) | Suggested subagent type |
 |------|----------------------------------|-------------------------|
+| **Find contact emails** (Wave 1 `needs_email`) | `contact-email-finder` | `generalPurpose` + WebSearch/WebFetch |
 | Cold-email research | `email-strategy-researcher` | `generalPurpose` + WebSearch |
 | Subject/body draft | `campaign-copy-drafter` | `generalPurpose` |
 | DNS / domain / Resend status | `deliverability-scout` | `generalPurpose` or shell + Resend skill |

@@ -3,6 +3,7 @@ import { isDatabaseConfigured, query } from './db'
 export { expandCampaignMessage, type CampaignMessageContext } from './campaign-message'
 
 /** Placeholders expanded on send: {senderIntro}, {businessName}, {city}, {category}, {areas}, {siteUrl}, {signature} */
+/** Cold outreach — business not yet on the site (Wave 2 / third slot). */
 export const DEFAULT_MESSAGE = `{senderIntro} — a simple local list website where homeowners search for pros around {areas}. I'm reaching out to you directly because I'd love to add {businessName} to that list.
 
 If you have not seen us yet, check us out at {siteUrl} — pick a town and trade to browse the way a homeowner would.
@@ -10,6 +11,18 @@ If you have not seen us yet, check us out at {siteUrl} — pick a town and trade
 Would it be okay if I added your company there for 30 days? A little extra visibility can help you get more jobs.
 
 A quick "yes" or "no" by reply is totally fine. There is also a preview link below for what we would publish for {businessName}.
+
+{signature}`
+
+/** Listed pros already visible in search (Wave 1). */
+export const LISTED_MESSAGE = `{senderIntro} — a simple local list where homeowners search for {category} pros around {areas}.
+
+We already show {businessName} when someone searches in {city} (no charge for being listed today). I'm reaching out because we're inviting listed businesses to claim their spot with a 30-day preview — extra visibility while we finish launching the site.
+
+If you have not looked yet, here's the same search a homeowner would use:
+{searchUrl}
+
+A quick reply works, or use the link below to preview what we'd publish for {businessName}.
 
 {signature}`
 

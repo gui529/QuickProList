@@ -140,6 +140,9 @@ function buildTransactionalEmailHtml(businessName: string, body: string, siteUrl
 export function buildMarketingEmailSubject(businessName: string, opts: SendEmailOptions): string {
   const city = opts.city ? formatCityLabel(opts.city) : null
   const category = opts.category ? formatCategoryLabel(opts.category) : null
+  if (opts.campaignWave === 'listed' && city) {
+    return `${businessName} is on our ${city} list — 30-day preview?`
+  }
   if (city) return `Okay to add ${businessName} to our ${city} list?`
   if (category) return `Okay to add ${businessName} as a ${category} on QuickProList?`
   return `Okay to add ${businessName} to QuickProList?`
@@ -194,12 +197,16 @@ function marketingCompliance(to: string, reason: string): ComplianceFooter {
   }
 }
 
+export type CampaignEmailWave = 'listed' | 'outreach' | 'test' | 'follow-up'
+
 export interface SendEmailOptions {
   kind?: EmailKind
   yelpId?: string
   category?: string
   city?: string
   enrollUrl?: string
+  /** Wave 1 listed pros get honest subject/body (already on site). */
+  campaignWave?: CampaignEmailWave
   /** Overrides default subject (marketing vs transactional). */
   subject?: string
 }

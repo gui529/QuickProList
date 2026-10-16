@@ -2,6 +2,11 @@
 
 Owner intent — **move fast**; agent decides execution within guardrails.
 
+Before changing waves, copy, or caps, check **`docs/campaigns/lessons.json`**
+(active entries — each must justify itself via **`subscriberImpact`**). After an
+outcome that helped or hurt **replies, enroll, or paid**, add a lesson per
+`docs/campaigns/skills/lessons.md`; skip everything else.
+
 ## Pace
 
 - **Do not wait** for per-email owner approval when board **Send authority** is
@@ -11,6 +16,27 @@ Owner intent — **move fast**; agent decides execution within guardrails.
 - Spawn helpers in parallel when it saves time; merge into `board.md`.
 - **Pause** only for deliverability failures, suppressions, or hitting **Daily
   email cap** — not for routine sends.
+- **Missing email is not a pause** — run the discovery loop in
+  `unblock-yourself.md`, then send or `skip` and continue.
+
+## Send pacing (deliverability — not optional)
+
+**Move fast** means sessions and decisions, not firing dozens of identical API
+calls in a minute. Reputation and inbox providers care about **volume spikes**
+and copy similarity more than Resend’s raw rate limit.
+
+| Rule | Default |
+|------|---------|
+| **Daily volume** | Board **Daily email cap** — **10** pro sends/day until owner confirms **inbox** on BCC copies + ~3–5 clean days → **15** → **20–25** → ceiling **~30** |
+| **Per scheduled tick** | **≤ 2** pro sends per 20m tick when possible — spread cap across the day |
+| **Same session** | **≥ 90 seconds** between successful sends (**90–120s** for Wave 2 cold); never under **30s** |
+| **Concurrency** | **One send at a time** — one `campaign-manager-send.ts` process; no parallel blasts |
+| **Batching** | No “mass send” script; **never** dump full daily cap in one hour |
+| **Ramp** | Do not raise board cap until **Inbox gate** on board is cleared |
+| **Stop** | `PAUSED` on bounce, complaint, repeated junk placement, or Resend **429** / rate errors |
+
+**Do not send all at once** — bursts look like bulk spam to Microsoft/Gmail and hurt a new domain.
+**1/sec** is API-safe but still too fast for cold B2B; spacing protects inbox placement.
 
 ## Waves
 
@@ -20,7 +46,8 @@ Pros already in `curated_businesses` for a (city, category). Email is honest:
 they can see themselves in search. Goal: enroll / 30-day preview / paid.
 
 - Use **listed-pro copy** (not “can we add you?” — they are already listed).
-- Need a real **to** address (discover from website if missing).
+- Need a real **to** address — **agent discovers it** (contact page, search,
+  helper); never idle waiting on owner. See `unblock-yourself.md`.
 - `--enroll-url` when an invitation exists; else search link with canonical
   category slug (`plumbing`, not `plumbers`).
 
@@ -32,9 +59,22 @@ businesses with permission-style copy (`DEFAULT_MESSAGE` or variant) + scarcity
 
 ### Wave 3 — Next wedge
 
-Next city/category only after wave 1–2 are moving (sends logged, replies tracked).
+Expand to the next opened town/category when the current wedge has ongoing sends
+and discovery — **do not wait** for Wave 1 to be 100% complete.
+
+## Continuous campaign (owner: keep going)
+
+Read **`continuous-campaign.md`**. Summary:
+
+- **Never treat Wave 1 as the end state** — when listed pros are slow (phone-only
+  sites, no reply), shift the same session to **Wave 2 discovery**, **follow-ups**,
+  and **next category**.
+- **Only stop** for `PAUSED`, **daily cap**, deliverability, or outside send hours
+  on scheduled ticks — not because a wave list ran out.
+- Every tick/session ends with **next subscriber lever** on the board, not
+  “blocked on Wave 1”.
 
 ## Owner visibility
 
 Every send **BCCs** the owner (`CAMPAIGN_BCC_EMAIL` or default
-`gui529@hotmail.com`). Recipients do not see the BCC line.
+`gui.quickprolist@gmail.com`). Recipients do not see the BCC line.

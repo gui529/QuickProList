@@ -10,15 +10,15 @@ Resend keeps DKIM/SPF on **`send.`** (and `resend._domainkey`); ImprovMX only ne
 
 | Piece | Value |
 |--------|--------|
-| Forward destination | `gui529@hotmail.com` |
-| ImprovMX alias | Catch-all `*` → Hotmail (all local parts) |
+| Forward destination | `gui.quickprolist@gmail.com` |
+| ImprovMX alias | Catch-all `*` → Gmail (all local parts) |
 | ImprovMX `forwarding_ready` | `true` |
 | Apex MX | `mx1.improvmx.com` (10), `mx2.improvmx.com` (20) |
 | Apex SPF TXT | `v=spf1 include:spf.improvmx.com ~all` |
 | DMARC | `_dmarc` → `v=DMARC1; p=none;` (valid) |
 | Outbound | Unchanged — Resend on apex + `send` subdomain |
 
-**Smoke test:** From an external mailbox (not `@quickprolist.com`), send to `contact@quickprolist.com` or any `something@quickprolist.com`. Message should arrive at Hotmail within a few minutes (check Junk once).
+**Smoke test:** From an external mailbox (not `@quickprolist.com`), send to `contact@quickprolist.com` or any `something@quickprolist.com`. Message should arrive at **`gui.quickprolist@gmail.com`** within a few minutes (check Spam once).
 
 ---
 
@@ -42,9 +42,9 @@ Resend keeps DKIM/SPF on **`send.`** (and `resend._domainkey`); ImprovMX only ne
 
 1. Sign up at [improvmx.com](https://improvmx.com).
 2. **Add domain** → `quickprolist.com`.
-3. Under **Aliases**, add a **catch-all** `*` → `gui529@hotmail.com` (covers every address on the domain), or separate aliases:
-   - `jeremy` → `gui529@hotmail.com`
-   - `contact` → `gui529@hotmail.com`
+3. Under **Aliases**, add a **catch-all** `*` → `gui.quickprolist@gmail.com` (covers every address on the domain), or separate aliases:
+   - `jeremy` → `gui.quickprolist@gmail.com`
+   - `contact` → `gui.quickprolist@gmail.com`
 4. Confirm any verification email ImprovMX sends to the forward destination.
 
 ---
@@ -82,13 +82,13 @@ If you already have a TXT starting with `v=spf1` on `@`, **merge** includes into
 
 1. ImprovMX dashboard → **Check DNS**, or `POST /domains/quickprolist.com/verify` via API — `records.valid` should be `true` (often 15–60 minutes after DNS edits).
 2. From an outside account, email **`contact@quickprolist.com`** and **`jeremy@quickprolist.com`** (or any catch-all address).
-3. Reply to a campaign from admin and confirm it hits the same Hotmail inbox.
+3. Reply to a campaign and confirm it arrives at **gui.quickprolist@gmail.com**.
 
 ---
 
-## 4. Reply from Hotmail (optional)
+## 4. Reply as `@quickprolist.com` (optional)
 
-Use **Outlook/Hotmail** settings (or Gmail **Send mail as**) if you want to **reply as** `jeremy@` or `contact@` from your personal inbox. Outbound campaigns still go through **Resend** from the app.
+In Gmail **Settings → Accounts → Send mail as**, add `jeremy@quickprolist.com` or `contact@quickprolist.com` if you want replies to show that address. Outbound campaigns still go through **Resend** from the app.
 
 ---
 

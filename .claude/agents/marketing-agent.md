@@ -123,7 +123,7 @@ Run on **first invocation** and whenever the owner reports spam. Short report, t
   rates when available.
 - Production `RESEND_FROM_EMAIL` — prefer clear From name + verified domain
   (`QuickProList <hello@…>` or `contact@…` on verified apex/subdomain).
-- Test **Outlook** (owner’s primary inbox is Hotmail/Outlook — not Gmail). Optionally
+- Test **gui.quickprolist@gmail.com** (owner inbox for BCC + ImprovMX). Optionally
   a second provider; note Authentication-Results on the test message.
 
 ### Authentication, reputation, content

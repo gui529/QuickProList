@@ -49,6 +49,16 @@ describe('buildMarketingEmailSubject', () => {
       'Okay to add Biz to our Marietta list?'
     )
   })
+
+  it('uses listed-pro subject for wave listed', () => {
+    expect(
+      buildMarketingEmailSubject('TE Certified', {
+        city: 'marietta',
+        category: 'electricians',
+        campaignWave: 'listed',
+      })
+    ).toBe('TE Certified is on our Marietta list — 30-day preview?')
+  })
 })
 
 describe('buildMarketingCtaLabel', () => {
@@ -96,7 +106,7 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(call.text).toContain('We are going to launch soon')
     expect(call.text).not.toContain('cancel anytime')
     expect(call.subject).not.toMatch(/🏠|\$29/)
-    expect(call.bcc).toEqual(['gui529@hotmail.com'])
+    expect(call.bcc).toEqual(['gui.quickprolist@gmail.com'])
     delete process.env.CAMPAIGN_SENDER_NAME
   })
 

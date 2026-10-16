@@ -45,7 +45,7 @@ Read `docs/sales-persuasion-playbook.md` and compare implementation to Mission 2
 
 ### If PASS
 - One paragraph: what to verify in the owner's visual test (admin send, **Outlook**
-  render — owner tests on Hotmail/Outlook, not Gmail).
+  render — owner tests on gui.quickprolist@gmail.com).
 ```
 
 **PASS** only when you have **zero P0/P1** items. P2 alone can still PASS with a short

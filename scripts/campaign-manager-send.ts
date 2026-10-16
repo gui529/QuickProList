@@ -8,7 +8,7 @@
  */
 import { Resend } from 'resend'
 import { loadCampaignEnv } from './load-campaign-env'
-import { DEFAULT_MESSAGE } from '../lib/campaigns'
+import { DEFAULT_MESSAGE, LISTED_MESSAGE } from '../lib/campaigns'
 import { expandCampaignMessage } from '../lib/campaign-message'
 import {
   buildMarketingEmailSubject,
@@ -96,7 +96,9 @@ async function main() {
   }
 
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
-  const body = expandCampaignMessage(DEFAULT_MESSAGE, { businessName: businessName!, city: city!, category: category! })
+  const wave = waveArg ?? 'outreach'
+  const template = wave === 'listed' ? LISTED_MESSAGE : DEFAULT_MESSAGE
+  const body = expandCampaignMessage(template, { businessName: businessName!, city: city!, category: category! })
 
   const reason =
     'You received this one-time note because your business offers home services in an area we cover on QuickProList.'
@@ -118,7 +120,7 @@ async function main() {
         }
       })()
 
-  const emailOpts = { city: city!, category: category!, enrollUrl }
+  const emailOpts = { city: city!, category: category!, enrollUrl, campaignWave: wave }
   const { text, html } = buildPersonalMarketingEmail(businessName!, body, emailOpts, compliance, siteUrl)
   const subject = buildMarketingEmailSubject(businessName!, emailOpts)
 

@@ -1,3 +1,4 @@
+import { normalizeCategory } from './categories'
 import { formatCategoryLabel, formatCityLabel } from './display'
 import { formatCampaignAreasPhrase } from './open-towns'
 
@@ -28,6 +29,10 @@ export function expandCampaignMessage(template: string, ctx: CampaignMessageCont
     senderName ? `— ${senderName}, QuickProList` : '— The QuickProList team'
 
   const siteUrl = campaignSiteUrl()
+  const searchUrl =
+    cityRaw && categoryRaw
+      ? `${siteUrl}/search?location=${encodeURIComponent(cityRaw)}&category=${encodeURIComponent(normalizeCategory(categoryRaw))}`
+      : siteUrl
 
   return template
     .replaceAll('{senderIntro}', senderIntro)
@@ -36,5 +41,6 @@ export function expandCampaignMessage(template: string, ctx: CampaignMessageCont
     .replaceAll('{category}', category)
     .replaceAll('{areas}', areas)
     .replaceAll('{siteUrl}', siteUrl)
+    .replaceAll('{searchUrl}', searchUrl)
     .replaceAll('{signature}', signature)
 }

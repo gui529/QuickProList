@@ -13,7 +13,7 @@ From the marketing-agent pass (Resend + `lib/email.ts`). Goal: inbox placement, 
 - [ ] **DNS (apex)** — Publish Resend records at registrar — see `docs/email-deliverability.md`.
 - [ ] **From address (Vercel prod)** — `RESEND_FROM_EMAIL=jeremy@quickprolist.com` and `CAMPAIGN_SENDER_NAME=Jeremy` on Production (and Preview/Dev if you send tests from there).
 - [x] **Subject + body (code)** — Plain subjects, softer template, shorter default campaign text on `dev`.
-- [ ] **Send tests** — Outlook (Hotmail) first, then mail-tester if needed, after prod env + DNS.
+- [ ] **Send tests** — **gui.quickprolist@gmail.com** (BCC + contact@), then mail-tester if needed, after prod env + DNS.
 
 ---
 

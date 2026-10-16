@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Owner preferences
 
 - **`PRO_DASHBOARD_ENABLED` stays off** on production (and do not recommend enabling it). `/dashboard/[token]` and performance digests remain disabled by design.
-- **`campaign-manager` sends outreach via `scripts/campaign-manager-send.ts` (Resend only)** — not via Admin or campaign APIs unless the owner explicitly asks for in-app sends. **Move fast** under `STANDALONE` on the campaign board; **BCC owner** on every marketing send (`gui529@hotmail.com` or `CAMPAIGN_BCC_EMAIL`).
+- **`campaign-manager` sends outreach via `scripts/campaign-manager-send.ts` (Resend only)** — not via Admin or campaign APIs unless the owner explicitly asks for in-app sends. **Move fast** under `STANDALONE` on the campaign board; **BCC owner** on every marketing send (`gui.quickprolist@gmail.com` or `CAMPAIGN_BCC_EMAIL`). Read/update **`docs/campaigns/lessons.json`** each session — only entries with a clear **`subscriberImpact`** (paying subs), not general notes. **Self-unblock:** missing emails → search/fetch site (`docs/campaigns/skills/unblock-yourself.md`); don’t stop and ask the owner under **STANDALONE**. **Cloud schedule:** Cursor Automations on `dev` — `docs/campaigns/skills/cloud-schedule.md` (not Vercel cron). **Continuous:** keep going past Wave 1 — `docs/campaigns/skills/continuous-campaign.md`.
 
 ## Git branches
 

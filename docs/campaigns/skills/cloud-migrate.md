@@ -1,0 +1,119 @@
+# Move campaign from local PC to cloud
+
+Today: **campaign-manager** + **`/loop 20m`** on your machine (PowerShell sleeper).
+Goal: **scheduled cloud agent** on `dev` — no PC awake, same board/registries/lessons.
+
+Inbound mail (ImprovMX → Gmail) and **Resend** are already cloud. You are moving
+**the agent + schedule + secrets + git state**, not the app.
+
+---
+
+## 1. Put campaign state on `dev` (git)
+
+Cloud ticks read/write repo files. **Push** before enabling automation:
+
+| Path | Why |
+|------|-----|
+| `docs/campaigns/board.md` | Status, cap, session log |
+| `docs/campaigns/sent-registry.json` | Dedupe |
+| `docs/campaigns/prospects-registry.json` | Pipeline |
+| `docs/campaigns/lessons.json` | Rules |
+| `scripts/campaign-manager-send.ts`, `lib/campaign-*.ts`, etc. | Send path |
+
+**Rule:** each cloud tick may `git pull` → work → `commit` + `push` **only** campaign
+ops paths on **`dev`**. Never `main` unless owner asks.
+
+---
+
+## 2. Create Cursor Automation (replaces local `/loop`)
+
+See **`cloud-schedule.md`** for full prompt and cron.
+
+| Setting | Value |
+|---------|--------|
+| Trigger | Schedule cron `0,20,40 9-17 * * *`, TZ `America/New_York` |
+| Repo | `gui529/QuickProList`, branch **`dev`** |
+| Agent instructions | `campaign-manager` + tick prompt in `cloud-schedule.md` |
+| Business hours | Enforced in prompt (9–18 ET); cron stops evening ticks at 17:40 |
+
+**Disable local loop** after automation is green (ask agent to stop background
+PowerShell loop, or kill the sleeper process).
+
+---
+
+## 3. Secrets (cloud agent must send without your `.env.local`)
+
+Local sends use **`.env.local`** / **`.env.campaign-send.local`**. Cloud has **no**
+access to your PC files unless you configure secrets on the **automation / cloud
+agent** environment (Cursor UI — exact name varies; use “environment variables”
+for that automation or repo).
+
+**Minimum for `campaign-manager-send.ts`:**
+
+| Variable | Purpose |
+|----------|---------|
+| `RESEND_API_KEY` | Send |
+| `RESEND_FROM_EMAIL` | e.g. `jeremy@quickprolist.com` |
+| `UNSUBSCRIBE_SECRET` or `CRON_SECRET` | Marketing unsub links |
+| `SITE_URL` | `https://www.quickprolist.com` |
+| `CAMPAIGN_SENDER_NAME` | e.g. `Jeremy` |
+| `CAMPAIGN_BCC_EMAIL` | Optional; default code → `gui.quickprolist@gmail.com` |
+
+**Recommended for Wave 1 sync:**
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Neon **production** branch URL if listed pros must match live site |
+
+Do **not** rely on `vercel env pull` in cloud unless you verified secrets are
+non-empty (see `lessons.json` — empty pull breaks unsub).
+
+**Optional:** mirror the same vars on **Vercel Production** for parity; campaign
+sends do **not** require a Vercel deploy — only the env values.
+
+---
+
+## 4. Permissions the cloud agent needs
+
+- **Git:** read/write **`dev`** (pull + push campaign commits).
+- **Network:** Resend API, WebFetch/WebSearch for email discovery, Neon if `DATABASE_URL` set.
+- **Shell:** `npx tsx scripts/campaign-manager-send.ts`, `campaign-sync-listed-prospects.ts`, tests not required each tick.
+
+No Admin UI, no `POST /api/campaigns/send` unless owner opts in.
+
+---
+
+## 5. What stays local (optional)
+
+| Item | Notes |
+|------|--------|
+| `outreach/` discovery worker | Optional; cloud agent can WebFetch instead |
+| Your PC | Off once automation runs |
+| Vercel crons | Unrelated (digest/winback only) |
+| ImprovMX / Gmail | Already cloud; no change |
+
+---
+
+## 6. Cutover checklist
+
+1. [ ] Commit + push all campaign files on **`dev`**.
+2. [ ] Configure automation **secrets** (table above).
+3. [ ] Create + enable **Cursor Automation** (cron + prompt).
+4. [ ] Run **one manual** cloud agent tick; confirm send or dry-run + board log + push.
+5. [ ] **Stop** local `/loop 20m` on PC.
+6. [ ] Confirm **gui.quickprolist@gmail.com** receives BCC + `contact@` tests.
+7. [ ] Board **Inbox gate** → clear when Gmail placement is good.
+
+**Pause cloud campaign:** board `Status` → `PAUSED` or disable automation.
+
+---
+
+## 7. Failure modes
+
+| Symptom | Fix |
+|---------|-----|
+| Tick runs but no sends | Missing `RESEND_*` / `UNSUBSCRIBE_SECRET` in cloud secrets |
+| `already_sent` | Normal — registry on `dev` is working |
+| No registry updates on `dev` | Agent lacked push permission or didn’t commit |
+| Duplicate sends | Two schedulers (local loop **and** automation) — stop one |
+| Wrong city/listings | `DATABASE_URL` points at wrong Neon branch |
