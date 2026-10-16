@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-16T21:54:00.000Z",
+  "updatedAt": "2026-10-16T22:15:00.000Z",
   "prospects": [
     {
       "businessName": "Bardi Heating, Cooling & Plumbing",
@@ -51,7 +51,8 @@
       "city": "atlanta",
       "category": "generalcontractors",
       "source": "curated",
-      "status": "needs_email",
+      "status": "skip",
+      "skipReason": "phone/form-only contact (hammersmithatlanta.com/contact → email.php); no public mailto 2026-10-16",
       "curatedId": "1830f028-a371-4504-b864-071124c4c154",
       "websiteUrl": "https://hammersmithatlanta.com/"
     },

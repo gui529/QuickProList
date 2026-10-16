@@ -23,7 +23,7 @@
 | **Send hours** | **7:00–20:00** America/New_York (cron ticks `0,20,40 7-19 * * *`) |
 | **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per tick when possible; spread cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |
-| **Last session** | 2026-10-16 ~6:08 PM ET (scheduled tick) |
+| **Last session** | 2026-10-16 ~6:15 PM ET (scheduled tick) |
 | **Paused reason** | *(if PAUSED)* |
 
 ---
@@ -127,6 +127,17 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Session log (newest first)
 
 <!-- campaign-manager: append below this line -->
+
+### 2026-10-16 — Scheduled tick (18:15 ET)
+
+**Agent:** campaign-manager (cron)  
+**Send window:** After **17:40 ET** automation cutoff — **no pro sends** (log + discovery). Paces queued for **≥9:00 ET 2026-10-17** per next actions.  
+**Neon MCP:** paying subscribers **0**; `info@pacesconstruction.com` **not** suppressed.  
+**Pipeline:** `--prepare` OK (listed copy, BCC `gui.quickprolist@gmail.com`, unsub signed); Resend MCP available.  
+**Discovery:** Re-checked Peach Plumbing, Colony Roofers, Atlanta Green Maids — phone/form only; **Mike Hammersmith** → `skip` (form-only contact page).  
+**Sent:** 0  
+**Cap:** 0/10 pro sends today (2026-10-16).  
+**Next tick (in window):** MCP send **Paces Construction** (`--wave listed`, batch `wave-atl-2026-10`); continue `needs_email` on remaining Wave 1 rows.
 
 ### 2026-10-16 — Scheduled tick (18:08 ET)
 
