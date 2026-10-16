@@ -22,7 +22,7 @@
 | **Owner inbox** | **`gui.quickprolist@gmail.com`** — ImprovMX inbound `*@quickprolist.com` + campaign BCC |
 | **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per `/loop` tick when possible; spread cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |
-| **Last session** | 2026-10-15 ~6:00 PM ET (loop restarted) |
+| **Last session** | 2026-10-16 ~5:54 PM ET (scheduled tick) |
 | **Paused reason** | *(if PAUSED)* |
 
 ---
@@ -76,7 +76,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 | Metric | Value | As of |
 |--------|-------|--------|
 | Paying subscribers (prod) | | |
-| Emails sent (board **Sent log**, 7d) | 6 (1 test + 5 Wave 1 listed) | 2026-10-15 |
+| Emails sent (board **Sent log**, 7d) | 6 (1 test + 5 Wave 1 listed) | 2026-10-16 |
 | Replies / interested | | |
 | Last inbox test | **Unconfirmed** — check **gui.quickprolist@gmail.com** (inbox + spam) |
 
@@ -95,7 +95,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Next actions (ordered)
 
 1. **Owner:** confirm BCC copies land **inbox** (not Junk) — unlocks cap ramp per table above.
-2. **Agent:** continuous stack; **≤2** pro sends per 20m tick; **≥90s** apart if multiple in one session; **4** pro slots left today under cap 10.
+2. **Agent:** continuous stack; **≤2** pro sends per 20m tick; **≥90s** apart; **10** pro slots available today (cap reset 2026-10-16); **next send:** Paces Construction `info@pacesconstruction.com` (`--wave listed`).
 3. Track paying subscribers + replies each tick; promote `dev` → `main` when ready.
 
 ---
@@ -126,6 +126,16 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Session log (newest first)
 
 <!-- campaign-manager: append below this line -->
+
+### 2026-10-16 — Scheduled tick (17:52 ET)
+
+**Agent:** campaign-manager (cron)  
+**Send window:** After **17:40 ET** automation cutoff — **no pro sends** this tick (log + discovery only).  
+**Discovery:** Contact passes on 12 Wave 1 `needs_email` rows — **Paces Construction** email verified on site (`info@pacesconstruction.com`); Bardi, Atlantis, Peach, Colony, Atlanta Green Maids, CertaPro, Five Star, Arrow, Mr Roofer, QuickPro Locksmith, Pop-A-Lock — phone/form only (no public email cited).  
+**Pipeline:** Paces → `pending`; `--prepare` dry OK (listed copy, BCC Gmail, unsub signed).  
+**Sent:** 0  
+**Cap:** 0/10 pro sends today (2026-10-16).  
+**Next tick:** Send Paces (+ continue email discovery); stay within 9:00–17:40 ET for MCP sends.
 
 ### 2026-10-16 — Inbound forward → Gmail
 
