@@ -20,7 +20,8 @@
 | **Send transport** | **Resend MCP only** — `--prepare` → MCP → `--finalize` (owner policy) |
 | **Automation setup** | `automation-setup.md` — Resend MCP + Neon MCP + `UNSUBSCRIBE_SECRET` |
 | **Owner inbox** | **`gui.quickprolist@gmail.com`** — ImprovMX inbound `*@quickprolist.com` + campaign BCC |
-| **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per `/loop` tick when possible; spread cap across the day |
+| **Send hours** | **7:00–20:00** America/New_York (cron ticks `0,20,40 7-19 * * *`) |
+| **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per tick when possible; spread cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |
 | **Last session** | 2026-10-16 ~6:08 PM ET (scheduled tick) |
 | **Paused reason** | *(if PAUSED)* |

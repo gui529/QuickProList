@@ -111,7 +111,7 @@ Default for this repo: **`STANDALONE`** (owner opted in).
 
 Owner setup: **`automation-setup.md`** — Resend MCP + **Neon MCP** + runtime **`UNSUBSCRIBE_SECRET`**. **No `DATABASE_URL`** on cloud automation.
 
-Run **every 20 minutes, 9:00–17:40 ET** via Cursor Automations — **`cloud-schedule.md`** for design notes.
+Run **every 20 minutes** via Cursor Automations — sends **7:00–20:00 America/New_York** (`lib/campaign-defaults.ts`, **`cloud-schedule.md`**).
 
 On each **scheduled tick** (no human in chat):
 
@@ -129,7 +129,7 @@ On each **scheduled tick** (no human in chat):
 Vercel crons do **not** invoke this agent.
 
 **Local schedule:** owner may use **`/loop 20m`** in this IDE chat (20-minute wakes;
-each tick checks **9:00–18:00 ET** before sending). See `cloud-schedule.md`.
+each tick checks **7:00–20:00 ET** before sending). See `cloud-schedule.md`.
 
 ---
 

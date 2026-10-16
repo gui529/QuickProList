@@ -15,7 +15,7 @@ low replies), **automatically** work Wave 2, follow-ups, and the next wedge in t
 |------|-----|
 | Board **Status** `PAUSED` | Agent (deliverability) or owner |
 | **Daily email cap** hit for the calendar day | Agent — resume next day / next tick |
-| Outside **send hours** (e.g. 9–18 ET on scheduled ticks) | Agent — log only |
+| Outside **send hours** (**7:00–20:00** America/New_York on scheduled ticks) | Agent — log only |
 | Owner disables automation / stops `/loop` | Owner |
 
 **Not** a stop condition: “Wave 1 list exhausted”, “all listed pros emailed once”,

@@ -5,7 +5,7 @@
 | Step | What |
 |------|------|
 | 1 | Cursor Automation → repo **`gui529/QuickProList`**, branch **`dev`** |
-| 2 | Schedule: cron **`0,20,40 9-17 * * *`**, timezone **`America/New_York`** |
+| 2 | Schedule: cron **`0,20,40 7-19 * * *`**, timezone **`America/New_York`** (sends **7:00–20:00** ET — see `lib/campaign-defaults.ts`) |
 | 3 | Instructions: paste **`docs/campaigns/automation-tick-prompt.md`** |
 | 4 | Enable **Resend MCP** on the automation |
 | 5 | Enable **Neon MCP** on the automation (production QuickProList DB) — see **`neon-mcp.md`** |

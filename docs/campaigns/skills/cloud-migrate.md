@@ -31,10 +31,10 @@ See **`cloud-schedule.md`** for full prompt and cron.
 
 | Setting | Value |
 |---------|--------|
-| Trigger | Schedule cron `0,20,40 9-17 * * *`, TZ `America/New_York` |
+| Trigger | Schedule cron `0,20,40 7-19 * * *`, TZ `America/New_York` |
 | Repo | `gui529/QuickProList`, branch **`dev`** |
-| Agent instructions | `campaign-manager` + tick prompt in `cloud-schedule.md` |
-| Business hours | Enforced in prompt (9–18 ET); cron stops evening ticks at 17:40 |
+| Agent instructions | `campaign-manager` + `automation-tick-prompt.md` |
+| Business hours | Enforced in prompt (**7:00–20:00** ET); last cron tick **19:40** |
 
 **Disable local loop** after automation is green (ask agent to stop background
 PowerShell loop, or kill the sleeper process).

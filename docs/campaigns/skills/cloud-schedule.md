@@ -14,15 +14,14 @@ routes in the Next.js app).
    Automations / Glass).
 2. **New automation** → trigger **Schedule** (cron).
 3. **Timezone:** `America/New_York`.
-4. **Cron (every 20 min, 9:00–17:40 ET):**
+4. **Cron (every 20 min, 7:00–19:40 ET; sends allowed 7:00–20:00):**
 
    ```cron
-   0,20,40 9-17 * * *
+   0,20,40 7-19 * * *
    ```
 
-   - First tick **9:00**, last **17:40** (still inside “until 6 pm” without
-     firing at 18:00).
-   - For **weekdays only:** `0,20,40 9-17 * * 1-5`.
+   - First tick **7:00**, last **19:40** (agent enforces no sends from **20:00** onward).
+   - For **weekdays only:** `0,20,40 7-19 * * 1-5`.
 
 5. **Agent:** point at this repo (`gui529/QuickProList`), branch **`dev`**.
 6. **Instructions / prompt** (each run is one short session):
@@ -49,7 +48,7 @@ routes in the Next.js app).
 
 | Setting | Why |
 |---------|-----|
-| **~27 ticks/day** (9–6, every 20m) | Steady discovery + follow-up, not one long session |
+| **~39 ticks/day** (7–20 window, every 20m) | Steady discovery + follow-up, not one long session |
 | **Daily cap** on board | Hard stop — **10** pro/day until inbox gate cleared |
 | **≤2 pro sends / tick** | Spread volume; avoid dumping cap in one hour |
 | **≥90s between sends** | When one tick sends **multiple** emails |
@@ -70,7 +69,7 @@ want the same thread to keep running campaign-manager.
 
 ```text
 Campaign-manager tick. Read .claude/agents/campaign-manager.md + unblock-yourself.md.
-If now is outside 9:00–18:00 America/New_York, log one line on board and exit (no sends).
+If now is outside 7:00–20:00 America/New_York, log one line on board and exit (no sends).
 Otherwise: git pull dev; read board/lessons; PAUSED check; daily cap via sent-registry.json;
 continuous-campaign priority stack; ≤2 pro sends; ≥90s between sends; append session log. Do not stop when Wave 1 is exhausted.
 ```

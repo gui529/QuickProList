@@ -7,6 +7,13 @@ export const DEFAULT_CAMPAIGN_SITE_URL = 'https://www.quickprolist.com'
 export const DEFAULT_CAMPAIGN_FROM_EMAIL = 'jeremy@quickprolist.com'
 export const DEFAULT_CAMPAIGN_SENDER_NAME = 'Jeremy'
 
+/** Scheduled outreach window (America/New_York). No sends before 7:00 or from 20:00 onward. */
+export const CAMPAIGN_SEND_TIMEZONE = 'America/New_York'
+export const CAMPAIGN_SEND_WINDOW_START_HOUR = 7
+export const CAMPAIGN_SEND_WINDOW_END_HOUR = 20
+/** Vercel/Cursor cron: every 20m; last tick 19:40 (inside window). */
+export const CAMPAIGN_AUTOMATION_CRON = '0,20,40 7-19 * * *'
+
 export function getCampaignSiteUrl(): string {
   const raw = process.env.SITE_URL?.trim() || DEFAULT_CAMPAIGN_SITE_URL
   return raw.replace(/\/$/, '')
