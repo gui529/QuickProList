@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-16T22:15:00.000Z",
+  "updatedAt": "2026-10-16T22:17:00.000Z",
   "prospects": [
     {
       "businessName": "Bardi Heating, Cooling & Plumbing",
@@ -62,7 +62,7 @@
       "city": "atlanta",
       "category": "generalcontractors",
       "source": "curated",
-      "status": "pending",
+      "status": "sent",
       "emailSource": "https://pacesconstruction.com/contact/ 2026-10-16",
       "curatedId": "af8a4525-4807-4467-86b1-7c1decacfce1",
       "websiteUrl": "https://pacesconstruction.com/"
