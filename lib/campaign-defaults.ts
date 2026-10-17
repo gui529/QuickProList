@@ -4,6 +4,13 @@
  */
 
 export const DEFAULT_CAMPAIGN_SITE_URL = 'https://www.quickprolist.com'
+
+/**
+ * Resend From for transactional / opted-in product mail only (`jeremy@quickprolist.com`).
+ * Cold campaign outreach must NOT use this address or Resend.
+ * Manual cold-test sender: gui.quickprolist@gmail.com (see docs/campaigns/board.md).
+ * Board Status is PAUSED as of 2026-10-17 — do not send cold outreach from automation.
+ */
 export const DEFAULT_CAMPAIGN_FROM_EMAIL = 'jeremy@quickprolist.com'
 export const DEFAULT_CAMPAIGN_SENDER_NAME = 'Jeremy'
 
@@ -19,6 +26,7 @@ export function getCampaignSiteUrl(): string {
   return raw.replace(/\/$/, '')
 }
 
+/** Resend transactional From only. Not the cold-outreach sender. */
 export function getCampaignFromEmail(): string {
   return process.env.RESEND_FROM_EMAIL?.trim() || DEFAULT_CAMPAIGN_FROM_EMAIL
 }

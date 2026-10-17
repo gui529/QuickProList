@@ -56,7 +56,7 @@ Then **send** if under cap — do not park the whole campaign on one hard site.
 
 | Error | Self-fix |
 |-------|----------|
-| Resend MCP not connected | Connect MCP in Cursor; retry MCP send |
+| Resend MCP not connected | Expected. Do **not** connect Resend to send cold outreach. Board is `PAUSED`; cold test is manual Gmail `gui.quickprolist@gmail.com`. |
 | `UNSUBSCRIBE_SECRET` empty after pull | `.env.local` secret or `QA_ADMIN_SECRET` fallback (see lessons) |
 | `already_sent` | Next prospect — dedupe working |
 | `SuppressedError` | Mark prospect `skip`; check Neon suppressions |

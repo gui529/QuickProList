@@ -27,12 +27,13 @@ and copy similarity more than Resend’s raw rate limit.
 
 | Rule | Default |
 |------|---------|
-| **Daily volume** | Whatever **Daily email cap** `board.md` states — currently **25** pro sends/day (owner-approved 2026-10-17). Do not substitute a hardcoded 10. |
+| **Daily volume** | Whatever **Daily email cap** `board.md` states — currently **5** pro sends/day (owner voice 2026-10-17 ~17:47 ET). Do not substitute 25 or 10. |
 | **Per scheduled tick** | **≤ 2** pro sends per 20m tick when possible — spread cap across the day |
 | **Same session** | **≥ 90 seconds** between successful sends (**90–120s** for Wave 2 cold); never under **30s** |
 | **Concurrency** | **One send at a time** — one `campaign-manager-send.ts` process; no parallel blasts |
 | **Batching** | No “mass send” script; **never** dump full daily cap in one hour |
-| **Ramp** | Cap follows `board.md`. Do not hold the day at 10 or any number below that cap. |
+| **Channel** | Cold outreach is manual **Gmail** `gui.quickprolist@gmail.com`, not Resend. Board is `PAUSED` (2026-10-17) — do not send. Planned test ~20 emails over a few days, low volume. Resend is transactional/opted-in only. |
+| **Ramp** | Cap follows `board.md` (currently **5**). Do not keep the withdrawn 25/day Resend cap. |
 | **Stop** | `PAUSED` on bounce, complaint, repeated junk placement, or Resend **429** / rate errors |
 
 **Do not send all at once** — bursts look like bulk spam to Microsoft/Gmail and hurt a new domain.

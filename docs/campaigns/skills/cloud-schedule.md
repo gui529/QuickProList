@@ -32,8 +32,9 @@ routes in the Next.js app).
    This is a scheduled tick (not a human chat). Do one focused pass:
    - git pull origin dev
    - Read board.md, lessons.json, unblock-yourself.md, continuous-campaign.md
-   - If board Status is PAUSED, exit with one-line reason
-   - Respect daily email cap (count today's rows in sent-registry.json)
+   - If board Status is PAUSED, exit with the paused reason (no sends). It is PAUSED as of 2026-10-17.
+   - Cold outreach must NOT use Resend. Manual test sender is Gmail gui.quickprolist@gmail.com (~20 emails over a few days). Resend is transactional/opted-in only.
+   - Respect daily email cap on board.md (currently 5; count today's rows in sent-registry.json)
    - Run full priority stack: listed pros (--wave listed), then Wave 2 outreach (--wave outreach), follow-ups, next wedge — do NOT stop when Wave 1 is slow
    - Self-unblock: discover emails; ≤2 pro sends this tick; ≥90s between sends if multiple
    - Append board session log; commit/push to dev only campaign ops files — never main
@@ -49,7 +50,8 @@ routes in the Next.js app).
 | Setting | Why |
 |---------|-----|
 | **~39 ticks/day** (7–20 window, every 20m) | Steady discovery + follow-up, not one long session |
-| **Daily cap** on board | Hard stop at whatever **Daily email cap** `board.md` states — currently **25** pro/day (owner-approved 2026-10-17). Do not substitute a hardcoded 10. |
+| **Daily cap** on board | Hard stop at whatever **Daily email cap** `board.md` states — currently **5** pro/day (owner voice 2026-10-17 ~17:47 ET). Do not substitute 25 or 10. |
+| **Channel** | Cold outreach is manual Gmail `gui.quickprolist@gmail.com`, not Resend. While Status is `PAUSED`, send nothing. |
 | **≤2 pro sends / tick** | Spread volume; avoid dumping cap in one hour |
 | **≥90s between sends** | When one tick sends **multiple** emails |
 | **One tick = one log entry** | board session log “scheduled tick” |
@@ -68,10 +70,10 @@ want the same thread to keep running campaign-manager.
 **Each tick prompt should include business hours** (the loop itself runs 24/7):
 
 ```text
-Campaign-manager tick. Read .claude/agents/campaign-manager.md + unblock-yourself.md.
-If now is outside 7:00–20:00 America/New_York, log one line on board and exit (no sends).
-Otherwise: git pull dev; read board/lessons; PAUSED check; daily cap via sent-registry.json;
-continuous-campaign priority stack; ≤2 pro sends; ≥90s between sends; append session log. Do not stop when Wave 1 is exhausted.
+Campaign-manager tick. Read .claude/agents/campaign-manager.md.
+If board Status is PAUSED, exit with the paused reason (no sends). It is PAUSED as of 2026-10-17.
+Cold outreach must NOT use Resend. Manual sender is Gmail gui.quickprolist@gmail.com.
+Daily cap is whatever board.md states (currently 5). Do not send from this tick.
 ```
 
 **Stop:** ask to stop the loop; agent kills the background sleeper.
@@ -101,8 +103,8 @@ Use **`delaySeconds: 1200`** or a **cron** on the subscription timer for 9–6 E
 
 ## Owner checklist before turning on
 
-- [ ] Board **Status** `ACTIVE`, **Send authority** `STANDALONE`
-- [ ] Resend domain verified; owner ok with **BCC** on every send
+- [ ] Board **Status** is `PAUSED` as of 2026-10-17 — do not turn sends back on from this checklist. Cold outreach is manual Gmail, not Resend.
+- [ ] Resend domain stays for transactional/opted-in mail only
 - [ ] Secrets available in cloud automation environment
 - [ ] **`dev`** has latest campaign scripts + registries (or automation pulls each tick)
 - [ ] Inbox placement tested (lesson: don’t ramp if junk)

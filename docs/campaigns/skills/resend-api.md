@@ -1,8 +1,12 @@
 # Resend skill (campaign-manager)
 
-**Mandatory before any send.** Campaign email is **standalone** — not Admin or
-`/api/campaigns/*`. Delivery is **Resend MCP only** (owner policy). This script
-builds mail and updates **`sent-registry.json`**; MCP sends it.
+**Cold outreach must NOT go through Resend** (owner voice 2026-10-17 ~17:47 ET). Resend’s Acceptable Use Policy prohibits cold outreach and scraped lists. The campaign board is **`PAUSED`**. Do not resume sending.
+
+The planned test is ~20 emails over a few days, sent **manually** from Gmail `gui.quickprolist@gmail.com`, low volume. Daily cap on `board.md` is **5**.
+
+**Resend stays for transactional / opted-in mail only.** Do not run `--prepare` → Resend MCP → `--finalize` for prospect outreach. `scripts/campaign-manager-send.ts` refuses those flags.
+
+The steps below are the retired cold-outreach path. They are not the current send path.
 
 Pair with the upstream **Resend skill** (idempotency, `{ data, error }`).
 
@@ -82,4 +86,4 @@ Prepare JSON always includes **`bcc`** → `getCampaignOwnerBccEmail()`.
 
 ## 7. Send authority
 
-`STANDALONE` + `ACTIVE` → send within daily cap. Owner may `PAUSE` anytime.
+Board **Status** is `PAUSED` (2026-10-17). Do not send. Cold outreach is manual Gmail, not this skill. Owner may keep the pause in place.

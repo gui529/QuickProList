@@ -13,7 +13,7 @@ low replies), **automatically** work Wave 2, follow-ups, and the next wedge in t
 
 | Stop | Who |
 |------|-----|
-| Board **Status** `PAUSED` | Agent (deliverability) or owner |
+| Board **Status** `PAUSED` | Owner paused 2026-10-17 — **do not send**. Cold outreach is manual Gmail `gui.quickprolist@gmail.com`, not Resend. Planned test ~20 emails over a few days. Cap on the board is **5**. |
 | **Daily email cap** hit for the calendar day | Agent — resume next day / next tick |
 | Outside **send hours** (**7:00–20:00** America/New_York on scheduled ticks) | Agent — log only |
 | Owner disables automation / stops `/loop` | Owner |

@@ -129,10 +129,10 @@
       "severity": "high",
       "subscriberImpact": "MCP send without --finalize skips sent-registry dedupe and risks double-emailing pros.",
       "lesson": "Campaign delivery is Resend MCP only: --prepare → MCP (idempotencyKey) → --finalize --resend-id.",
-      "evidence": "Owner 2026-10-16: MCP-only policy for all campaign outreach.",
+      "evidence": "Owner 2026-10-16: MCP-only policy for all campaign outreach. Superseded 2026-10-17: cold outreach must not use Resend.",
       "do": "Connect Resend MCP + Neon MCP (neon-mcp.md); UNSUBSCRIBE_SECRET runtime secret; always --finalize after MCP.",
       "dont": "Skip --finalize after MCP send.",
-      "status": "active"
+      "status": "superseded"
     },
     {
       "id": "2026-10-17-cap-follows-board",
@@ -140,10 +140,22 @@
       "tags": ["deliverability", "reach"],
       "severity": "high",
       "subscriberImpact": "Mailing up to the owner-approved board cap reaches more pros; pacing and a 5% bounce pause keep that mail in the inbox so it can become paid subscribers.",
-      "lesson": "Daily cap is whatever board.md states (currently 25, owner-approved 2026-10-17). The BCC/forwarding inbox gui.quickprolist@gmail.com is confirmed receiving. Keep ≥90s between sends and ≤2 pro sends per tick. Pause if the rolling bounce rate on real prospect sends exceeds 5%.",
-      "evidence": "Owner voice 2026-10-17 set the cap at 25. Owner forwarding tests on 2026-10-16 arrived in the gui.quickprolist@gmail.com inbox, and campaign BCC copies arrive. Supersedes 2026-10-15-send-pacing.",
-      "do": "Honor the Daily email cap on board.md — do not substitute 10. One send process; ≥90s apart; ≤2 pro sends per tick; spread that cap across the day. Pause if the rolling bounce rate on real prospect sends exceeds 5%.",
-      "dont": "Refuse sends above a stale cap of 10, run parallel send scripts, or send-all-at-once. Do not keep sending after the real-prospect bounce rate exceeds 5%.",
+      "lesson": "Daily cap is whatever board.md states (currently 5, owner voice 2026-10-17 ~17:47 ET). The campaign is PAUSED — do not send. Do not substitute 25 or 10.",
+      "evidence": "Owner voice 2026-10-17 ~17:47 ET lowered the cap from 25 to 5 and paused sending. Supersedes 2026-10-15-send-pacing.",
+      "do": "Honor the Daily email cap on board.md — currently 5. Do not send while Status is PAUSED. Do not substitute 25 or 10.",
+      "dont": "Send while PAUSED, or treat 25 or 10 as the cap.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-17-gmail-not-resend",
+      "addedAt": "2026-10-17T17:47:00-04:00",
+      "tags": ["deliverability", "reach"],
+      "severity": "high",
+      "subscriberImpact": "Resend cold outreach broke acceptable use and bounced at 25%, which threatens the same domain used for opted-in mail and the path to paid subscribers.",
+      "lesson": "Cold outreach must not go through Resend. Board is PAUSED. The planned test is about 20 manual emails over a few days from gui.quickprolist@gmail.com. Resend is for transactional/opted-in mail only. Daily cap follows board.md (currently 5).",
+      "evidence": "Owner voice 2026-10-17 ~17:47 ET: Resend Acceptable Use Policy prohibits cold outreach/scraped lists; bounce rate was 25% (limit 4%). Supersedes 2026-10-16-cloud-resend-mcp.",
+      "do": "Do not send while Status is PAUSED. Do not run campaign-manager-send.ts --prepare or --finalize for cold outreach. When the owner runs the manual test, send from gui.quickprolist@gmail.com only, within the board cap.",
+      "dont": "Resume Resend cold outreach, scraped-list sends, or automated ticks that send.",
       "status": "active"
     }
   ]

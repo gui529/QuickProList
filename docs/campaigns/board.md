@@ -12,20 +12,21 @@
 
 | Field | Value |
 |-------|--------|
-| **Status** | `ACTIVE` |
-| **Current focus** | **Continuous** — Atlanta/Marietta: finish listed Wave 1 + fill 3rd slots (Wave 2) · batch `wave-atl-2026-10` |
-| **Daily email cap** | `25` pro outreach/day (owner test excluded from cap) |
-| **Cap ramp** | Owner voice **2026-10-17**: cap is **25**/day (raised from 10). Prior stay-at-10 inbox gate is superseded for this cap. Ceiling **~30** until reply data. |
-| **Send authority** | `STANDALONE` — agent sends fast without per-email approval |
-| **Send transport** | **Resend MCP only** — `--prepare` → MCP → `--finalize` (owner policy) |
-| **Automation setup** | `automation-setup.md` — Resend MCP + Neon MCP + `UNSUBSCRIBE_SECRET` |
-| **Owner inbox** | **`gui.quickprolist@gmail.com`** — ImprovMX inbound `*@quickprolist.com` + campaign BCC |
+| **Status** | `PAUSED` |
+| **Current focus** | **PAUSED — do not send.** Planned test, only when the owner runs it by hand: ~20 emails over a few days from Gmail. Batch `wave-atl-2026-10` stays on file; no Resend sends. |
+| **Daily email cap** | `5` pro outreach/day (owner test excluded from cap) |
+| **Cap ramp** | Owner voice **2026-10-17 ~17:47 ET**: cap is **5**/day for a small manual Gmail test. The earlier **25**/day Resend cap is withdrawn. |
+| **Send authority** | `STANDALONE` — does **not** apply while Status is `PAUSED`. Do not resume sending. |
+| **Sender / channel** | **Gmail** `gui.quickprolist@gmail.com` — manual cold outreach. Planned test ~20 emails over a few days, low volume. |
+| **Send transport** | **Not Resend.** Cold outreach must not go through Resend. Resend stays for transactional/opted-in mail only. |
+| **Automation setup** | `automation-setup.md` — Neon MCP for reads. Do not send cold mail from the tick. |
+| **Owner inbox** | **`gui.quickprolist@gmail.com`** — same account is the cold-outreach sender. ImprovMX inbound `*@quickprolist.com` still forwards here. |
 | **Run schedule** | Every **20 minutes** (cron `0,20,40 7-19 * * *`) |
 | **Send hours** | **Sends only 7:00–20:00 America/New_York** |
 | **Pace** | **At least 90 seconds** between sends; **≤2 pro sends** per tick when possible; spread the daily cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |
-| **Last session** | 2026-10-17 ~17:35 ET (owner approval; no sends) |
-| **Paused reason** | None — no pause was active. Placeholder cleared; owner approval 2026-10-17 confirms `ACTIVE`. |
+| **Last session** | 2026-10-17 ~17:47 ET (owner pause; no sends) |
+| **Paused reason** | Owner paused 2026-10-17: Resend Acceptable Use Policy prohibits cold outreach/scraped lists and bounce rate was 25% (limit 4%). Switching to a small manual Gmail test. |
 
 ---
 
@@ -93,6 +94,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 |------|------|-----------|
 | 2026-10-15 | **STANDALONE** send authority for campaign-manager | Yes |
 | 2026-10-17 | Voice: keep **STANDALONE** + **ACTIVE**; daily cap **25**; goal paying subscribers at $29.99/mo | Yes |
+| 2026-10-17 | Voice ~17:47 ET: **PAUSED**; withdraw the 25/day cap; cap **5**; cold outreach is manual Gmail, not Resend | Yes |
 
 *With `STANDALONE`, agent sends within daily cap when Status is `ACTIVE`; use this table only for one-off overrides or revoking authority.*
 
@@ -100,10 +102,10 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 
 ## Next actions (ordered)
 
-1. **Strategy:** Tighten prospect filtering to the trades converting best. The campaign manager decides which trades based on results.
-2. **Owner:** confirm BCC copies land **inbox** (not Junk) — deliverability check only. Daily cap is already **25** (owner voice 2026-10-17).
-3. **Agent:** next in-window tick — Wave 1 `needs_email` (Bardi, Peach, Atlanta Green Maids, painters, locksmiths, etc.); **≤2** pro sends/tick; daily cap **25** (2 pro sends already logged 2026-10-17).
-4. Track paying subscribers + replies each tick; promote `dev` → `main` when ready.
+1. **Do not send.** Status is `PAUSED`. Do not resume Resend cold outreach or any automated sends.
+2. **Channel:** manual Gmail from `gui.quickprolist@gmail.com` — planned test ~20 emails over a few days, low volume. Resend is transactional/opted-in mail only.
+3. **Cap:** **5** pro emails/day (`board.md` is source of truth). The **25**/day cap is withdrawn.
+4. **Strategy (when the owner runs the manual test):** tighten prospect filtering to the trades converting best. The campaign manager decides which trades based on results. Not this tick.
 
 ---
 
@@ -125,7 +127,8 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 | 2026-10-15-wave-listed-send-flag | `--wave listed` for on-site pros |
 | 2026-10-15-curated-no-contact-email | Discover email from website |
 | 2026-10-15-continuous-not-wave1-only | Keep going: Wave 2 + wedges after listed |
-| 2026-10-17-cap-follows-board | Cap is whatever `board.md` states (currently **25**, owner-approved 2026-10-17); ≥90s between sends; ≤2/tick; pause if real-prospect bounce rate exceeds 5%. Supersedes `2026-10-15-send-pacing`. |
+| 2026-10-17-cap-follows-board | Cap is whatever `board.md` states (currently **5**, owner voice 2026-10-17 ~17:47 ET). Campaign is `PAUSED` — do not send. Supersedes `2026-10-15-send-pacing`. |
+| 2026-10-17-gmail-not-resend | Cold outreach is manual Gmail `gui.quickprolist@gmail.com`, not Resend. Planned test ~20 emails over a few days. Resend is transactional/opted-in only. Supersedes `2026-10-16-cloud-resend-mcp`. |
 | 2026-10-15-dedupe-registry | sent-registry.json before every send |
 
 ---
@@ -133,6 +136,16 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Session log (newest first)
 
 <!-- campaign-manager: append below this line -->
+
+### 2026-10-17 — Owner pause (~17:47 ET)
+
+**Agent:** board/config update only (no sends)  
+**Owner (Guilherme), voice 2026-10-17 ~17:47 ET:**  
+**Status:** `PAUSED`. Do not resume sending.  
+**Paused reason:** Owner paused 2026-10-17: Resend Acceptable Use Policy prohibits cold outreach/scraped lists and bounce rate was 25% (limit 4%). Switching to a small manual Gmail test.  
+**Sender / channel:** Gmail `gui.quickprolist@gmail.com`. Cold outreach must not go through Resend. Planned test ~20 emails over a few days, manual, low volume. Resend stays for transactional/opted-in mail only.  
+**Daily email cap:** **5** (board is source of truth; the 25/day cap is withdrawn).  
+**Sends:** none.
 
 ### 2026-10-17 — Owner approval (~17:35 ET)
 

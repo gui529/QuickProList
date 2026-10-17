@@ -1,10 +1,12 @@
 /**
- * Campaign email builder + sent-registry (delivery via Resend MCP only).
- * See docs/campaigns/skills/resend-api.md
+ * Campaign email preview + sent-registry.
  *
- *   --prepare  → JSON for Resend MCP
- *   --finalize --resend-id <id>  → after MCP success
+ * Cold outreach must NOT go through Resend (owner 2026-10-17). `--prepare` and
+ * `--finalize` exit immediately. `--dry-run` still previews copy.
+ * Manual cold test: Gmail gui.quickprolist@gmail.com. See docs/campaigns/board.md.
+ *
  *   --dry-run  → preview text only
+ *   --prepare / --finalize → refused (retired Resend cold-outreach path)
  */
 import { loadCampaignEnv } from './load-campaign-env'
 import { DEFAULT_MESSAGE, LISTED_MESSAGE } from '../lib/campaigns'
@@ -56,9 +58,21 @@ if (!to || !businessName || !city || !category) {
   process.exit(1)
 }
 
-if (!dryRun && !prepare && !finalize) {
-  console.error('Campaign delivery is Resend MCP only: use --prepare, then MCP send, then --finalize --resend-id <id>.')
-  console.error('See docs/campaigns/skills/resend-api.md')
+if (prepare || finalize) {
+  console.error(
+    'Cold outreach must not go through Resend (owner 2026-10-17). Board status is PAUSED. ' +
+      'Planned test is manual Gmail from gui.quickprolist@gmail.com (~20 emails over a few days, cap 5/day). ' +
+      'Resend stays for transactional/opted-in mail only. See docs/campaigns/board.md. ' +
+      '--dry-run is still allowed for copy preview.',
+  )
+  process.exit(1)
+}
+
+if (!dryRun) {
+  console.error(
+    'Cold outreach is manual Gmail (gui.quickprolist@gmail.com), not this script. Use --dry-run to preview copy only.',
+  )
+  console.error('See docs/campaigns/board.md')
   process.exit(1)
 }
 

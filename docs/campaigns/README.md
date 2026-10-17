@@ -24,6 +24,6 @@
 
 **Local → cloud:** [skills/automation-setup.md](./skills/automation-setup.md) — cron, tick prompt, Resend + Neon MCP, unsub secret.
 
-**Sends are off-app:** `campaign-manager-send.ts` (`--prepare` / `--finalize`) + **Resend MCP** — not Admin or `/api/campaigns/*`. See [skills/resend-api.md](./skills/resend-api.md).
+**Cold outreach is manual Gmail** `gui.quickprolist@gmail.com`, not Resend (owner 2026-10-17). Board is **`PAUSED`** — do not send. Planned test ~20 emails over a few days; daily cap **5**. Resend is transactional/opted-in only. See [board.md](./board.md) and [skills/resend-api.md](./skills/resend-api.md).
 
 **Wave 1 sync:** Neon MCP on cloud (`neon-mcp.md`); local script `campaign-sync-listed-prospects.ts` + `DATABASE_URL`.
