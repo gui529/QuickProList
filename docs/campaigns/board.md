@@ -14,17 +14,18 @@
 |-------|--------|
 | **Status** | `ACTIVE` |
 | **Current focus** | **Continuous** — Atlanta/Marietta: finish listed Wave 1 + fill 3rd slots (Wave 2) · batch `wave-atl-2026-10` |
-| **Daily email cap** | `10` pro outreach/day (owner test excluded from cap) |
-| **Cap ramp** | Stay at **10** until owner confirms **inbox** (not Junk) on recent BCC copies + ~3–5 clean business days → then **15** → **20–25** week 2+; ceiling **~30** until reply data |
+| **Daily email cap** | `25` pro outreach/day (owner test excluded from cap) |
+| **Cap ramp** | Owner voice **2026-10-17**: cap is **25**/day (raised from 10). Prior stay-at-10 inbox gate is superseded for this cap. Ceiling **~30** until reply data. |
 | **Send authority** | `STANDALONE` — agent sends fast without per-email approval |
 | **Send transport** | **Resend MCP only** — `--prepare` → MCP → `--finalize` (owner policy) |
 | **Automation setup** | `automation-setup.md` — Resend MCP + Neon MCP + `UNSUBSCRIBE_SECRET` |
 | **Owner inbox** | **`gui.quickprolist@gmail.com`** — ImprovMX inbound `*@quickprolist.com` + campaign BCC |
-| **Send hours** | **7:00–20:00** America/New_York (cron ticks `0,20,40 7-19 * * *`) |
-| **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per tick when possible; spread cap across the day |
+| **Run schedule** | Every **20 minutes** (cron `0,20,40 7-19 * * *`) |
+| **Send hours** | **Sends only 7:00–20:00 America/New_York** |
+| **Pace** | **At least 90 seconds** between sends; **≤2 pro sends** per tick when possible; spread the daily cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |
-| **Last session** | 2026-10-17 ~5:23 PM ET (scheduled tick) |
-| **Paused reason** | *(if PAUSED)* |
+| **Last session** | 2026-10-17 ~17:35 ET (owner approval; no sends) |
+| **Paused reason** | None — no pause was active. Placeholder cleared; owner approval 2026-10-17 confirms `ACTIVE`. |
 
 ---
 
@@ -91,6 +92,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 | Date | What | Approved? |
 |------|------|-----------|
 | 2026-10-15 | **STANDALONE** send authority for campaign-manager | Yes |
+| 2026-10-17 | Voice: keep **STANDALONE** + **ACTIVE**; daily cap **25**; goal paying subscribers at $29.99/mo | Yes |
 
 *With `STANDALONE`, agent sends within daily cap when Status is `ACTIVE`; use this table only for one-off overrides or revoking authority.*
 
@@ -98,9 +100,10 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 
 ## Next actions (ordered)
 
-1. **Owner:** confirm BCC copies land **inbox** (not Junk) — unlocks cap ramp per table above.
-2. **Agent:** next in-window tick — Wave 1 `needs_email` (Bardi, Peach, Atlanta Green Maids, painters, locksmiths, etc.); **≤2** pro sends/tick; **8**/10 cap left today (2026-10-17).
-3. Track paying subscribers + replies each tick; promote `dev` → `main` when ready.
+1. **Strategy:** Tighten prospect filtering to the trades converting best. The campaign manager decides which trades based on results.
+2. **Owner:** confirm BCC copies land **inbox** (not Junk) — deliverability check only. Daily cap is already **25** (owner voice 2026-10-17).
+3. **Agent:** next in-window tick — Wave 1 `needs_email` (Bardi, Peach, Atlanta Green Maids, painters, locksmiths, etc.); **≤2** pro sends/tick; daily cap **25** (2 pro sends already logged 2026-10-17).
+4. Track paying subscribers + replies each tick; promote `dev` → `main` when ready.
 
 ---
 
@@ -130,6 +133,15 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Session log (newest first)
 
 <!-- campaign-manager: append below this line -->
+
+### 2026-10-17 — Owner approval (~17:35 ET)
+
+**Agent:** board update only (no campaign-manager send)  
+**Owner (Guilherme), voice 2026-10-17:** approved standalone operation. **Send authority** remains `STANDALONE`; **Status** remains `ACTIVE`. Daily cap raised **10 → 25**/day. Goal is paying subscribers at **$29.99/mo**.  
+**Paused reason:** none was set (template placeholder only). Cleared that placeholder on this approval; campaign was not paused.  
+**Schedule (unchanged):** every 20 minutes; sends only **7:00–20:00 America/New_York**; at least **90 seconds** between sends.  
+**Sends:** no live emails sent; this update is board/config only, pending before any further sends.  
+**Open risks (same session):** 25% bounce rate on recent real prospect sends (2 bounced, 1 suppressed of 8); listed-wave email lacks a working enroll/preview link; bounces not captured by the Resend webhook; CAN-SPAM postal address pending issue #18.
 
 ### 2026-10-17 — Scheduled tick (17:23 ET)
 
