@@ -69,15 +69,17 @@ export function buildPersonalMarketingEmail(
     .map((p) => p.replace(/\s*\n\s*/g, ' ').trim())
     .filter(Boolean)
 
-  const launchNote = 'We are going to launch soon, so we are building it up right now.'
   const pricingNote =
     'After the 30-day preview window, staying listed is $29.99/month if you choose to continue.'
 
   const textParts = ['Hi,', '', ...bodyParagraphs]
-  if (actionIntro && ctaUrl !== homeUrl) {
+  if (opts.enrollUrl && ctaUrl) {
+    textParts.push('', actionIntro ?? 'Preview what we would publish for you (about two minutes):', ctaUrl)
+    textParts.push('', pricingNote)
+  } else if (actionIntro && ctaUrl !== homeUrl) {
     textParts.push('', actionIntro, ctaUrl)
   }
-  textParts.push('', pricingNote, '', launchNote, compliance.text.trim())
+  textParts.push('', compliance.text.trim())
 
   const text = textParts.join('\n')
 
@@ -93,9 +95,14 @@ export function buildPersonalMarketingEmail(
       (line) =>
         `<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(line)}</p>`
     ),
-    ...(actionIntro && ctaUrl !== homeUrl ? [htmlLinkBlock(actionIntro, ctaUrl)] : []),
-    `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">${escapeHtml(pricingNote)}</p>`,
-    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(launchNote)}</p>`,
+    ...(opts.enrollUrl && ctaUrl
+      ? [
+          htmlLinkBlock(actionIntro ?? 'Preview what we would publish for you (about two minutes):', ctaUrl),
+          `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">${escapeHtml(pricingNote)}</p>`,
+        ]
+      : actionIntro && ctaUrl !== homeUrl
+        ? [htmlLinkBlock(actionIntro, ctaUrl)]
+        : []),
     `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888">${compliance.html}</p>`,
   ].join('\n')
 
@@ -187,7 +194,7 @@ function marketingCompliance(to: string, reason: string): ComplianceFooter {
   assertMarketingEmailConfigured()
   const url = buildUnsubscribeUrl(to)
   return {
-    html: `${escapeHtml(reason)}<br/>
+    html: `${escapeHtml(reason).replace(/\n/g, '<br/>')}<br/>
         <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>`,
     text: `\n\n${reason}\nUnsubscribe: ${url}`,
     headers: {
@@ -198,6 +205,26 @@ function marketingCompliance(to: string, reason: string): ComplianceFooter {
 }
 
 export type CampaignEmailWave = 'listed' | 'outreach' | 'test' | 'follow-up'
+
+/** Why the recipient got this mail. Follow-ups exist, so this is not described as one-time. */
+export function campaignComplianceReason(wave?: CampaignEmailWave): string {
+  if (wave === 'follow-up') {
+    return 'You received this follow-up because your business offers home services in an area we cover on QuickProList.'
+  }
+  return 'You received this because your business offers home services in an area we cover on QuickProList. If we do not hear back, we may send one short follow-up.'
+}
+
+/** Owner-supplied CAN-SPAM postal line. Empty until they set CAMPAIGN_POSTAL_ADDRESS. */
+export function campaignPostalAddress(): string | null {
+  const value = process.env.CAMPAIGN_POSTAL_ADDRESS?.trim()
+  return value || null
+}
+
+export function campaignFooterText(wave?: CampaignEmailWave): string {
+  const postal = campaignPostalAddress()
+  const reason = campaignComplianceReason(wave)
+  return postal ? `${reason}\n${postal}` : reason
+}
 
 export interface SendEmailOptions {
   kind?: EmailKind
@@ -226,10 +253,7 @@ export async function sendEmail(
   if (isMarketing) {
     const normalized = normalizeEmail(to)
     if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
-    compliance = marketingCompliance(
-      to,
-      'You received this one-time note because your business offers home services in an area we cover on QuickProList.'
-    )
+    compliance = marketingCompliance(to, campaignFooterText(opts.campaignWave))
   }
 
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')

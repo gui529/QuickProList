@@ -48,8 +48,9 @@ they can see themselves in search. Goal: enroll / 30-day preview / paid.
 - Use **listed-pro copy** (not “can we add you?” — they are already listed).
 - Need a real **to** address — **agent discovers it** (contact page, search,
   helper); never idle waiting on owner. See `unblock-yourself.md`.
-- `--enroll-url` when an invitation exists; else search link with canonical
-  category slug (`plumbing`, not `plumbers`).
+- `--prepare` creates the `/enroll/<token>` invitation (or pass `--enroll-url`
+  when one already exists). It refuses mail without exactly one preview link.
+  Cold outreach is not sent through Resend; the Gmail test batch is the send path.
 
 ### Wave 2 — Fill the third slot
 

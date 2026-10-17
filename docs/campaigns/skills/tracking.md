@@ -12,6 +12,15 @@
 npx tsx scripts/campaign-list-sent.ts
 npx tsx scripts/campaign-list-sent.ts --email=pro@example.com
 npx tsx scripts/campaign-list-sent.ts --json
+npx tsx scripts/campaign-check-sent.ts --email=pro@example.com --business "Acme Plumbing"
+```
+
+`campaign-check-sent.ts` refuses the address (any case) if it is in
+`sent-registry.json` **or** `gmail-sent-log.json`, and also if the same domain
+and business name were already contacted. After a Gmail test send:
+
+```bash
+npx tsx scripts/campaign-check-sent.ts --record --email=pro@example.com --business "Acme Plumbing" --gmail-id <gmail-message-id>
 ```
 
 Send script **blocks** duplicates:
@@ -38,6 +47,12 @@ Track companies you plan to mail or have listed on the site:
 | `curatedId` | Optional UUID from Neon |
 
 **Agent:** refresh from admin/Neon at session start for Wave 1; set `status: sent` when registry gains that email.
+
+**Intake**
+
+- Listed pros already on the site: `npx tsx scripts/campaign-sync-listed-prospects.ts` (needs `DATABASE_URL`). It upserts by curated id or email and keeps `sent` / `skip` rows and discovered addresses. It does not delete manual prospects.
+- One new company: `npx tsx scripts/campaign-add-prospect.ts --business "<name>" --email <email> --city <slug> --category <slug> --source-url <url>`. This checks MX, refuses duplicates and anyone already in send history, and flags role addresses (`info@`, `help@`, …).
+- Admin queue (`campaign_prospects` via the outreach worker) is a separate in-app pipeline. Cold Gmail test mail uses the JSON registry above, not Resend.
 
 Example prospect row:
 

@@ -1,8 +1,24 @@
 # Resend skill (campaign-manager)
 
-**Mandatory before any send.** Campaign email is **standalone** — not Admin or
-`/api/campaigns/*`. Delivery is **Resend MCP only** (owner policy). This script
-builds mail and updates **`sent-registry.json`**; MCP sends it.
+**Cold outreach is off Resend.** Resend's acceptable-use policy bans cold email.
+The board stays **PAUSED**. Do not call Resend send for prospect mail.
+
+The small test (~20 emails, cap **5/day**) is prepared in
+`docs/campaigns/gmail-test-batch.json` and sent by the owner's assistant from
+**gui.quickprolist@gmail.com** through the Gmail API, outside this repo. Record
+each send with `scripts/campaign-check-sent.ts --record`. Check first:
+
+```bash
+npx tsx scripts/campaign-check-sent.ts --email=pro@example.com --business "Acme Plumbing"
+```
+
+`--prepare` still builds a compliant preview (enroll link, MX, suppression,
+bounce-rate pause) but sets `doNotSendViaResend: true`. Do not pass that payload
+to Resend MCP.
+
+Campaign email is **standalone** — not Admin or `/api/campaigns/*`. This script
+builds mail and updates **`sent-registry.json`** only after a send that already
+happened.
 
 Pair with the upstream **Resend skill** (idempotency, `{ data, error }`).
 

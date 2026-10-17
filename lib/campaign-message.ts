@@ -1,5 +1,5 @@
 import { normalizeCategory } from './categories'
-import { formatCategoryLabel, formatCityLabel } from './display'
+import { formatCategoryLabel, formatCategorySearchPhrase, formatCityLabel } from './display'
 import { formatCampaignAreasPhrase } from './open-towns'
 
 export interface CampaignMessageContext {
@@ -20,6 +20,7 @@ export function expandCampaignMessage(template: string, ctx: CampaignMessageCont
 
   const city = cityRaw ? formatCityLabel(cityRaw) : 'your area'
   const category = categoryRaw ? formatCategoryLabel(categoryRaw) : 'home-service'
+  const categoryPhrase = formatCategorySearchPhrase(categoryRaw)
   const areas = formatCampaignAreasPhrase(cityRaw)
 
   const senderName = process.env.CAMPAIGN_SENDER_NAME?.trim()
@@ -38,6 +39,7 @@ export function expandCampaignMessage(template: string, ctx: CampaignMessageCont
     .replaceAll('{senderIntro}', senderIntro)
     .replaceAll('{businessName}', businessName)
     .replaceAll('{city}', city)
+    .replaceAll('{category} pros', categoryPhrase)
     .replaceAll('{category}', category)
     .replaceAll('{areas}', areas)
     .replaceAll('{siteUrl}', siteUrl)

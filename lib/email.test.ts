@@ -103,11 +103,37 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(call.text).not.toContain('Hi Acme Plumbing,')
     expect(call.text).toContain('Preview what we would publish')
     expect(call.text).toContain('https://example.test/enroll/abc')
-    expect(call.text).toContain('We are going to launch soon')
+    expect(call.text).toContain('$29.99/month')
+    expect(call.text.indexOf('$29.99/month')).toBeGreaterThan(call.text.indexOf('https://example.test/enroll/abc'))
+    expect(call.text).not.toContain('We are going to launch soon')
+    expect(call.text).not.toContain('one-time')
     expect(call.text).not.toContain('cancel anytime')
     expect(call.subject).not.toMatch(/🏠|\$29/)
     expect(call.bcc).toEqual(['gui.quickprolist@gmail.com'])
     delete process.env.CAMPAIGN_SENDER_NAME
+  })
+
+  it('omits the price and does not invent a launch line when there is no enroll link', async () => {
+    await sendEmail('owner@example.com', 'Acme Plumbing', 'Quick note.', {
+      city: 'marietta',
+      category: 'plumbing',
+    })
+    const call = sendMock.mock.calls[0][0]
+    expect(call.text).not.toContain('$29.99')
+    expect(call.text).not.toContain('We are going to launch soon')
+    expect(call.text).not.toContain('one-time')
+    expect(call.text).toContain('one short follow-up')
+  })
+
+  it('describes a follow-up as a follow-up', async () => {
+    await sendEmail('owner@example.com', 'Acme', 'Checking back.', {
+      campaignWave: 'follow-up',
+      enrollUrl: 'https://example.test/enroll/abc',
+    })
+    const call = sendMock.mock.calls[0][0]
+    expect(call.text).toContain('You received this follow-up')
+    expect(call.text).not.toContain('one-time')
+    expect(call.text).not.toContain('one short follow-up')
   })
 
   it('uses a transactional subject for payment notices', async () => {
@@ -137,7 +163,7 @@ describe('sendEmail (lib/email.ts)', () => {
   })
 
   describe('marketing compliance', () => {
-    it('adds a working one-click unsubscribe link and headers without a postal address', async () => {
+    it('adds a working one-click unsubscribe link and does not invent a postal address', async () => {
       await sendEmail('Owner@Example.com', 'Biz', 'Hello')
 
       const call = sendMock.mock.calls[0][0] as {

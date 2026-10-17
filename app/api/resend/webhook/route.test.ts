@@ -38,6 +38,15 @@ describe('POST /api/resend/webhook', () => {
     expect(addMock).toHaveBeenCalledWith('email', 'a@example.com', 'complaint')
   })
 
+  it('suppresses email.suppressed recipients', async () => {
+    verifyMock.mockReturnValue({
+      type: 'email.suppressed',
+      data: { to: ['B@Example.com'], suppressed: { message: 'on suppression list', type: 'suppressed' } },
+    })
+    expect((await POST(req())).status).toBe(200)
+    expect(addMock).toHaveBeenCalledWith('email', 'b@example.com', 'suppressed')
+  })
+
   it('suppresses non-transient bounces but not transient ones', async () => {
     verifyMock.mockReturnValue({
       type: 'email.bounced',

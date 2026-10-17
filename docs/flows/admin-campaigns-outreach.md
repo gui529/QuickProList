@@ -39,7 +39,7 @@ Tabs:
 2. Channel: SMS or Email.
 3. Required: business name, message body (default `DEFAULT_MESSAGE` in `lib/campaigns.ts` — personal permission ask, site URL, 30-day add, preview link below signature).
 4. Placeholders on send: `{senderIntro}`, `{businessName}`, `{city}`, `{category}`, `{areas}` (e.g. Atlanta, Marietta, Acworth, Kennesaw, and nearby towns), `{siteUrl}`, `{signature}` (`lib/campaign-message.ts`; set `CAMPAIGN_SENDER_NAME` for “I'm Jeremy with QuickProList” / sign-off).
-5. Email wrapper (`lib/email.ts`): greeting `Hi,`; body paragraphs; enroll preview URL; $29.99 note; pre-launch line (“building it up right now”); unsubscribe footer.
+5. Email wrapper (`lib/email.ts`): greeting `Hi,`; body paragraphs; one enroll preview URL when an invitation exists; $29.99 note only with that preview link; unsubscribe footer (a possible follow-up is disclosed; the note is not described as one-time).
 6. **Email only:** email address, **category**, and **city** required (API 400 without them).
 7. **SMS:** phone required.
 8. Submit → `POST /api/campaigns/send`.

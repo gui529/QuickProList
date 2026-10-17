@@ -7,19 +7,24 @@
  *   --dry-run  → preview text only
  */
 import { loadCampaignEnv } from './load-campaign-env'
-import { DEFAULT_MESSAGE, LISTED_MESSAGE } from '../lib/campaigns'
-import { expandCampaignMessage } from '../lib/campaign-message'
-import {
-  buildMarketingEmailSubject,
-  buildPersonalMarketingEmail,
-  formatMarketingFromAddress,
-} from '../lib/email'
-import { buildUnsubscribeUrl } from '../lib/unsubscribe'
+import { formatMarketingFromAddress } from '../lib/email'
 import { isSuppressed, normalizeEmail, SuppressedError } from '../lib/suppressions'
 import { isDatabaseConfigured } from '../lib/db'
 import { applyCampaignDefaults, getCampaignFromEmail, getCampaignSiteUrl } from '../lib/campaign-defaults'
 import { getCampaignOwnerBccEmail } from '../lib/campaign-owner-bcc'
-import { findSentByEmail, recordSent, type SentRegistryEntry } from '../lib/campaign-sent-registry'
+import { findSentByEmail, loadSentRegistry, recordSent, type SentRegistryEntry } from '../lib/campaign-sent-registry'
+import { createInvitation } from '../lib/invitations'
+import { normalizeCategory } from '../lib/categories'
+import {
+  assertCampaignPreviewLinks,
+  assertRecentBounceRate,
+  assertRecipientDomainHasMx,
+  bounceRateMeasurementWarning,
+  CampaignPrepareError,
+  isEnrollPreviewUrl,
+  recentDeliveryStatuses,
+  renderCampaignManagerEmail,
+} from '../lib/campaign-prepare'
 
 loadCampaignEnv()
 applyCampaignDefaults()
@@ -85,43 +90,48 @@ type BuiltEmail = {
   wave: 'listed' | 'outreach' | 'test' | 'follow-up'
 }
 
-async function buildCampaignEmail(skipRealCompliance: boolean): Promise<BuiltEmail> {
+async function buildCampaignEmail(skipRealCompliance: boolean, resolvedEnrollUrl?: string): Promise<BuiltEmail> {
+  if (!skipRealCompliance) requireUnsubSecret()
   const siteUrl = getCampaignSiteUrl()
   const wave = waveArg ?? 'outreach'
-  const template = wave === 'listed' ? LISTED_MESSAGE : DEFAULT_MESSAGE
-  const body = expandCampaignMessage(template, { businessName: businessName!, city: city!, category: category! })
-
-  const reason =
-    'You received this one-time note because your business offers home services in an area we cover on QuickProList.'
-  const compliance = skipRealCompliance
-    ? {
-        text: `\n\n${reason}\nUnsubscribe: (set at send time)`,
-        html: `${reason}`,
-        headers: {} as Record<string, string>,
-      }
-    : (() => {
-        requireUnsubSecret()
-        const unsubUrl = buildUnsubscribeUrl(to!)
-        return {
-          text: `\n\n${reason}\nUnsubscribe: ${unsubUrl}`,
-          html: `${reason}<br/><a href="${unsubUrl}">Unsubscribe</a>`,
-          headers: {
-            'List-Unsubscribe': `<${unsubUrl}>`,
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          },
-        }
-      })()
-
-  const emailOpts = { city: city!, category: category!, enrollUrl, campaignWave: wave }
-  const { text, html } = buildPersonalMarketingEmail(businessName!, body, emailOpts, compliance, siteUrl)
-  const subject = buildMarketingEmailSubject(businessName!, emailOpts)
+  const rendered = renderCampaignManagerEmail({
+    to: to!,
+    businessName: businessName!,
+    city: city!,
+    category: category!,
+    wave,
+    enrollUrl: resolvedEnrollUrl ?? enrollUrl,
+    siteUrl,
+    skipCompliance: skipRealCompliance,
+  })
   const bcc = getCampaignOwnerBccEmail()
-  const fromRaw = getCampaignFromEmail()
-  const from = formatMarketingFromAddress(fromRaw)
-  const normalized = normalizeEmail(to!)
-  const idempotencyKey = `campaign/${batch}/${normalized}`
+  const from = formatMarketingFromAddress(getCampaignFromEmail())
+  const idempotencyKey = `campaign/${batch}/${normalizeEmail(to!)}`
+  return { ...rendered, bcc, from, idempotencyKey, wave }
+}
 
-  return { subject, text, html, headers: compliance.headers, bcc, from, idempotencyKey, wave }
+async function resolvePrepareEnrollUrl(siteUrl: string): Promise<string> {
+  if (enrollUrl) {
+    if (!isEnrollPreviewUrl(enrollUrl)) {
+      throw new CampaignPrepareError(
+        'Refusing to prepare: --enroll-url must be one /enroll/<token> preview link.'
+      )
+    }
+    return enrollUrl
+  }
+  if (!isDatabaseConfigured()) {
+    throw new CampaignPrepareError(
+      'Refusing to prepare: DATABASE_URL is not set, so this script cannot create an /enroll/<token> invitation. Not sending a "link below" email without a link.'
+    )
+  }
+  const token = await createInvitation({
+    businessName: businessName!,
+    category: normalizeCategory(category!),
+    cities: [city!],
+    monthlyPrice: 29.99,
+    contactEmail: to,
+  })
+  return `${siteUrl}/enroll/${token}`
 }
 
 function registryEntry(subject: string, resendId: string): SentRegistryEntry {
@@ -186,36 +196,55 @@ async function main() {
     return
   }
 
-  const skipRealCompliance = dryRun && !prepare
-  const built = await buildCampaignEmail(skipRealCompliance)
-
-  if (dryRun && !prepare) {
-    console.log('--- dry-run ---')
-    console.log('To:', to)
-    console.log('Bcc:', built.bcc)
-    console.log('Subject:', built.subject)
-    console.log(built.text)
-    return
-  }
-
   if (prepare) {
+    const statuses = recentDeliveryStatuses(loadSentRegistry().sent)
+    const unmeasured = bounceRateMeasurementWarning(statuses)
+    if (unmeasured) console.error(unmeasured)
+    assertRecentBounceRate(statuses)
+    await assertRecipientDomainHasMx(to!)
+    if (!isDatabaseConfigured()) {
+      throw new CampaignPrepareError(
+        'Refusing to prepare: DATABASE_URL is not set, so the do-not-contact list cannot be checked.'
+      )
+    }
+    if (await isSuppressed('email', normalizeEmail(to!))) {
+      throw new CampaignPrepareError(
+        `Refusing to prepare: ${normalizeEmail(to!)} is already on the do-not-contact list. Do not send.`
+      )
+    }
+    const siteUrl = getCampaignSiteUrl()
+    const resolvedEnrollUrl = await resolvePrepareEnrollUrl(siteUrl)
+    const prepared = await buildCampaignEmail(false, resolvedEnrollUrl)
+    assertCampaignPreviewLinks(prepared.text, prepared.html)
+    console.error(
+      'Cold outreach must not be sent through Resend (AUP). The board stays PAUSED. Use docs/campaigns/gmail-test-batch.json and record with scripts/campaign-check-sent.ts --record.'
+    )
     console.log(
       JSON.stringify({
+        doNotSendViaResend: true,
+        enrollUrl: resolvedEnrollUrl,
         resend: {
-          from: built.from,
+          from: prepared.from,
           to: [to!],
-          bcc: [built.bcc],
-          subject: built.subject,
-          text: built.text,
-          html: built.html,
-          headers: built.headers,
+          bcc: [prepared.bcc],
+          subject: prepared.subject,
+          text: prepared.text,
+          html: prepared.html,
+          headers: prepared.headers,
         },
-        idempotencyKey: built.idempotencyKey,
-        registry: registryEntry(built.subject, ''),
+        idempotencyKey: prepared.idempotencyKey,
+        registry: registryEntry(prepared.subject, ''),
       })
     )
     return
   }
+
+  const built = await buildCampaignEmail(Boolean(dryRun))
+  console.log('--- dry-run ---')
+  console.log('To:', to)
+  console.log('Bcc:', built.bcc)
+  console.log('Subject:', built.subject)
+  console.log(built.text)
 }
 
 main().catch((err) => {

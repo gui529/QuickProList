@@ -5,24 +5,18 @@
  *   npx tsx scripts/campaign-sync-listed-prospects.ts
  *   npx tsx scripts/campaign-sync-listed-prospects.ts --dry-run
  */
-import { writeFileSync } from 'fs'
-import { join } from 'path'
 import { loadCampaignEnv } from './load-campaign-env'
 import { isDatabaseConfigured, query } from '../lib/db'
+import {
+  loadProspectRegistry,
+  mergeCuratedProspects,
+  saveProspectRegistry,
+  type CuratedProspectRow,
+} from '../lib/campaign-prospect-registry'
 
 loadCampaignEnv()
 
 const dryRun = process.argv.includes('--dry-run')
-const registryPath = join(process.cwd(), 'docs/campaigns/prospects-registry.json')
-
-interface Row {
-  id: string
-  name: string
-  category: string
-  cities: string[]
-  contact_email: string | null
-  website_url: string | null
-}
 
 async function main() {
   if (!isDatabaseConfigured()) {
@@ -30,30 +24,17 @@ async function main() {
     process.exit(1)
   }
 
-  const rows = await query<Row>(
+  const rows = await query<CuratedProspectRow>(
     `SELECT id, name, category, cities, contact_email, website_url
      FROM curated_businesses
      WHERE is_draft = false AND delisted_at IS NULL
      ORDER BY category, name`
   )
 
-  const prospects = rows.map((r) => {
-    const city = r.cities[0] ?? 'atlanta'
-    const email = r.contact_email?.trim().toLowerCase() || null
-    return {
-      businessName: r.name,
-      email,
-      city,
-      category: r.category,
-      source: 'curated' as const,
-      status: email ? 'pending' : 'needs_email',
-      curatedId: r.id,
-      websiteUrl: r.website_url,
-    }
-  })
-
+  const existing = loadProspectRegistry()
+  const prospects = mergeCuratedProspects(existing.prospects, rows)
   const payload = {
-    version: 1,
+    version: 1 as const,
     updatedAt: new Date().toISOString(),
     prospects,
   }
@@ -66,8 +47,8 @@ async function main() {
     return
   }
 
-  writeFileSync(registryPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
-  console.log(`Wrote ${prospects.length} prospects to ${registryPath}`)
+  saveProspectRegistry(payload)
+  console.log(`Wrote ${prospects.length} prospects to docs/campaigns/prospects-registry.json`)
 }
 
 main().catch((e) => {
