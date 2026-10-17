@@ -27,12 +27,12 @@ and copy similarity more than Resend’s raw rate limit.
 
 | Rule | Default |
 |------|---------|
-| **Daily volume** | Board **Daily email cap** — **10** pro sends/day until owner confirms **inbox** on BCC copies + ~3–5 clean days → **15** → **20–25** → ceiling **~30** |
+| **Daily volume** | Whatever **Daily email cap** `board.md` states — currently **25** pro sends/day (owner-approved 2026-10-17). Do not substitute a hardcoded 10. |
 | **Per scheduled tick** | **≤ 2** pro sends per 20m tick when possible — spread cap across the day |
 | **Same session** | **≥ 90 seconds** between successful sends (**90–120s** for Wave 2 cold); never under **30s** |
 | **Concurrency** | **One send at a time** — one `campaign-manager-send.ts` process; no parallel blasts |
 | **Batching** | No “mass send” script; **never** dump full daily cap in one hour |
-| **Ramp** | Do not raise board cap until **Inbox gate** on board is cleared |
+| **Ramp** | Cap follows `board.md`. Do not hold the day at 10 or any number below that cap. |
 | **Stop** | `PAUSED` on bounce, complaint, repeated junk placement, or Resend **429** / rate errors |
 
 **Do not send all at once** — bursts look like bulk spam to Microsoft/Gmail and hurt a new domain.

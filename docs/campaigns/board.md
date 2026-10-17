@@ -125,7 +125,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 | 2026-10-15-wave-listed-send-flag | `--wave listed` for on-site pros |
 | 2026-10-15-curated-no-contact-email | Discover email from website |
 | 2026-10-15-continuous-not-wave1-only | Keep going: Wave 2 + wedges after listed |
-| 2026-10-15-send-pacing | ≥90s between sends; ≤2/tick; cap 10 until inbox OK |
+| 2026-10-17-cap-follows-board | Cap is whatever `board.md` states (currently **25**, owner-approved 2026-10-17); ≥90s between sends; ≤2/tick; pause if real-prospect bounce rate exceeds 5%. Supersedes `2026-10-15-send-pacing`. |
 | 2026-10-15-dedupe-registry | sent-registry.json before every send |
 
 ---

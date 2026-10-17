@@ -96,7 +96,7 @@
       "evidence": "Owner asked about mass send; 4 pros in ~4 min on 2026-10-15 was faster than policy.",
       "do": "One send process; ≥90s apart; ≤2 pro sends per tick; spread daily cap; stay at 10 until owner confirms BCC inbox.",
       "dont": "Parallel scripts, send-all-at-once, or raise cap before inbox gate.",
-      "status": "active"
+      "status": "superseded"
     },
     {
       "id": "2026-10-15-dedupe-registry",
@@ -132,6 +132,18 @@
       "evidence": "Owner 2026-10-16: MCP-only policy for all campaign outreach.",
       "do": "Connect Resend MCP + Neon MCP (neon-mcp.md); UNSUBSCRIBE_SECRET runtime secret; always --finalize after MCP.",
       "dont": "Skip --finalize after MCP send.",
+      "status": "active"
+    },
+    {
+      "id": "2026-10-17-cap-follows-board",
+      "addedAt": "2026-10-17T17:40:00-04:00",
+      "tags": ["deliverability", "reach"],
+      "severity": "high",
+      "subscriberImpact": "Mailing up to the owner-approved board cap reaches more pros; pacing and a 5% bounce pause keep that mail in the inbox so it can become paid subscribers.",
+      "lesson": "Daily cap is whatever board.md states (currently 25, owner-approved 2026-10-17). The BCC/forwarding inbox gui.quickprolist@gmail.com is confirmed receiving. Keep ≥90s between sends and ≤2 pro sends per tick. Pause if the rolling bounce rate on real prospect sends exceeds 5%.",
+      "evidence": "Owner voice 2026-10-17 set the cap at 25. Owner forwarding tests on 2026-10-16 arrived in the gui.quickprolist@gmail.com inbox, and campaign BCC copies arrive. Supersedes 2026-10-15-send-pacing.",
+      "do": "Honor the Daily email cap on board.md — do not substitute 10. One send process; ≥90s apart; ≤2 pro sends per tick; spread that cap across the day. Pause if the rolling bounce rate on real prospect sends exceeds 5%.",
+      "dont": "Refuse sends above a stale cap of 10, run parallel send scripts, or send-all-at-once. Do not keep sending after the real-prospect bounce rate exceeds 5%.",
       "status": "active"
     }
   ]

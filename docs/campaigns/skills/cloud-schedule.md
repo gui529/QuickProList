@@ -49,7 +49,7 @@ routes in the Next.js app).
 | Setting | Why |
 |---------|-----|
 | **~39 ticks/day** (7–20 window, every 20m) | Steady discovery + follow-up, not one long session |
-| **Daily cap** on board | Hard stop — **10** pro/day until inbox gate cleared |
+| **Daily cap** on board | Hard stop at whatever **Daily email cap** `board.md` states — currently **25** pro/day (owner-approved 2026-10-17). Do not substitute a hardcoded 10. |
 | **≤2 pro sends / tick** | Spread volume; avoid dumping cap in one hour |
 | **≥90s between sends** | When one tick sends **multiple** emails |
 | **One tick = one log entry** | board session log “scheduled tick” |
