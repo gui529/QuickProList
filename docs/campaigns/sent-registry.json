@@ -78,6 +78,28 @@
       "subject": "Paces Construction is on our Atlanta list — 30-day preview?",
       "sentAt": "2026-10-16T22:16:48.017Z",
       "wave": "listed"
+    },
+    {
+      "email": "info@atlantisplumbing.com",
+      "businessName": "Atlantis Plumbing",
+      "city": "atlanta",
+      "category": "plumbing",
+      "batch": "wave-atl-2026-10",
+      "resendId": "01a14bbd-f0e1-7b18-b9c9-6b725a9ab98a",
+      "subject": "Atlantis Plumbing is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-17T21:21:45.221Z",
+      "wave": "listed"
+    },
+    {
+      "email": "help@colonyroofers.com",
+      "businessName": "Colony Roofers",
+      "city": "atlanta",
+      "category": "roofing",
+      "batch": "wave-atl-2026-10",
+      "resendId": "01a14bbf-13f2-7dd2-929b-9b47d5d92cfe",
+      "subject": "Colony Roofers is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-17T21:23:03.752Z",
+      "wave": "listed"
     }
   ]
 }

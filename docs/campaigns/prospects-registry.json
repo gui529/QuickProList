@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-16T22:17:00.000Z",
+  "updatedAt": "2026-10-17T21:22:00.000Z",
   "prospects": [
     {
       "businessName": "Bardi Heating, Cooling & Plumbing",
@@ -171,11 +171,12 @@
     },
     {
       "businessName": "Atlantis Plumbing",
-      "email": null,
+      "email": "info@atlantisplumbing.com",
       "city": "atlanta",
       "category": "plumbing",
       "source": "curated",
-      "status": "needs_email",
+      "status": "sent",
+      "emailSource": "https://www.atlantisplumbing.com/terms 2026-10-17",
       "curatedId": "cc0ce45a-90ce-4e77-bf66-7f89b8ecec48",
       "websiteUrl": "https://www.atlantisplumbing.com/"
     },
@@ -191,11 +192,12 @@
     },
     {
       "businessName": "Colony Roofers",
-      "email": null,
+      "email": "help@colonyroofers.com",
       "city": "atlanta",
       "category": "roofing",
       "source": "curated",
-      "status": "needs_email",
+      "status": "sent",
+      "emailSource": "colonyroofers.com homepage JSON-LD 2026-10-17",
       "curatedId": "7cb6f63b-1834-4f21-b5e9-42c93de4411b",
       "websiteUrl": "https://colonyroofers.com/"
     },

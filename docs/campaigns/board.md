@@ -23,7 +23,7 @@
 | **Send hours** | **7:00–20:00** America/New_York (cron ticks `0,20,40 7-19 * * *`) |
 | **Pace** | **≥90s** between sends in one batch; **≤2 pro sends** per tick when possible; spread cap across the day |
 | **Inbox gate** | **Pending** — confirm BCC + `@quickprolist.com` mail lands in **Gmail** (not Spam) |
-| **Last session** | 2026-10-16 ~6:17 PM ET (scheduled tick) |
+| **Last session** | 2026-10-17 ~5:23 PM ET (scheduled tick) |
 | **Paused reason** | *(if PAUSED)* |
 
 ---
@@ -70,6 +70,8 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 | 2026-10-15 | gui529@hotmail.com | Gui's Quality Plumbing | owner-inbox-test-2026-10-15 | 01a14170-… | owner test |
 | 2026-10-15 | info@emailte.com | TE Certified Electricians | wave1-2026-10-15-atl | 01a14184-… | Wave 1 listed |
 | 2026-10-16 | info@pacesconstruction.com | Paces Construction | wave-atl-2026-10 | 01a146c9-… | Wave 1 listed |
+| 2026-10-17 | info@atlantisplumbing.com | Atlantis Plumbing | wave-atl-2026-10 | 01a14bbd-… | Wave 1 listed |
+| 2026-10-17 | help@colonyroofers.com | Colony Roofers | wave-atl-2026-10 | 01a14bbf-… | Wave 1 listed |
 
 ---
 
@@ -77,8 +79,8 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 
 | Metric | Value | As of |
 |--------|-------|--------|
-| Paying subscribers (prod) | **0** | 2026-10-16 |
-| Emails sent (board **Sent log**, 7d) | 7 (1 test + 6 Wave 1 listed) | 2026-10-16 |
+| Paying subscribers (prod) | **0** | 2026-10-17 |
+| Emails sent (board **Sent log**, 7d) | 9 (1 test + 8 Wave 1 listed) | 2026-10-17 |
 | Replies / interested | | |
 | Last inbox test | **Unconfirmed** — check **gui.quickprolist@gmail.com** (inbox + spam) |
 
@@ -97,7 +99,7 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Next actions (ordered)
 
 1. **Owner:** confirm BCC copies land **inbox** (not Junk) — unlocks cap ramp per table above.
-2. **Agent:** next in-window tick — continue Wave 1 `needs_email` discovery (Bardi, Atlantis, Peach, Colony, Atlanta Green Maids, etc.); **≤2** pro sends/tick, **≥90s** apart; **9**/10 cap left today (2026-10-16).
+2. **Agent:** next in-window tick — Wave 1 `needs_email` (Bardi, Peach, Atlanta Green Maids, painters, locksmiths, etc.); **≤2** pro sends/tick; **8**/10 cap left today (2026-10-17).
 3. Track paying subscribers + replies each tick; promote `dev` → `main` when ready.
 
 ---
@@ -128,6 +130,16 @@ See `docs/campaigns/skills/tracking.md` and `docs/campaigns/skills/lessons.md`. 
 ## Session log (newest first)
 
 <!-- campaign-manager: append below this line -->
+
+### 2026-10-17 — Scheduled tick (17:23 ET)
+
+**Agent:** campaign-manager (cron)  
+**Send window:** **7:00–20:00 ET** — in window.  
+**Neon MCP:** paying subscribers **0**; `info@atlantisplumbing.com` + `help@colonyroofers.com` not suppressed.  
+**Discovery:** Atlantis email on `/terms` (`info@atlantisplumbing.com`); Colony `help@colonyroofers.com` on homepage; Bardi/Peach/Atlanta Green Maids/Mr Roofer — phone/form only this pass.  
+**Sent:** 2 — **Atlantis Plumbing** (`01a14bbd-f0e1-7b18-b9c9-6b725a9ab98a`), **Colony Roofers** (`01a14bbf-13f2-7dd2-929b-9b47d5d92cfe`); `--wave listed`, batch `wave-atl-2026-10`; `--finalize` → `sent-registry.json`.  
+**Cap:** **2/10** pro sends today (2026-10-17).  
+**Next tick:** remaining Wave 1 `needs_email`; up to **2** more sends if verified + cap.
 
 ### 2026-10-16 — Scheduled tick (18:17 ET)
 
