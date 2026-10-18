@@ -38,7 +38,7 @@ function prospect(partial: Partial<ProspectRecord> & Pick<ProspectRecord, 'busin
     email: 'owner@acme.example',
     city: 'atlanta',
     category: 'plumbing',
-    source: 'manual',
+    source: 'own_site',
     status: 'pending',
     websiteUrl: 'https://acme.example',
     emailSource: 'https://acme.example/contact',
@@ -419,6 +419,53 @@ describe('already listed prospects', () => {
     })
     expect(batch.excluded).toEqual([])
     expect(batch.sendReady.map((row) => row.email)).toEqual(['owner@ready.example'])
+  })
+
+  it('sends only an allowed prospect source and skips the rest as disallowed_source', () => {
+    const postal = '1 Test Street, Atlanta, GA 30301'
+    const mxByDomain = { 'ready.example': true }
+    for (const source of ['own_site', 'chamber', 'ga_sos', 'ga_license'] as const) {
+      const batch = buildGmailTestBatch({
+        prospects: [prospect({ businessName: 'Ready Plumbing', email: 'owner@ready.example', source })],
+        resend: [],
+        gmail: [],
+        mxByDomain,
+        postalAddress: postal,
+        claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99 } },
+      })
+      expect(batch.excluded).toEqual([])
+      expect(batch.sendReady.map((row) => row.email)).toEqual(['owner@ready.example'])
+    }
+
+    for (const source of [undefined, null, '', '   ', 'Yelp', 'YELP', 'yelp', 'curated', 'manual']) {
+      const batch = buildGmailTestBatch({
+        prospects: [prospect({ businessName: 'Ready Plumbing', email: 'owner@ready.example', source })],
+        resend: [],
+        gmail: [],
+        mxByDomain,
+        postalAddress: postal,
+        claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99 } },
+      })
+      expect(batch.sendReady).toEqual([])
+      expect(batch.held).toEqual([])
+      expect(batch.excluded.map((row) => row.reason)).toEqual(['disallowed_source'])
+    }
+  })
+
+  it('records suppressed when the address is both suppressed and from Yelp', () => {
+    const batch = buildGmailTestBatch({
+      prospects: [prospect({ businessName: 'Ready Plumbing', email: 'owner@ready.example', source: 'Yelp' })],
+      resend: [],
+      gmail: [],
+      mxByDomain: { 'ready.example': true },
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
+      claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99 } },
+      suppressedEmails: ['owner@ready.example'],
+    })
+    expect(batch.sendReady).toEqual([])
+    expect(batch.excluded.map((row) => [row.email, row.reason])).toEqual([
+      ['owner@ready.example', 'suppressed'],
+    ])
   })
 
   it('records suppressed when the address is both suppressed and already listed', () => {

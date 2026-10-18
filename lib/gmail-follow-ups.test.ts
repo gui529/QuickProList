@@ -132,19 +132,36 @@ describe('Gmail follow-ups', () => {
   it('skips a follow-up after a reply, an opt-out, a suppression, enrollment, or an expired link', () => {
     const now = new Date('2026-10-10T15:00:00.000Z')
     const live = { status: 'pending', expiresAt: '2026-11-01T00:00:00.000Z' }
-    expect(followUpSkipReason({ invitation: live, now })).toBeNull()
-    expect(followUpSkipReason({ replied: true, invitation: live, now })).toBe('replied')
-    expect(followUpSkipReason({ optedOut: true, invitation: live, now })).toBe('opted_out')
-    expect(followUpSkipReason({ suppressed: true, invitation: live, now })).toBe('suppressed')
-    expect(followUpSkipReason({ invitation: { status: 'trial', expiresAt: live.expiresAt }, now })).toBe('enrolled')
-    expect(followUpSkipReason({ invitation: { status: 'paid', expiresAt: live.expiresAt }, now })).toBe('enrolled')
+    const source = 'own_site' as const
+    expect(followUpSkipReason({ source, invitation: live, now })).toBeNull()
+    expect(followUpSkipReason({ source, replied: true, invitation: live, now })).toBe('replied')
+    expect(followUpSkipReason({ source, optedOut: true, invitation: live, now })).toBe('opted_out')
+    expect(followUpSkipReason({ source, suppressed: true, invitation: live, now })).toBe('suppressed')
+    expect(followUpSkipReason({ source, invitation: { status: 'trial', expiresAt: live.expiresAt }, now })).toBe(
+      'enrolled'
+    )
+    expect(followUpSkipReason({ source, invitation: { status: 'paid', expiresAt: live.expiresAt }, now })).toBe(
+      'enrolled'
+    )
     expect(
-      followUpSkipReason({ invitation: { status: 'pending', expiresAt: '2026-10-01T00:00:00.000Z' }, now })
+      followUpSkipReason({ source, invitation: { status: 'pending', expiresAt: '2026-10-01T00:00:00.000Z' }, now })
     ).toBe('expired_link')
-    expect(followUpSkipReason({ invitation: { status: 'expired', expiresAt: live.expiresAt }, now })).toBe(
+    expect(followUpSkipReason({ source, invitation: { status: 'expired', expiresAt: live.expiresAt }, now })).toBe(
       'expired_link'
     )
-    expect(followUpSkipReason({ invitation: null, now })).toBe('expired_link')
+    expect(followUpSkipReason({ source, invitation: null, now })).toBe('expired_link')
+  })
+
+  it('skips a follow-up whose prospect source is missing, Yelp, or unknown', () => {
+    const now = new Date('2026-10-10T15:00:00.000Z')
+    const live = { status: 'pending', expiresAt: '2026-11-01T00:00:00.000Z' }
+    for (const source of ['own_site', 'chamber', 'ga_sos', 'ga_license'] as const) {
+      expect(followUpSkipReason({ source, invitation: live, now })).toBeNull()
+    }
+    for (const source of [undefined, null, '', '   ', 'Yelp', 'yelp', 'curated']) {
+      expect(followUpSkipReason({ source, invitation: live, now })).toBe('disallowed_source')
+    }
+    expect(followUpSkipReason({ source: 'Yelp', suppressed: true, invitation: live, now })).toBe('suppressed')
   })
 
   it('schedules due follow-ups before new contacts inside the cap of 5', () => {

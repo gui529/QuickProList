@@ -8,12 +8,19 @@ import {
   gmailFromHeader,
   isClaimedMonthlyPrice,
 } from './gmail-campaign'
+import { isAllowedProspectSource } from './prospect-sources'
 import { formatSubscriptionPrice } from './subscription-terms'
 
 export const FOLLOW_UP_DAYS = [4, 10, 18] as const
 export type FollowUpDay = (typeof FOLLOW_UP_DAYS)[number]
 
-export type FollowUpSkipReason = 'replied' | 'opted_out' | 'suppressed' | 'enrolled' | 'expired_link'
+export type FollowUpSkipReason =
+  | 'replied'
+  | 'opted_out'
+  | 'suppressed'
+  | 'enrolled'
+  | 'expired_link'
+  | 'disallowed_source'
 
 export interface FollowUpInvitation {
   status: string
@@ -53,11 +60,14 @@ export function followUpSkipReason(input: {
   replied?: boolean
   optedOut?: boolean
   suppressed?: boolean
+  /** Prospect `source`. Missing, Yelp, and unknown values skip. See docs/prospect-sources.md. */
+  source?: string | null
   invitation: FollowUpInvitation | null
   now: Date
 }): FollowUpSkipReason | null {
   if (input.optedOut) return 'opted_out'
   if (input.suppressed) return 'suppressed'
+  if (!isAllowedProspectSource(input.source)) return 'disallowed_source'
   if (input.replied) return 'replied'
   const invitation = input.invitation
   if (!invitation) return 'expired_link'

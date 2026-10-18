@@ -12,7 +12,11 @@ export interface ProspectRecord {
   email: string | null
   city: string
   category: string
-  source: string
+  /**
+   * Where the contact data came from. Gmail batches allow only
+   * own_site, chamber, ga_sos, and ga_license. See docs/prospect-sources.md.
+   */
+  source?: string | null
   status: string
   curatedId?: string
   websiteUrl?: string | null

@@ -158,6 +158,8 @@ via **Agent / Task** — not limited to repo agents. Never spawn another
 
 ## Prospects (off-app)
 
+**Never use Yelp as a prospect source.** Yelp's terms prohibit using its data for direct marketing. Allowed sources are `own_site`, `chamber`, `ga_sos`, and `ga_license`. A missing source is a skip (`disallowed_source`). This is enforced in code. See **`docs/prospect-sources.md`**.
+
 Maintain **`prospects-registry.json`** (pipeline) and **`board.md`** (summary).
 Wave 1: `campaign-sync-listed-prospects.ts`, then **discover emails yourself**
 (unblock doc) — sending is not optional once a verified address exists and cap
@@ -235,6 +237,7 @@ Status; emails sent (standalone); subscribers; next actions.
 
 - Route cold outreach through Resend, Resend MCP, `campaign-manager-send.ts --prepare`/`--finalize`, or the app Admin/API
 - Send when board is `PAUSED` or over daily cap
+- Use Yelp as a prospect source, or mail a prospect whose `source` is missing or not `own_site`, `chamber`, `ga_sos`, or `ga_license` (`docs/prospect-sources.md`)
 - Email addresses on **Do not contact**
 - Weaken unsubscribe / compliance footers
 - Blast without ramp

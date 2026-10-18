@@ -157,6 +157,18 @@
       "do": "Do not send while Status is PAUSED. Do not run campaign-manager-send.ts --prepare or --finalize for cold outreach. When the owner runs the manual test, send from gui.quickprolist@gmail.com only, within the board cap.",
       "dont": "Resume Resend cold outreach, scraped-list sends, or automated ticks that send.",
       "status": "active"
+    },
+    {
+      "id": "2026-10-17-no-yelp-prospect-source",
+      "addedAt": "2026-10-17T18:00:00-04:00",
+      "tags": ["targeting"],
+      "severity": "high",
+      "subscriberImpact": "A Yelp-terms violation can shut down outreach, which is the only path from a cold prospect to a paid subscriber.",
+      "lesson": "Never use Yelp as a prospect source. Allowed sources are own_site, chamber, ga_sos, and ga_license. A missing source is a skip.",
+      "evidence": "Legal put Yelp-sourced prospects on hold on 2026-10-17. Yelp's terms prohibit using its data for direct marketing.",
+      "do": "Record own_site, chamber, ga_sos, or ga_license on every Gmail prospect before a batch or follow-up. See docs/prospect-sources.md. The batch skips anything else with disallowed_source.",
+      "dont": "Source prospects from Yelp, or send when source is missing, empty, or unknown.",
+      "status": "active"
     }
   ]
 }

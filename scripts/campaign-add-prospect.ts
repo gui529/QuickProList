@@ -4,7 +4,7 @@
  *
  *   npx tsx scripts/campaign-add-prospect.ts \
  *     --business "Acme Plumbing" --email owner@acme.example --city marietta \
- *     --category plumbing --source-url https://acme.example/contact
+ *     --category plumbing --source-url https://acme.example/contact --source own_site
  */
 import { loadCampaignEnv } from './load-campaign-env'
 import { assertRecipientDomainHasMx, CampaignPrepareError } from '../lib/campaign-prepare'
@@ -15,6 +15,7 @@ import {
   saveProspectRegistry,
 } from '../lib/campaign-prospect-registry'
 import { isRoleAddress } from '../lib/gmail-campaign'
+import { ALLOWED_PROSPECT_SOURCES, isAllowedProspectSource } from '../lib/prospect-sources'
 
 loadCampaignEnv()
 
@@ -32,11 +33,13 @@ const city = arg('--city')
 const category = arg('--category')
 const sourceUrl = arg('--source-url')
 const website = arg('--website')
+const source = arg('--source')
 
-if (!business || !email || !city || !category || !sourceUrl) {
+if (!business || !email || !city || !category || !sourceUrl || !isAllowedProspectSource(source)) {
   console.error(
-    'Usage: npx tsx scripts/campaign-add-prospect.ts --business "<name>" --email <email> --city <slug> --category <slug> --source-url <url> [--website <url>]'
+    `Usage: npx tsx scripts/campaign-add-prospect.ts --business "<name>" --email <email> --city <slug> --category <slug> --source-url <url> --source <${ALLOWED_PROSPECT_SOURCES.join('|')}> [--website <url>]`
   )
+  console.error('Prospect source is required. Yelp is not allowed. See docs/prospect-sources.md.')
   process.exit(1)
 }
 
@@ -61,6 +64,7 @@ async function main() {
       category: category!,
       sourceUrl: sourceUrl!,
       websiteUrl: website,
+      source,
     },
     { history: loadContactHistory() }
   )

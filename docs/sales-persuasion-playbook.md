@@ -9,7 +9,7 @@ When this file conflicts with `legal-agent` or suppression/unsubscribe rules, **
 
 ## How to use this doc
 
-1. **Before drafting** any campaign email, SMS, or landing copy: skim [Copy checklist](#copy-checklist-before-any-outreach) and [QuickProList ICP](#quickprolist-icp-local-pros).
+1. **Before drafting** any campaign email, SMS, or landing copy: skim [Copy checklist](#copy-checklist-before-any-outreach), [Prospect sourcing](#prospect-sourcing), and [QuickProList ICP](#quickprolist-icp-local-pros).
 2. **When researching:** run `WebSearch` / `WebFetch` on a specific book, framework, or objection; add a dated bullet to [Research log](#research-log).
 3. **When evidence updates:** revise tier lists and frameworks; note the change in the research log.
 
@@ -122,6 +122,12 @@ Never lead with features; lead with **gap** (visibility when people search `{cat
 **Positioning line (adapt):** “A short, curated list of {category} pros homeowners see when they search in {City} — not a pay-per-lead marketplace.”
 
 ---
+
+## Prospect sourcing
+
+Never use Yelp as a prospect source. Yelp's terms prohibit using its data for direct marketing. Legal put Yelp-sourced prospects on hold on 2026-10-17.
+
+Allowed sources, and only these, are `own_site` (the business's own website), `chamber` (Chamber of Commerce), `ga_sos` (Georgia Secretary of State business registry), and `ga_license` (Georgia license lookup). A missing or empty source is a skip. Batch selection and follow-ups enforce that in code (`disallowed_source`; `suppressed` still wins when both apply). Full rule: [docs/prospect-sources.md](prospect-sources.md).
 
 ## Message architecture (cold email)
 

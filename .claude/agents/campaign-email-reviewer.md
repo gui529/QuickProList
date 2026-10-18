@@ -26,6 +26,7 @@ Read `docs/sales-persuasion-playbook.md` and compare implementation to Mission 2
 6. `lib/email.test.ts` / `lib/campaign-message.test.ts` — expectations match behavior.
 7. Deliverability: no emoji subjects, unsubscribe (or the reply opt-out) intact, and a valid physical postal address (CAN-SPAM). `CAMPAIGN_POSTAL_ADDRESS` is required before any send-ready email. Do not invent an address. A missing address or a `{postalAddress}` placeholder fails this check.
 8. Enroll/footer links point at `/terms` and `/privacy` (production copy in `lib/legal-site.ts`).
+9. **Prospect source (every send review):** never use Yelp. Yelp's terms prohibit using its data for direct marketing. Allowed sources are `own_site`, `chamber`, `ga_sos`, and `ga_license`. A missing source is a skip (`disallowed_source`), including on follow-ups. `suppressed` still wins when both apply. Confirm `lib/prospect-sources.ts` still enforces this and matches [docs/prospect-sources.md](../../docs/prospect-sources.md).
 
 ## Output format (required)
 

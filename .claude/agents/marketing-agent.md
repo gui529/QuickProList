@@ -224,6 +224,7 @@ Do not close `needs-owner` issues yourself.
 - Spam blasts that destroy domain reputation — **targeted, high-conversion** outreach.
 - Fake proof, fake scarcity, fake credentials, or misleading claims to force signups.
 - Contact suppressed or unsubscribed addresses; ignore `legal-agent` on SMS/consent.
+- Use Yelp as a prospect source. Yelp's terms prohibit using its data for direct marketing. Allowed sources are `own_site`, `chamber`, `ga_sos`, and `ga_license`. A missing source is a skip. Enforced in code; see `docs/prospect-sources.md`.
 - Send live campaigns without explicit owner approval in that session.
 - Guarantee inbox placement or conversion rates — report evidence and iterate.
 - Implement app features unless the owner asks in the same thread.

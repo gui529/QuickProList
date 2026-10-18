@@ -25,6 +25,7 @@ import {
 } from './gmail-campaign'
 import type { ProspectRecord } from './campaign-prospect-registry'
 import { isAlreadyListed, type ListedIdentity } from './gmail-listed'
+import { isAllowedProspectSource } from './prospect-sources'
 import { normalizeEmail } from './suppressions'
 
 export type ExclusionReason =
@@ -39,6 +40,7 @@ export type ExclusionReason =
   | 'already_listed'
   | 'missing_category'
   | 'missing_postal'
+  | 'disallowed_source'
 
 export interface GmailBatchRow {
   business: string
@@ -148,10 +150,14 @@ export function buildGmailTestBatch(input: {
     }
 
     if (!email) {
-      needsEmail.push({
-        ...base,
-        reason: prospect.status === 'skip' ? 'skipped' : 'no_email',
-      })
+      if (!isAllowedProspectSource(prospect.source)) {
+        excluded.push({ ...base, reason: 'disallowed_source' })
+      } else {
+        needsEmail.push({
+          ...base,
+          reason: prospect.status === 'skip' ? 'skipped' : 'no_email',
+        })
+      }
       continue
     }
 
@@ -168,6 +174,7 @@ export function buildGmailTestBatch(input: {
     )
     if (status === 'bounced') reason = 'bounced'
     else if (status === 'suppressed' || suppressed.has(email)) reason = 'suppressed'
+    else if (!isAllowedProspectSource(prospect.source)) reason = 'disallowed_source'
     else if (alreadyListed) reason = 'already_listed'
     else if (status === 'complained') reason = 'complained'
     else if (findPriorContact(email, prospect.businessName, { resend: input.resend, gmail: input.gmail })) {
