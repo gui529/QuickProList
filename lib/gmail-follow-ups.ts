@@ -1,8 +1,10 @@
+import { usableCampaignPostalAddress } from './email'
 import {
   GMAIL_AD_LINE,
+  GMAIL_MISSING_POSTAL_REASON,
   GMAIL_OPT_OUT_LINE,
   GMAIL_TEST_DAILY_CAP,
-  POSTAL_ADDRESS_PLACEHOLDER,
+  assertNoUnfilledGmailPlaceholder,
   gmailFromHeader,
 } from './gmail-campaign'
 
@@ -27,9 +29,8 @@ export function planGmailDay<T>(
   return { scheduled, deferred }
 }
 
-export function gmailFooter(postalAddress?: string | null): string {
-  const postal = postalAddress?.trim() || POSTAL_ADDRESS_PLACEHOLDER
-  return `${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}\n${postal}`
+export function gmailFooter(postalAddress: string): string {
+  return `${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}\n${postalAddress}`
 }
 
 /**
@@ -85,6 +86,8 @@ export function renderGmailFollowUp(input: {
   inReplyTo?: string | null
   threadId?: string | null
 }): GmailFollowUp {
+  const postal = usableCampaignPostalAddress(input.postalAddress)
+  if (!postal) throw new Error('Refusing to render a Gmail follow-up without a postal address')
   const businessName = input.businessName.trim()
   const enrollUrl = input.enrollUrl.trim()
   const bodies: Record<FollowUpDay, string> = {
@@ -93,13 +96,25 @@ export function renderGmailFollowUp(input: {
     18: `I'll stop here so I'm not cluttering your inbox. If you ever want the ${businessName} listing, just reply and I'll send a fresh link. Thanks for reading.`,
   }
   const inReplyTo = input.inReplyTo?.trim() || null
+  const text = `${bodies[input.step]}\n\n${gmailFooter(postal)}`
+  assertNoUnfilledGmailPlaceholder(text)
   return {
     step: input.step,
     subject: input.subject,
-    text: `${bodies[input.step]}\n\n${gmailFooter(input.postalAddress)}`,
+    text,
     from: gmailFromHeader(),
     inReplyTo,
     references: inReplyTo,
     threadId: input.threadId?.trim() || null,
   }
+}
+
+/** Held, not sendable, when the postal address is missing. Same reason as the first email. */
+export function prepareGmailFollowUp(
+  input: Parameters<typeof renderGmailFollowUp>[0]
+): { status: 'held'; reason: typeof GMAIL_MISSING_POSTAL_REASON } | { status: 'ready'; message: GmailFollowUp } {
+  if (!usableCampaignPostalAddress(input.postalAddress)) {
+    return { status: 'held', reason: GMAIL_MISSING_POSTAL_REASON }
+  }
+  return { status: 'ready', message: renderGmailFollowUp(input) }
 }

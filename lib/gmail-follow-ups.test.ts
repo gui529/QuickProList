@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   GMAIL_AD_LINE,
   GMAIL_FROM_DISPLAY_NAME,
+  GMAIL_MISSING_POSTAL_REASON,
   GMAIL_OPT_OUT_LINE,
   GMAIL_TEST_FROM,
 } from './gmail-campaign'
@@ -9,6 +10,7 @@ import {
   followUpSkipReason,
   nextFollowUpStep,
   planGmailDay,
+  prepareGmailFollowUp,
   renderGmailFollowUp,
 } from './gmail-follow-ups'
 
@@ -53,6 +55,7 @@ describe('Gmail follow-ups', () => {
       subject: 'not a lead service',
       trialDays: 14,
       price: '$29.99',
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(day10.subject).toBe('not a lead service')
     expect(day10.text).toContain('Flat $29.99/month after the free 14 days')
@@ -65,10 +68,36 @@ describe('Gmail follow-ups', () => {
       subject: 'Ready Plumbing preview',
       trialDays: 30,
       price: '$29.99',
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(day18.text).toContain('If you ever want the Ready Plumbing listing')
     expect(day18.text).not.toContain('https://www.quickprolist.com/enroll/abc')
     expect(day18.text).toContain(GMAIL_OPT_OUT_LINE)
+    expect(day18.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
+    expect(message.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
+    expect(day10.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
+  })
+
+  it('holds a follow-up when the postal address is missing and renders it when set', () => {
+    const base = {
+      step: 4 as const,
+      businessName: 'Ready Plumbing',
+      enrollUrl: 'https://www.quickprolist.com/enroll/abc',
+      subject: 'Ready Plumbing preview',
+      trialDays: 30,
+      price: '$29.99',
+    }
+    for (const postalAddress of [undefined, '', '   ', '{postalAddress}']) {
+      const held = prepareGmailFollowUp({ ...base, postalAddress })
+      expect(held).toEqual({ status: 'held', reason: GMAIL_MISSING_POSTAL_REASON })
+      expect(() => renderGmailFollowUp({ ...base, postalAddress })).toThrow(/postal address/)
+    }
+    const ready = prepareGmailFollowUp({ ...base, postalAddress: '1 Test Street, Atlanta, GA 30301' })
+    expect(ready.status).toBe('ready')
+    if (ready.status !== 'ready') return
+    expect(ready.message.text.trim().endsWith('1 Test Street, Atlanta, GA 30301')).toBe(true)
+    expect(ready.message.text).not.toContain('{postalAddress}')
+    expect(ready.message.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
   })
 
   it('skips a follow-up after a reply, an opt-out, a suppression, enrollment, or an expired link', () => {

@@ -15,6 +15,7 @@ import {
   GMAIL_TEST_FROM,
   GMAIL_TEST_TARGET,
   gmailCategoryPhrase,
+  GMAIL_MISSING_POSTAL_REASON,
   gmailFromHeader,
   isClaimedMonthlyPrice,
   isRoleAddress,
@@ -36,6 +37,7 @@ export type ExclusionReason =
   | 'price_mismatch'
   | 'already_listed'
   | 'missing_category'
+  | 'missing_postal'
 
 export interface GmailBatchRow {
   business: string
@@ -182,6 +184,17 @@ export function buildGmailTestBatch(input: {
       held.push({ ...base, reason: 'missing_category' })
       continue
     }
+    const monthlyPrice = claim ? claim.monthlyPrice : null
+    if (!isClaimedMonthlyPrice(monthlyPrice)) {
+      held.push({ ...base, reason: 'price_mismatch' })
+      continue
+    }
+    if (!postal) {
+      const unrendered = { ...base, reason: GMAIL_MISSING_POSTAL_REASON }
+      if (roleAddress || mx === null) flagged.push(unrendered)
+      else held.push(unrendered)
+      continue
+    }
     const enrollUrl = withGmailAttributionRef(ENROLL_URL_PLACEHOLDER, prospect.businessName)
     const rendered = renderGmailTestEmail({
       businessName: prospect.businessName,
@@ -205,13 +218,7 @@ export function buildGmailTestBatch(input: {
       wordCount: rendered.wordCount,
       from: rendered.from,
     }
-    const monthlyPrice = claim ? claim.monthlyPrice : null
-    if (!isClaimedMonthlyPrice(monthlyPrice)) {
-      held.push({ ...row, reason: 'price_mismatch' })
-      continue
-    }
     if (roleAddress || mx === null) flagged.push(row)
-    else if (!postal) held.push(row)
     else if (input.suppressionListLoaded === false) held.push(row)
     else sendReady.push(row)
   }

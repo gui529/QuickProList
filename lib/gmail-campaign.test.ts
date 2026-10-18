@@ -54,6 +54,7 @@ describe('Gmail test copy', () => {
     expect(GMAIL_TEST_BODY_TEMPLATE).not.toContain('Nothing is public unless you click start')
     expect(GMAIL_TEST_BODY_TEMPLATE).toContain(`${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}`)
 
+    const postal = '1 Test Street, Atlanta, GA 30301'
     const rendered = renderGmailTestEmail({
       businessName: 'Marietta Plumbing',
       email: 'owner@marietta.example',
@@ -62,6 +63,7 @@ describe('Gmail test copy', () => {
       enrollUrl: enroll,
       hasPhone: true,
       monthlyPrice: 29.99,
+      postalAddress: postal,
     })
     expect(rendered.from).toBe(`"${GMAIL_FROM_DISPLAY_NAME}" <${GMAIL_TEST_FROM}>`)
     expect(rendered.text).toBe(`Hi,
@@ -78,7 +80,7 @@ ${enroll}
 Guilherme, QuickProList
 
 ${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}
-${POSTAL_ADDRESS_PLACEHOLDER}`)
+${postal}`)
     expect(rendered.text.match(/https?:\/\/\S+/g)).toEqual([enroll])
     expect(rendered.subject === 'Marietta Plumbing preview' || rendered.subject === GMAIL_SUBJECT_B).toBe(true)
     expect(countWords('Marietta Plumbing preview')).toBeLessThanOrEqual(4)
@@ -93,6 +95,7 @@ ${POSTAL_ADDRESS_PLACEHOLDER}`)
       enrollUrl: enroll,
       hasPhone: false,
       monthlyPrice: 29.99,
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(rendered.text).toContain('homeowners contact you directly')
     expect(rendered.text).not.toContain('homeowners call you directly')
@@ -116,6 +119,7 @@ ${POSTAL_ADDRESS_PLACEHOLDER}`)
       city: 'atlanta',
       category: 'airconditioningheating',
       enrollUrl: enroll,
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(rendered.subject).toBe(GMAIL_SUBJECT_B)
     expect(rendered.text).toContain('a local directory of HVAC pros around Atlanta')
@@ -232,14 +236,9 @@ describe('Gmail test batch', () => {
     expect(batch.fromHeader).toBe('"Guilherme at QuickProList" <gui.quickprolist@gmail.com>')
     expect(batch.sendReady).toEqual([])
     expect(batch.held.map((row) => row.email)).toEqual(['owner@ready.example'])
-    expect(batch.held[0]?.enrollUrl).toBe(
-      'https://www.quickprolist.com/enroll/PENDING_INVITATION?ref=gmail-ready-plumbing'
-    )
-    expect(batch.held[0]?.text).toContain('Ready Plumbing')
-    expect(batch.held[0]?.text).toContain('This is a promotional email from QuickProList.')
-    expect(batch.held[0]?.text).toContain('Guilherme, QuickProList')
-    expect(batch.held[0]?.text).toContain(POSTAL_ADDRESS_PLACEHOLDER)
-    expect(batch.held[0]?.text.match(/https?:\/\/\S+/g)).toEqual([batch.held[0]?.enrollUrl])
+    expect(batch.held[0]?.reason).toBe('missing_postal')
+    expect(batch.held[0]?.text).toBeUndefined()
+    expect(batch.flagged[0]?.text).toBeUndefined()
     expect(batch.flagged.map((row) => row.email)).toEqual(['info@ready-role.example'])
     expect(batch.excluded.map((row) => [row.email, row.reason])).toEqual([
       ['info@peppersheatingandair.com', 'bounced'],
@@ -281,6 +280,8 @@ describe('Gmail test batch', () => {
     })
     expect(batch.sendReady).toEqual([])
     expect(batch.held).toHaveLength(1)
+    expect(batch.held[0]?.reason).toBe('missing_postal')
+    expect(batch.held[0]?.text).toBeUndefined()
   })
 
   it('excludes a suppressed address with reason suppressed, including a different case', () => {
@@ -309,6 +310,7 @@ describe('Gmail claim checks', () => {
       city: 'atlanta',
       category: 'plumbing',
       enrollUrl: enroll,
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(fourteen.text).toContain("it's live in search for 14 days, free, no card.")
     process.env.ENROLL_PREVIEW_TRIAL_DAYS = 'nope'
@@ -317,6 +319,7 @@ describe('Gmail claim checks', () => {
       city: 'atlanta',
       category: 'plumbing',
       enrollUrl: enroll,
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(fallback.text).toContain("it's live in search for 30 days, free, no card.")
     if (previous === undefined) delete process.env.ENROLL_PREVIEW_TRIAL_DAYS

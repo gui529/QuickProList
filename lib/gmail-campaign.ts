@@ -1,12 +1,23 @@
 import { CATEGORIES, normalizeCategory } from './categories'
 import { formatCategorySearchPhrase, formatCityLabel } from './display'
 import { parseEnrollPreviewTrialDays } from './enroll-preview-days'
+import { usableCampaignPostalAddress } from './email'
 
 /** Gmail test sends leave from this mailbox. Sending itself is outside the repo. */
 export const GMAIL_TEST_FROM = 'gui.quickprolist@gmail.com'
 export const GMAIL_TEST_DAILY_CAP = 5
 export const GMAIL_TEST_TARGET = 20
 export const POSTAL_ADDRESS_PLACEHOLDER = '{postalAddress}'
+/** Same hold the first Gmail email uses when CAMPAIGN_POSTAL_ADDRESS is unset. */
+export const GMAIL_MISSING_POSTAL_REASON = 'missing_postal' as const
+
+const UNFILLED_GMAIL_PLACEHOLDER = /\{[A-Za-z][A-Za-z0-9]*\}/
+
+/** A rendered Gmail body is not sendable while a `{token}` is still in it. */
+export function assertNoUnfilledGmailPlaceholder(text: string): void {
+  const token = text.match(UNFILLED_GMAIL_PLACEHOLDER)?.[0]
+  if (token) throw new Error(`Refusing to render a Gmail email with unfilled ${token}`)
+}
 export const ENROLL_URL_PLACEHOLDER = 'https://www.quickprolist.com/enroll/PENDING_INVITATION'
 
 const ROLE_LOCAL_PARTS = new Set([
@@ -193,9 +204,10 @@ export function renderGmailTestEmail(input: {
   wordCount: number
   from: string
 } {
+  const postal = usableCampaignPostalAddress(input.postalAddress)
+  if (!postal) throw new Error('Refusing to render a Gmail email without a postal address')
   const city = formatCityLabel(input.city)
   const categoryPhrase = gmailCategoryPhrase(input.category) ?? ''
-  const postal = input.postalAddress?.trim() || POSTAL_ADDRESS_PLACEHOLDER
   const trialDays = input.trialDays ?? parseEnrollPreviewTrialDays(process.env.ENROLL_PREVIEW_TRIAL_DAYS)
   const price = formatClaimedPrice(input.monthlyPrice ?? 29.99)
   const contactVerb = input.hasPhone === false ? 'contact' : 'call'
@@ -208,6 +220,7 @@ export function renderGmailTestEmail(input: {
     .replaceAll('{trialDays}', String(trialDays))
     .replaceAll('{price}', price)
     .replaceAll('{contactVerb}', contactVerb)
+  assertNoUnfilledGmailPlaceholder(text)
   return {
     subject: assigned.subject,
     subjectVariant: assigned.variant,
