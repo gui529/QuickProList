@@ -45,6 +45,9 @@ export interface GmailBatchRow {
   sourceUrl: string | null
   enrollUrl: string | null
   enrollUrlStatus: 'placeholder' | 'live' | 'none'
+  /** `{previewUrl}` until scripts/campaign-gmail-enroll-urls.ts mints a dev token. */
+  previewUrl?: string | null
+  previewUrlStatus?: 'placeholder' | 'live' | 'none'
   roleAddress: boolean
   /** SMTP catch-all was not probed; role mailboxes are flagged instead. */
   catchAll: 'not_probed'
@@ -194,6 +197,8 @@ export function buildGmailTestBatch(input: {
       ...base,
       enrollUrl,
       enrollUrlStatus: 'placeholder',
+      previewUrl: '{previewUrl}',
+      previewUrlStatus: 'placeholder',
       subject: rendered.subject,
       subjectVariant: rendered.subjectVariant,
       text: rendered.text,
