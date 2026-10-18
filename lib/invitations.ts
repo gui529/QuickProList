@@ -80,13 +80,37 @@ export function isInvitationExpired(invitation: EnrollmentInvitation): boolean {
   return new Date(invitation.expires_at).getTime() < Date.now()
 }
 
+// `enrollment_invitations.token` is a uuid column (migrations/001). Postgres
+// rejects any other string with `invalid input syntax for type uuid` (22P02).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value)
+}
+
+/** Postgres `invalid_text_representation` — raised when a non-UUID is compared to a uuid column. */
+function isInvalidUuidInput(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  if ('code' in err && (err as { code?: unknown }).code === '22P02') return true
+  const message = 'message' in err ? String((err as { message?: unknown }).message ?? '') : ''
+  return message.includes('invalid input syntax for type uuid')
+}
+
 export async function getInvitationByToken(token: string): Promise<EnrollmentInvitation | null> {
+  // Never send a non-UUID to the uuid column. The cast throws, and an uncaught
+  // throw on /enroll/[token] becomes the generic 500 error page.
+  if (!isUuid(token)) return null
   if (!isDatabaseConfigured()) return null
-  const rows = await query<EnrollmentInvitation>(
-    'SELECT * FROM enrollment_invitations WHERE token = $1',
-    [token]
-  )
-  return rows[0] ? asInvitation(rows[0]) : null
+  try {
+    const rows = await query<EnrollmentInvitation>(
+      'SELECT * FROM enrollment_invitations WHERE token = $1',
+      [token]
+    )
+    return rows[0] ? asInvitation(rows[0]) : null
+  } catch (err) {
+    if (isInvalidUuidInput(err)) return null
+    throw err
+  }
 }
 
 export async function markInvitationTrial(
