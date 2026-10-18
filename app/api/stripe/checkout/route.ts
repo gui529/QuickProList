@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getInvitationByToken, isInvitationExpired, recordSubscriptionConsent } from '@/lib/invitations'
+import { isUuid } from '@/lib/is-uuid'
 import { createCheckoutSession } from '@/lib/stripe'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import {
@@ -21,6 +22,10 @@ export async function POST(req: NextRequest) {
 
   if (body.consent !== true) {
     return NextResponse.json({ error: SUBSCRIPTION_CONSENT_REQUIRED_ERROR }, { status: 400 })
+  }
+
+  if (typeof token !== 'string' || !isUuid(token)) {
+    return NextResponse.json({ error: 'Invitation not found' }, { status: 404 })
   }
 
   try {

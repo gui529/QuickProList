@@ -20,7 +20,7 @@ import {
 } from './gmail-campaign'
 import { buildGmailTestBatch } from './gmail-test-batch'
 import { isEnrollPreviewUrl } from './campaign-prepare'
-import type { ProspectRecord } from './campaign-prospect-registry'
+import { loadProspectRegistry, type ProspectRecord } from './campaign-prospect-registry'
 import type { SentRegistryEntry } from './campaign-sent-registry'
 
 const enroll = 'https://www.quickprolist.com/enroll/11111111-1111-4111-8111-111111111111'
@@ -534,5 +534,44 @@ describe('Gmail reply opt-outs', () => {
     expect(result.suppressed).toEqual(['owner@ready.example'])
     expect(added).toEqual([['email', 'owner@ready.example', REPLY_OPT_OUT_REASON]])
     expect(result.ignored).toContain('pat@shop.example')
+  })
+})
+
+describe('Gmail batch skip for trades outside the first test', () => {
+  it('excludes Atlanta Green Maids and QuickPro Locksmith from every send bucket', () => {
+    const registry = loadProspectRegistry()
+    const names = ['Atlanta Green Maids', 'QuickPro Locksmith']
+    const selected = registry.prospects.filter((row) => names.includes(row.businessName))
+    expect(selected.map((row) => [row.businessName, row.status, row.skipReason])).toEqual([
+      ['Atlanta Green Maids', 'skip', 'trade not in first test'],
+      ['QuickPro Locksmith', 'skip', 'trade not in first test'],
+    ])
+
+    const claims: Record<string, { monthlyPrice: number }> = {}
+    const mxByDomain: Record<string, boolean> = {}
+    for (const row of registry.prospects) {
+      if (!row.email) continue
+      claims[row.email.trim().toLowerCase()] = { monthlyPrice: 29.99 }
+      const domain = row.email.trim().toLowerCase().split('@')[1]
+      if (domain) mxByDomain[domain] = true
+    }
+
+    const batch = buildGmailTestBatch({
+      prospects: registry.prospects,
+      resend: [],
+      gmail: [],
+      mxByDomain,
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
+      claimsByEmail: claims,
+      suppressedEmails: [],
+      suppressionListLoaded: true,
+      generatedAt: '2026-10-18T00:00:00.000Z',
+    })
+
+    const buckets = [...batch.sendReady, ...batch.held, ...batch.flagged, ...batch.needsEmail]
+    for (const name of names) {
+      expect(buckets.map((row) => row.business)).not.toContain(name)
+      expect(batch.excluded.find((row) => row.business === name)?.reason).toBe('skipped')
+    }
   })
 })

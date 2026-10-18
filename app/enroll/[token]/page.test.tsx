@@ -17,7 +17,7 @@ import { enrollPreviewTrialDays } from '@/lib/enroll-preview-days'
 function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): EnrollmentInvitation {
   return {
     id: 'invitation-1',
-    token: 'test-token',
+    token: '22222222-2222-4222-8222-222222222222',
     business_name: 'Acme Plumbing',
     yelp_id: null,
     yelp_data: null,

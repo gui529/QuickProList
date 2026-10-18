@@ -1,13 +1,11 @@
 import type { Business, SearchLocation } from './business'
+import { isUuid } from './is-uuid'
 import { getCuratedById, getCuratedInArea, incrementSearchImpression } from './kv'
 import { openTownSlugs, resolveOpenTown } from './open-towns'
 
 export const MAX_RESULTS = 3
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export function isUuid(s: string): boolean {
-  return UUID_RE.test(s)
-}
+export { isUuid }
 
 export async function resolveHighlight(id: string): Promise<Business | null> {
   if (!isUuid(id)) return null

@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import ProSiteView from '@/components/ProSiteView'
 import { getCampaignPostalAddress, previewEnrollCta } from '@/lib/campaign-defaults'
 import { isPreviewPagesEnabled } from '@/lib/feature-flags'
+import { isUuid } from '@/lib/is-uuid'
 import { EXISTING_LISTING_NOTE, loadPreviewListing } from '@/lib/preview-listing'
 import {
   buildPreviewOptOutHref,
@@ -21,11 +22,10 @@ export const dynamic = 'force-dynamic'
 export const PREVIEW_BANNER_TEXT = 'This is a preview of your QuickProList listing.'
 
 const ROBOTS: Metadata['robots'] = { index: false, follow: false }
-const ENROLL_TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function enrollHref(record: PreviewTokenRecord): string | null {
   const token = record.invitationToken?.trim() ?? ''
-  if (!ENROLL_TOKEN_RE.test(token)) return null
+  if (!isUuid(token)) return null
   return `/enroll/${token}`
 }
 

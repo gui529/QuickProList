@@ -1,5 +1,6 @@
 import type { Business } from './business'
 import { isDatabaseConfigured, query } from './db'
+import { isUuid } from './is-uuid'
 
 export interface EnrollmentInvitation {
   id: string
@@ -86,11 +87,6 @@ export function isInvitationExpired(invitation: EnrollmentInvitation): boolean {
 
 // `enrollment_invitations.token` is a uuid column (migrations/001). Postgres
 // rejects any other string with `invalid input syntax for type uuid` (22P02).
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-function isUuid(value: string): boolean {
-  return UUID_RE.test(value)
-}
 
 /** Postgres `invalid_text_representation` — raised when a non-UUID is compared to a uuid column. */
 function isInvalidUuidInput(err: unknown): boolean {
@@ -122,6 +118,7 @@ export async function markInvitationTrial(
   curatedBusinessId: string,
   trialEndsAt: string
 ): Promise<void> {
+  if (!isUuid(token)) throw new Error('invalid invitation token')
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   await query(
     `UPDATE enrollment_invitations
@@ -136,6 +133,7 @@ export async function recordSubscriptionConsent(
   consentText: string,
   consentedAt: string
 ): Promise<void> {
+  if (!isUuid(token)) throw new Error('invalid invitation token')
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   await query(
     `UPDATE enrollment_invitations
@@ -171,6 +169,7 @@ export async function markInvitationPaid(
   subscriptionId: string,
   curatedBusinessId: string
 ): Promise<void> {
+  if (!isUuid(token)) throw new Error('invalid invitation token')
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   await query(
     `UPDATE enrollment_invitations

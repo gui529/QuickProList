@@ -11,6 +11,7 @@ vi.mock('@/lib/db', () => ({
 }))
 
 import EnrollPage from './page'
+import EnrollNotFound from './not-found'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
 const KNOWN_TOKEN = '22222222-2222-4222-8222-222222222222'
@@ -55,32 +56,32 @@ describe('EnrollPage token lookup', () => {
     delete process.env.PRO_DASHBOARD_ENABLED
   })
 
+  it('keeps the invalid-link explanation on the 404 page', () => {
+    const text = textOf(EnrollNotFound())
+    expect(text).toContain('Link not found')
+    expect(text).toContain('This enrollment link is invalid or has expired')
+    expect(text).toContain('Back to home')
+    expect(text).toContain('Contact us')
+  })
+
   it.each(['abc', '123', 'invalid-token-xyz'])(
-    'shows the invalid-link page for non-UUID token %s',
+    'returns 404 for non-UUID token %s without querying',
     async (token) => {
       queryMock.mockRejectedValue(Object.assign(new Error('invalid input syntax for type uuid'), { code: '22P02' }))
 
-      const result = await EnrollPage({ params: Promise.resolve({ token }) })
-      const text = textOf(result)
-
-      expect(text).toContain('Link not found')
-      expect(text).toContain('This enrollment link is invalid or has expired')
-      expect(text).toContain('Back to home')
-      expect(text).toContain('Contact us')
-      expect(text).not.toContain('Something went wrong')
+      await expect(EnrollPage({ params: Promise.resolve({ token }) })).rejects.toMatchObject({
+        digest: 'NEXT_HTTP_ERROR_FALLBACK;404',
+      })
       expect(queryMock).not.toHaveBeenCalled()
     }
   )
 
-  it('shows the invalid-link page for an unknown UUID', async () => {
+  it('returns 404 for an unknown UUID', async () => {
     queryMock.mockResolvedValue([])
 
-    const result = await EnrollPage({ params: Promise.resolve({ token: UNKNOWN_TOKEN }) })
-    const text = textOf(result)
-
-    expect(text).toContain('Link not found')
-    expect(text).toContain('invalid or has expired')
-    expect(text).not.toContain('Something went wrong')
+    await expect(EnrollPage({ params: Promise.resolve({ token: UNKNOWN_TOKEN }) })).rejects.toMatchObject({
+      digest: 'NEXT_HTTP_ERROR_FALLBACK;404',
+    })
     expect(queryMock).toHaveBeenCalledTimes(1)
   })
 
