@@ -12,7 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Local Claude Code git worktrees (not part of the app)
+    // Claude Code local state and git worktrees are not part of the app.
+    // `worktrees/**` alone still lints other files under `.claude/`.
+    ".claude/**",
     ".claude/worktrees/**",
   ]),
 ]);
