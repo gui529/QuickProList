@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { queryMock, createCheckoutSessionMock } = vi.hoisted(() => ({
   queryMock: vi.fn(),
-  createCheckoutSessionMock: vi.fn(async () => 'https://checkout.stripe.test/session'),
+  createCheckoutSessionMock: vi.fn<(...args: unknown[]) => Promise<string>>(
+    async () => 'https://checkout.stripe.test/session'
+  ),
 }))
 
 vi.mock('@/lib/db', () => ({

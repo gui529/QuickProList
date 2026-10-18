@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { Business } from '@/lib/business'
-import { CATEGORIES } from '@/lib/categories'
 import { formatSubscriptionPrice, SUBSCRIPTION_MONTHLY_PRICE_USD } from '@/lib/subscription-terms'
 import CityMultiSelect from './CityMultiSelect'
 
@@ -82,8 +81,6 @@ export default function EnrollmentLinkModal({ open, onClose, business, defaultCa
       window.prompt('Copy this link:', url)
     }
   }
-
-  const categoryLabel = CATEGORIES.find((c) => c.value === (business.category || defaultCategory))?.label
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={onClose}>

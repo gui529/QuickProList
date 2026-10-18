@@ -39,19 +39,32 @@ describe('EnrollClient (success view dashboard link)', () => {
   })
 
   it('renders a link to the dashboard when a dashboard token is available', () => {
-    window.history.pushState({}, '', '/enroll/test-token?success=1')
-
     render(
       <EnrollClient
         invitation={makeInvitation()}
         token="test-token"
         dashboardToken="dash-token-123"
         proDashboardEnabled
+        checkoutSuccess
       />
     )
 
     const link = screen.getByRole('link', { name: /view your dashboard/i })
     expect(link.getAttribute('href')).toBe('/dashboard/dash-token-123')
+  })
+
+  it('opens checkout on the first render when the server says subscribe=1', () => {
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
+        token="test-token"
+        subscribe
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /subscribe to stay listed/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /go to secure checkout/i })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /your listing preview/i })).toBeNull()
   })
 
   it('shows listing preview first for pending invitations (no checkout button yet)', () => {
@@ -70,10 +83,13 @@ describe('EnrollClient (success view dashboard link)', () => {
   })
 
   it('omits the dashboard link when no dashboard token is available yet', () => {
-    window.history.pushState({}, '', '/enroll/test-token?success=1')
-
     render(
-      <EnrollClient invitation={makeInvitation()} token="test-token" dashboardToken={null} />
+      <EnrollClient
+        invitation={makeInvitation()}
+        token="test-token"
+        dashboardToken={null}
+        checkoutSuccess
+      />
     )
 
     expect(screen.queryByRole('link', { name: /view your dashboard/i })).toBeNull()
@@ -81,13 +97,12 @@ describe('EnrollClient (success view dashboard link)', () => {
   })
 
   it('states that the listing is live and the subscription renews monthly at the configured price', () => {
-    window.history.pushState({}, '', '/enroll/test-token?success=1')
-
     render(
       <EnrollClient
         invitation={makeInvitation({ monthly_price: 49, cities: ['austin', 'marietta'] })}
         token="test-token"
         dashboardToken={null}
+        checkoutSuccess
       />
     )
 

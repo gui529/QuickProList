@@ -38,6 +38,8 @@ export interface GmailPreviewMinter {
     recipientEmail: string
     invitationToken: string
     campaignId: string
+    prospectId?: string | null
+    curatedBusinessId?: string | null
   }): Promise<string>
 }
 
@@ -52,6 +54,8 @@ export async function fillGmailRowLinks(
     previewBaseUrl: string | null | undefined
     databaseUrl: string | null | undefined
     invitationToken: string
+    prospectId?: string | null
+    curatedBusinessId?: string | null
     minter: GmailPreviewMinter
   }
 ): Promise<GmailBatchRow> {
@@ -61,6 +65,8 @@ export async function fillGmailRowLinks(
     recipientEmail: row.email,
     invitationToken: input.invitationToken,
     campaignId: 'gmail-test',
+    prospectId: input.prospectId ?? null,
+    curatedBusinessId: input.curatedBusinessId ?? null,
   })
   const previewUrl = previewUrlForToken(previewBase, previewToken)
   const enrollUrl = enrollUrlWithToken(input.siteUrl, input.invitationToken, row.enrollUrl)

@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const sendCommercialNotice = vi.hoisted(() => vi.fn(async () => 'email_1'))
+const sendCommercialNotice = vi.hoisted(() =>
+  vi.fn<
+    (
+      to: string,
+      subject: string,
+      body: string,
+      options?: { enforceSuppression?: boolean }
+    ) => Promise<string>
+  >(async () => 'email_1')
+)
 const getCuratedById = vi.hoisted(() => vi.fn())
 
 vi.mock('./email', () => ({ sendCommercialNotice }))

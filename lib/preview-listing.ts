@@ -3,6 +3,8 @@ import type { CampaignProspectClient } from './campaign-prospects'
 import { getCampaignProspect } from './campaign-prospects'
 import { isDatabaseConfigured, query } from './db'
 import { formatCategoryLabel, formatCityLabel } from './display'
+import { listingFieldsFromInvitation } from './invitation-listing'
+import { getInvitationByToken, type EnrollmentInvitation } from './invitations'
 import { getCuratedById } from './kv'
 import { toPublicBusiness } from './public-business'
 import type { PreviewTokenRecord } from './preview-tokens'
@@ -44,6 +46,29 @@ export function businessFromProspect(
     categories: categoryLabel ? [categoryLabel] : [],
     cities: city ? [city] : [],
     category: prospect.category,
+  }
+}
+
+/** Listing card for a preview token that only stored an invitation. */
+export function businessFromInvitation(invitation: EnrollmentInvitation): Business {
+  const fields = listingFieldsFromInvitation(invitation)
+  const cities = (invitation.cities ?? []).map((city) => formatCityLabel(city)).filter(Boolean)
+  const categoryLabel = formatCategoryLabel(invitation.category)
+  const website = fields.websiteUrl?.trim()
+  return {
+    id: `preview-invitation:${invitation.token}`,
+    source: 'manual',
+    name: invitation.business_name,
+    rating: null,
+    reviewCount: null,
+    phone: fields.phone ?? '',
+    address: fields.address ?? '',
+    imageUrl: fields.imageUrl ?? '',
+    url: '',
+    websiteUrl: website || undefined,
+    categories: categoryLabel ? [categoryLabel] : [],
+    cities,
+    category: invitation.category,
   }
 }
 
@@ -100,23 +125,48 @@ export async function findExistingListingMatches(input: {
  * Listing data for a preview. Reads curated or prospect rows and does not
  * publish, insert, or update a public listing.
  */
+async function listingFromCurated(curated: Business, recipientEmail: string): Promise<PreviewListing> {
+  const found = await findExistingListingMatches({
+    name: curated.name,
+    email: recipientEmail,
+    phone: curated.phone,
+    city: curated.cities?.[0] ?? curated.address,
+  })
+  const others = found.filter((match) => match.id !== curated.id)
+  return {
+    business: toPublicBusiness(curated),
+    existingListingNote: others.length > 0,
+    matchedListingIds: found.map((match) => match.id),
+  }
+}
+
+async function listingFromInvitation(
+  invitation: EnrollmentInvitation,
+  recipientEmail: string
+): Promise<PreviewListing> {
+  if (invitation.curated_business_id) {
+    const curated = await getCuratedById(invitation.curated_business_id)
+    if (curated) return listingFromCurated(curated, recipientEmail)
+  }
+  const fields = listingFieldsFromInvitation(invitation)
+  const business = businessFromInvitation(invitation)
+  const found = await findExistingListingMatches({
+    name: invitation.business_name,
+    email: invitation.contact_email ?? recipientEmail,
+    phone: fields.phone,
+    city: invitation.cities?.[0],
+  })
+  return {
+    business,
+    existingListingNote: found.length > 0,
+    matchedListingIds: found.map((match) => match.id),
+  }
+}
+
 export async function loadPreviewListing(record: PreviewTokenRecord): Promise<PreviewListing | null> {
   if (record.curatedBusinessId) {
     const curated = await getCuratedById(record.curatedBusinessId)
-    if (curated) {
-      const found = await findExistingListingMatches({
-        name: curated.name,
-        email: record.recipientEmail,
-        phone: curated.phone,
-        city: curated.cities?.[0] ?? curated.address,
-      })
-      const others = found.filter((match) => match.id !== curated.id)
-      return {
-        business: toPublicBusiness(curated),
-        existingListingNote: others.length > 0,
-        matchedListingIds: found.map((match) => match.id),
-      }
-    }
+    if (curated) return listingFromCurated(curated, record.recipientEmail)
   }
 
   if (record.prospectId) {
@@ -134,6 +184,13 @@ export async function loadPreviewListing(record: PreviewTokenRecord): Promise<Pr
       existingListingNote: found.length > 0,
       matchedListingIds: found.map((match) => match.id),
     }
+  }
+
+  const invitationToken = record.invitationToken?.trim() ?? ''
+  if (invitationToken) {
+    const invitation = await getInvitationByToken(invitationToken)
+    if (!invitation) return null
+    return listingFromInvitation(invitation, record.recipientEmail)
   }
 
   return null

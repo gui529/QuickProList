@@ -117,6 +117,21 @@ export async function getCampaignProspect(id: string): Promise<CampaignProspectC
   return rows[0] ? rowToClient(rows[0]) : null
 }
 
+/** Newest campaign prospect for this address, if one was discovered. */
+export async function findCampaignProspectIdByEmail(email: string): Promise<string | null> {
+  if (!isDatabaseConfigured()) return null
+  const normalized = email.trim().toLowerCase()
+  if (!normalized.includes('@')) return null
+  const rows = await query<{ id: string }>(
+    `SELECT id FROM campaign_prospects
+     WHERE lower(trim(email)) = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [normalized]
+  )
+  return rows[0]?.id ?? null
+}
+
 /** Insert from discovery worker; skips duplicate active emails. */
 export async function addCampaignProspectFromDiscovery(
   input: AddCampaignProspectInput

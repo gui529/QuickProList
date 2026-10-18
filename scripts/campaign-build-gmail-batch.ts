@@ -9,9 +9,10 @@ import { resolveMx } from 'node:dns/promises'
 import { resolve } from 'node:path'
 import { loadContactHistory, emailDomain } from '../lib/campaign-contact-history'
 import { loadProspectRegistry } from '../lib/campaign-prospect-registry'
-import { buildGmailTestBatch } from '../lib/gmail-test-batch'
+import { buildGmailTestBatch, claimsByEmailFromInvitations } from '../lib/gmail-test-batch'
 import { campaignPostalAddress } from '../lib/email'
 import { isDatabaseConfigured } from '../lib/db'
+import { listInvitations } from '../lib/invitations'
 import { loadListedIdentities } from '../lib/gmail-listed'
 import { listSuppressedValues, normalizeEmail } from '../lib/suppressions'
 
@@ -46,6 +47,7 @@ async function main() {
     ? (await listSuppressedValues('email')).map((email) => normalizeEmail(email))
     : []
   const listings = suppressionListLoaded ? await loadListedIdentities() : []
+  const invitations = suppressionListLoaded ? await listInvitations() : []
   const batch = buildGmailTestBatch({
     prospects: registry.prospects,
     resend: history.resend,
@@ -55,6 +57,7 @@ async function main() {
     suppressedEmails,
     suppressionListLoaded,
     listings,
+    claimsByEmail: claimsByEmailFromInvitations(invitations),
   })
   const path = resolve(process.cwd(), 'docs/campaigns/gmail-test-batch.json')
   writeFileSync(path, `${JSON.stringify(batch, null, 2)}\n`, 'utf8')

@@ -14,7 +14,6 @@ import {
   getCuratedById,
   publishCurated,
   setCuratedContactEmail,
-  setCuratedTrial,
 } from './kv'
 import { listingFieldsFromInvitation } from './invitation-listing'
 import { deriveStatus } from './reports'

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { queryMock } = vi.hoisted(() => ({
-  queryMock: vi.fn(async () => [] as unknown[]),
+  queryMock: vi.fn<(...args: unknown[]) => Promise<unknown[]>>(async () => []),
 }))
 
 vi.mock('./db', () => ({
@@ -95,7 +95,7 @@ describe('preview tokens', () => {
   it('updates only the preview token view counter', async () => {
     await recordPreviewView('AbCdEfGhIjKlMnOpQrStUv', { ref: 'email1', userAgent: 'Mozilla/5.0' })
     expect(queryMock).toHaveBeenCalledTimes(1)
-    const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]]
+    const [sql, params] = queryMock.mock.calls[0] as unknown as [string, unknown[]]
     expect(sql).toContain('view_count = view_count + 1')
     expect(sql).toContain('first_viewed_at = COALESCE(first_viewed_at, NOW())')
     expect(sql).toContain('last_ref')
@@ -117,7 +117,7 @@ describe('preview tokens', () => {
       invitationToken: '22222222-2222-2222-2222-222222222222',
     })
     expect(isPreviewTokenFormat(token)).toBe(true)
-    const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]]
+    const [sql, params] = queryMock.mock.calls[0] as unknown as [string, unknown[]]
     expect(sql).toMatch(/INSERT INTO preview_tokens/i)
     expect(sql).not.toMatch(/curated_businesses/i)
     expect(params?.[4]).toBe('owner@geek.example')
@@ -127,7 +127,7 @@ describe('preview tokens', () => {
     queryMock.mockResolvedValueOnce([{ token: 'AbCdEfGhIjKlMnOpQrStUv' }])
     const ok = await markPreviewOptedOut('AbCdEfGhIjKlMnOpQrStUv', 'Owner@Geek.example')
     expect(ok).toBe(true)
-    const [sql, params] = queryMock.mock.calls[0] as [string, unknown[]]
+    const [sql, params] = queryMock.mock.calls[0] as unknown as [string, unknown[]]
     expect(sql).toContain('opted_out_at')
     expect(sql).not.toMatch(/curated_businesses|profile_views/i)
     expect(params).toEqual(['AbCdEfGhIjKlMnOpQrStUv', 'owner@geek.example'])

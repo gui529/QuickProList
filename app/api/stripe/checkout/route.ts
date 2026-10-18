@@ -13,7 +13,13 @@ import {
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
   if (!checkRateLimit(`checkout:${ip}`, 5)) return rateLimitResponse()
-  const body = await req.json()
+
+  let body: { token?: unknown; consent?: unknown }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
   const token = body.token
 
   if (!token) {
@@ -54,7 +60,6 @@ export async function POST(req: NextRequest) {
       'https://www.quickprolist.com'
     ).replace(/\/$/, '')
     const returnUrl = `${baseUrl}/enroll/${token}`
-    await recordSubscriptionConsent(token, subscriptionDisclosureText(), new Date().toISOString())
     const checkoutUrl = await createCheckoutSession(
       token,
       invitation.business_name,
@@ -66,6 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
     }
 
+    await recordSubscriptionConsent(token, subscriptionDisclosureText(), new Date().toISOString())
     return NextResponse.json({ checkoutUrl })
   } catch (err) {
     console.error('checkout failed:', err)

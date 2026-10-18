@@ -371,8 +371,9 @@ export async function setCuratedTrial(
   row.cities = cities
 }
 
-export async function publishCurated(_id: string): Promise<void> {
+export async function publishCurated(id: string): Promise<void> {
   // Real DB clears is_draft; test double has no draft flag on search path.
+  void id
 }
 
 export async function clearCuratedTrial(id: string): Promise<void> {

@@ -18,7 +18,9 @@ import {
   replyIsOptOut,
   withGmailAttributionRef,
 } from './gmail-campaign'
-import { buildGmailTestBatch } from './gmail-test-batch'
+import { buildGmailTestBatch, claimsByEmailFromInvitations } from './gmail-test-batch'
+import type { EnrollmentInvitation } from './invitations'
+import { formatSubscriptionPrice } from './subscription-terms'
 import { isEnrollPreviewUrl } from './campaign-prepare'
 import { loadProspectRegistry, type ProspectRecord } from './campaign-prospect-registry'
 import type { SentRegistryEntry } from './campaign-sent-registry'
@@ -110,6 +112,20 @@ ${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} ${postal}`)
     })
     expect(active.subject).toBe('your Atlanta listing preview')
     expect(active.subjectVariant === 'A' || active.subjectVariant === 'B').toBe(true)
+    expect(active.text).toContain(`${formatSubscriptionPrice()}/month`)
+  })
+
+  it('refuses to render a price other than the shared subscription price', () => {
+    expect(() =>
+      renderGmailTestEmail({
+        businessName: 'Ready Plumbing',
+        city: 'atlanta',
+        category: 'plumbing',
+        enrollUrl: enroll,
+        postalAddress: '1 Test Street, Atlanta, GA 30301',
+        monthlyPrice: 19.99,
+      })
+    ).toThrow(/29\.99/)
   })
 
   it('adds a ref query without folding it into the enroll token', () => {
@@ -285,6 +301,103 @@ describe('Gmail test batch', () => {
     expect(batch.excluded.map((row) => [row.email, row.reason])).toEqual([
       ['owner@ready.example', 'suppressed'],
     ])
+  })
+})
+
+function invitationClaim(
+  overrides: Partial<EnrollmentInvitation> & Pick<EnrollmentInvitation, 'contact_email' | 'monthly_price'>
+): EnrollmentInvitation {
+  return {
+    id: 'inv-1',
+    token: '22222222-2222-4222-8222-222222222222',
+    business_name: 'Ready Plumbing',
+    yelp_id: null,
+    yelp_data: null,
+    category: 'plumbing',
+    cities: ['atlanta'],
+    status: 'pending',
+    stripe_session_id: null,
+    stripe_subscription_id: null,
+    curated_business_id: null,
+    created_at: '2026-10-01T00:00:00.000Z',
+    expires_at: '2099-01-01T00:00:00.000Z',
+    canceled_at: null,
+    trial_ends_at: null,
+    ...overrides,
+  }
+}
+
+describe('invitation claims for the Gmail batch', () => {
+  it('passes the invitation price and phone, and still holds a mismatch or a missing postal address', () => {
+    const claims = claimsByEmailFromInvitations([
+      invitationClaim({
+        contact_email: 'Owner@Ready.example',
+        monthly_price: 29.99,
+        yelp_data: { phone: ' 404-555-0100 ' },
+        created_at: '2026-10-02T00:00:00.000Z',
+      }),
+      invitationClaim({
+        id: 'older',
+        contact_email: 'owner@ready.example',
+        monthly_price: 19.99,
+        yelp_data: { phone: '4045550199' },
+        created_at: '2026-09-01T00:00:00.000Z',
+      }),
+      invitationClaim({
+        id: 'other',
+        token: '33333333-3333-4333-8333-333333333333',
+        contact_email: 'other@example.com',
+        monthly_price: 19.99,
+        yelp_data: { phone: '4045550199' },
+      }),
+      invitationClaim({
+        id: 'no-email',
+        contact_email: null,
+        monthly_price: 29.99,
+        yelp_data: { phone: '4045550101' },
+      }),
+    ])
+
+    expect(claims['owner@ready.example']).toEqual({ monthlyPrice: 29.99, phone: '404-555-0100' })
+    expect(claims['other@example.com']).toEqual({ monthlyPrice: 19.99, phone: '4045550199' })
+    expect(claims['']).toBeUndefined()
+
+    const postal = '1 Test Street, Atlanta, GA 30301'
+    const ready = prospect({ businessName: 'Ready Plumbing', email: 'owner@ready.example' })
+    const matched = buildGmailTestBatch({
+      prospects: [ready],
+      resend: [],
+      gmail: [],
+      mxByDomain: { 'ready.example': true },
+      postalAddress: postal,
+      claimsByEmail: claims,
+    })
+    expect(matched.sendReady.map((row) => row.email)).toEqual(['owner@ready.example'])
+    expect(matched.sendReady[0]?.text).toContain('call them directly')
+    expect(matched.sendReady[0]?.text).toContain(`${formatSubscriptionPrice()}/month`)
+    expect(matched.held).toEqual([])
+
+    const mismatch = buildGmailTestBatch({
+      prospects: [prospect({ businessName: 'Other Co', email: 'other@example.com' })],
+      resend: [],
+      gmail: [],
+      mxByDomain: { 'example.com': true },
+      postalAddress: postal,
+      claimsByEmail: claims,
+    })
+    expect(mismatch.sendReady).toEqual([])
+    expect(mismatch.held.map((row) => row.reason)).toEqual(['price_mismatch'])
+
+    const noPostal = buildGmailTestBatch({
+      prospects: [ready],
+      resend: [],
+      gmail: [],
+      mxByDomain: { 'ready.example': true },
+      claimsByEmail: claims,
+    })
+    expect(noPostal.sendReady).toEqual([])
+    expect(noPostal.held.map((row) => row.reason)).toEqual(['missing_postal'])
+    expect(noPostal.held[0]?.text).toBeUndefined()
   })
 })
 

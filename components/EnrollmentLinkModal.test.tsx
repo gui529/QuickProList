@@ -27,10 +27,12 @@ describe('EnrollmentLinkModal', () => {
   })
 
   it('passes the prospect email when creating an enroll link', async () => {
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ token: 'tok-1' }),
-    }))
+    const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<{ ok: boolean; json: () => Promise<{ token: string }> }>>(
+      async () => ({
+        ok: true,
+        json: async () => ({ token: 'tok-1' }),
+      })
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     render(<EnrollmentLinkModal open onClose={() => {}} business={business} defaultCategory="plumbing" />)
@@ -38,8 +40,8 @@ describe('EnrollmentLinkModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /generate link/i }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    const init = fetchMock.mock.calls[0][1] as RequestInit
-    const body = JSON.parse(String(init.body))
+    const init = fetchMock.mock.calls[0][1]
+    const body = JSON.parse(String(init?.body))
     expect(body.contactEmail).toBe('owner@acme.example')
     expect(body.businessName).toBe('Acme Plumbing')
     expect(body.monthlyPrice).toBe(29.99)

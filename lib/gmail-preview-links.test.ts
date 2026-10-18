@@ -46,6 +46,8 @@ describe('Gmail preview URL fill', () => {
       recipientEmail: 'owner@ready.example',
       invitationToken: INVITATION,
       campaignId: 'gmail-test',
+      prospectId: null,
+      curatedBusinessId: null,
     })
     expect(filled.previewUrl).toBe(`https://dev.example.com/preview/${TOKEN}`)
     expect(filled.previewUrlStatus).toBe('live')
@@ -54,6 +56,28 @@ describe('Gmail preview URL fill', () => {
     expect(filled.enrollUrl).toBe(`https://www.quickprolist.com/enroll/${INVITATION}?ref=gmail-ready-plumbing`)
     expect(filled.text).toContain(filled.enrollUrl)
     expect(filled.text?.match(/https?:\/\/\S+/g)).toHaveLength(2)
+  })
+
+  it('passes a prospect id and a listing id through to the minter', async () => {
+    const prospectId = '33333333-3333-4333-8333-333333333333'
+    const curatedBusinessId = '44444444-4444-4444-8444-444444444444'
+    const createPreviewToken = vi.fn(async () => TOKEN)
+    await fillGmailRowLinks(row(), {
+      siteUrl: 'https://www.quickprolist.com',
+      previewBaseUrl: 'https://dev.example.com',
+      databaseUrl: 'postgres://dev.example/neondb',
+      invitationToken: INVITATION,
+      prospectId,
+      curatedBusinessId,
+      minter: { createPreviewToken },
+    })
+    expect(createPreviewToken).toHaveBeenCalledWith({
+      recipientEmail: 'owner@ready.example',
+      invitationToken: INVITATION,
+      campaignId: 'gmail-test',
+      prospectId,
+      curatedBusinessId,
+    })
   })
 
   it('gives each recipient its own token', async () => {

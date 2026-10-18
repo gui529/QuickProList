@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { AuthError, requireAdmin } from '@/lib/auth'
 import { getBusinessReports } from '@/lib/reports'
 
@@ -16,7 +16,7 @@ async function gate(): Promise<NextResponse | null> {
   }
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const denied = await gate()
   if (denied) return denied
   try {

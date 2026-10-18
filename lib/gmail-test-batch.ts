@@ -25,6 +25,8 @@ import {
 } from './gmail-campaign'
 import type { ProspectRecord } from './campaign-prospect-registry'
 import { isAlreadyListed, type ListedIdentity } from './gmail-listed'
+import { listingFieldsFromInvitation } from './invitation-listing'
+import type { EnrollmentInvitation } from './invitations'
 import { isAllowedProspectSource } from './prospect-sources'
 import { normalizeEmail } from './suppressions'
 
@@ -85,6 +87,28 @@ export interface GmailTestBatch {
   flagged: GmailBatchRow[]
   excluded: GmailBatchRow[]
   needsEmail: GmailBatchRow[]
+}
+
+/**
+ * Invitation price and phone keyed by contact email. Newest row wins.
+ * Callers pass `listInvitations()` order (created_at DESC). A missing email
+ * is skipped so that prospect stays a price_mismatch hold.
+ */
+export function claimsByEmailFromInvitations(
+  invitations: EnrollmentInvitation[]
+): Record<string, { monthlyPrice: number; phone: string | null }> {
+  const claims: Record<string, { monthlyPrice: number; phone: string | null }> = {}
+  for (const invitation of invitations) {
+    const email = invitation.contact_email?.trim()
+    if (!email) continue
+    const key = normalizeEmail(email)
+    if (claims[key]) continue
+    claims[key] = {
+      monthlyPrice: invitation.monthly_price,
+      phone: listingFieldsFromInvitation(invitation).phone,
+    }
+  }
+  return claims
 }
 
 function sourceUrl(prospect: ProspectRecord): string | null {

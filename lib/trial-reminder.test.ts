@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { BusinessReport } from './reports'
 
-const sendCommercialNotice = vi.hoisted(() => vi.fn(async () => 'email_1'))
+const sendCommercialNotice = vi.hoisted(() =>
+  vi.fn<(to: string, subject: string, body: string, options?: unknown) => Promise<string>>(
+    async () => 'email_1'
+  )
+)
 const setTrialReminderSent = vi.hoisted(() => vi.fn(async () => undefined))
 const isSuppressed = vi.hoisted(() => vi.fn(async () => false))
-const getBusinessReports = vi.hoisted(() => vi.fn(async () => []))
+const getBusinessReports = vi.hoisted(() => vi.fn(async (): Promise<BusinessReport[]> => []))
 
 vi.mock('./email', () => ({
   sendCommercialNotice,
@@ -32,7 +37,6 @@ vi.mock('./reports', () => ({
 
 import { findTrialsNeedingReminder, sendTrialReminders, trialReminderHorizonMs } from './trial-reminder'
 import { formatPreviewEndDate } from './preview-date'
-import type { BusinessReport } from './reports'
 import type { EnrollmentInvitation } from './invitations'
 
 function upcomingEnd(): string {

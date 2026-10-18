@@ -104,4 +104,16 @@ describe('EnrollPage (expiration enforcement)', () => {
       else process.env.ENROLL_PREVIEW_TRIAL_DAYS = previous
     }
   })
+
+  it('passes subscribe and success from the URL so the client does not read window', async () => {
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+    const result = await EnrollPage({
+      params: Promise.resolve({ token: invitation.token }),
+      searchParams: Promise.resolve({ subscribe: '1', success: '1' }),
+    })
+    const props = result as ReactElement<{ subscribe?: boolean; checkoutSuccess?: boolean }>
+    expect(props.props.subscribe).toBe(true)
+    expect(props.props.checkoutSuccess).toBe(true)
+  })
 })

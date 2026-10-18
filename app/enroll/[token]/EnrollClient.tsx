@@ -35,6 +35,10 @@ interface Props {
   initialContactEmail?: string | null
   /** Preview length from ENROLL_PREVIEW_TRIAL_DAYS. The server passes the live value. */
   previewTrialDays?: number
+  /** From `?subscribe=1`. Passed by the server so the first render matches. */
+  subscribe?: boolean
+  /** From `?success=1` after Stripe returns. Passed by the server. */
+  checkoutSuccess?: boolean
 }
 
 export default function EnrollClient({
@@ -44,17 +48,15 @@ export default function EnrollClient({
   proDashboardEnabled = false,
   initialContactEmail = null,
   previewTrialDays = DEFAULT_ENROLL_PREVIEW_TRIAL_DAYS,
+  subscribe = false,
+  checkoutSuccess = false,
 }: Props) {
   const priceLabel = formatSubscriptionPrice()
   const priceMatches = isConfiguredSubscriptionPrice(invitation.monthly_price)
-  const [wantSubscribe] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return new URLSearchParams(window.location.search).get('subscribe') === '1'
-  })
+  const wantSubscribe = subscribe
+  const success = checkoutSuccess
   const [step, setStep] = useState<'preview' | 'checkout'>(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('subscribe') === '1') {
-      return 'checkout'
-    }
+    if (subscribe) return 'checkout'
     if (invitation.curated_business_id && invitation.status === 'pending') return 'checkout'
     return 'preview'
   })
@@ -62,16 +64,9 @@ export default function EnrollClient({
   const [error, setError] = useState('')
   const [contactEmail, setContactEmail] = useState(initialContactEmail ?? '')
   const [subscriptionConsent, setSubscriptionConsent] = useState(false)
-  const [localDashboardToken, setLocalDashboardToken] = useState<string | null>(dashboardToken ?? null)
-
-  const [success] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return new URLSearchParams(window.location.search).get('success') === '1'
-  })
 
   const categoryLabel = CATEGORIES.find((c) => c.value === invitation.category)?.label || invitation.category
-  const effectiveDashboardToken =
-    proDashboardEnabled ? (localDashboardToken ?? dashboardToken ?? null) : null
+  const effectiveDashboardToken = proDashboardEnabled ? (dashboardToken ?? null) : null
   useEffect(() => {
     if (wantSubscribe || invitation.status !== 'trial' || success) return
     window.location.replace(

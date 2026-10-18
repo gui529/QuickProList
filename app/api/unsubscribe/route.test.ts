@@ -29,6 +29,19 @@ describe('/api/unsubscribe', () => {
     process.env.UNSUBSCRIBE_SECRET = 'test-secret'
   })
 
+  it('GET confirm form keeps the preview token so unsubscribing opts the preview out', async () => {
+    const preview = 'AAAAAAAAAAAAAAAAAAAAAA'
+    const token = createUnsubscribeToken('owner@example.com')
+    const res = await GET(req('GET', token, preview))
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).toContain(`action="/api/unsubscribe?`)
+    expect(html).toContain(`preview=${preview}`)
+    expect(html).toContain(`token=${encodeURIComponent(token)}`)
+    expect(addSuppressionMock).not.toHaveBeenCalled()
+    expect(markPreviewOptedOutMock).not.toHaveBeenCalled()
+  })
+
   it('GET shows a confirm page and does NOT unsubscribe', async () => {
     const res = await GET(req('GET', createUnsubscribeToken('a@example.com')))
     expect(res.status).toBe(200)

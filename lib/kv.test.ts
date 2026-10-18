@@ -3,7 +3,9 @@ import type { Business } from './business'
 
 const { queryMock, selectState } = vi.hoisted(() => {
   const selectState: { rows: Record<string, unknown>[] } = { rows: [] }
-  const queryMock = vi.fn(async () => selectState.rows)
+  const queryMock = vi.fn<(...args: unknown[]) => Promise<Record<string, unknown>[]>>(
+    async () => selectState.rows
+  )
   return { queryMock, selectState }
 })
 

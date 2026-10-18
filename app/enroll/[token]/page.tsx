@@ -23,8 +23,21 @@ function invitationForClient(invitation: EnrollmentInvitation): EnrollmentInvita
   return { ...invitation, yelp_data: yelpData }
 }
 
-export default async function EnrollPage({ params }: { params: Promise<{ token: string }> }) {
+function firstQueryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value
+}
+
+export default async function EnrollPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>
+  searchParams?: Promise<{ subscribe?: string | string[]; success?: string | string[] }>
+}) {
   const { token } = await params
+  const query = searchParams ? await searchParams : {}
+  const subscribe = firstQueryValue(query.subscribe) === '1'
+  const checkoutSuccess = firstQueryValue(query.success) === '1'
   if (!isUuid(token)) notFound()
   const invitation = await getInvitationByToken(token)
 
@@ -59,6 +72,8 @@ export default async function EnrollPage({ params }: { params: Promise<{ token: 
       proDashboardEnabled={proDashboardEnabled}
       initialContactEmail={invitation.contact_email}
       previewTrialDays={enrollPreviewTrialDays()}
+      subscribe={subscribe}
+      checkoutSuccess={checkoutSuccess}
     />
   )
 }

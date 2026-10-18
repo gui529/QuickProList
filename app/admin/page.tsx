@@ -3,6 +3,8 @@ import { getAdminSession } from '@/lib/auth'
 import { isProDashboardEnabled } from '@/lib/feature-flags'
 import AdminClient from './AdminClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminPage() {
   const session = await getAdminSession()
   if (!session) {

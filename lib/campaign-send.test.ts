@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { isSuppressedMock, sendEmailMock, createInvitationMock, recordContactMock } = vi.hoisted(() => ({
   isSuppressedMock: vi.fn(async () => false),
   sendEmailMock: vi.fn(async () => 'msg-1'),
-  createInvitationMock: vi.fn(async () => 'invitation-token'),
+  createInvitationMock: vi.fn<(input: { yelpData?: { phone?: string } }) => Promise<string>>(
+    async () => 'invitation-token'
+  ),
   recordContactMock: vi.fn(async () => ({ id: 'contact-1' })),
 }))
 
@@ -82,7 +84,7 @@ describe('sendCampaignEmail suppression', () => {
       phone: '   ',
     })
 
-    const input = createInvitationMock.mock.calls[0][0] as { yelpData: { phone: string } }
-    expect(input.yelpData.phone).toBe('')
+    const input = createInvitationMock.mock.calls[0][0]
+    expect(input.yelpData?.phone).toBe('')
   })
 })

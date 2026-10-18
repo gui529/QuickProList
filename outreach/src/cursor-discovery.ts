@@ -1,5 +1,3 @@
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { DiscoveredProspect } from './discovery.ts'
 import { createEphemeralAgentWorkspace } from './agent-workspace.ts'
 import { extractJsonObject, runCursorAgentPrint } from './cursor-agent.ts'

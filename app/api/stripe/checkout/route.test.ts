@@ -193,18 +193,53 @@ describe('POST /api/stripe/checkout (express consent)', () => {
     expect(recordSubscriptionConsentMock).not.toHaveBeenCalled()
   })
 
-  it('records the disclosure and a timestamp, then creates the session', async () => {
+  it('records the disclosure after the checkout session exists, and still before the response', async () => {
     const invitation = makeInvitation()
     getInvitationByTokenMock.mockResolvedValue(invitation)
+    const order: string[] = []
+    createCheckoutSessionMock.mockImplementation(async () => {
+      order.push('session')
+      return 'https://checkout.stripe.test/session'
+    })
+    recordSubscriptionConsentMock.mockImplementation(async () => {
+      order.push('consent')
+    })
 
     const res = await POST(makeRequest(invitation.token, '10.1.0.3') as never)
 
     expect(res.status).toBe(200)
+    expect(order).toEqual(['session', 'consent'])
     expect(recordSubscriptionConsentMock).toHaveBeenCalledTimes(1)
     const [token, text, consentedAt] = recordSubscriptionConsentMock.mock.calls[0]
     expect(token).toBe(invitation.token)
     expect(text).toBe(subscriptionDisclosureText())
     expect(Number.isNaN(Date.parse(consentedAt))).toBe(false)
     expect(createCheckoutSessionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not record consent when Stripe does not return a session', async () => {
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+    createCheckoutSessionMock.mockResolvedValueOnce(null)
+
+    const res = await POST(makeRequest(invitation.token, '10.1.0.4') as never)
+
+    expect(res.status).toBe(500)
+    expect(createCheckoutSessionMock).toHaveBeenCalledTimes(1)
+    expect(recordSubscriptionConsentMock).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 for invalid JSON', async () => {
+    const req = new Request('https://example.test/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.3.0.1' },
+      body: '{',
+    })
+    const res = await POST(req as never)
+    expect(res.status).toBe(400)
+    expect(await res.json()).toEqual({ error: 'Invalid JSON' })
+    expect(getInvitationByTokenMock).not.toHaveBeenCalled()
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled()
+    expect(recordSubscriptionConsentMock).not.toHaveBeenCalled()
   })
 })

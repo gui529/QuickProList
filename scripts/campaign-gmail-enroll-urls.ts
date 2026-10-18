@@ -12,7 +12,8 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { loadCampaignEnv } from './load-campaign-env'
 import { isDatabaseConfigured } from '../lib/db'
-import { createInvitation } from '../lib/invitations'
+import { findCampaignProspectIdByEmail } from '../lib/campaign-prospects'
+import { createInvitation, getInvitationByToken } from '../lib/invitations'
 import { SUBSCRIPTION_MONTHLY_PRICE_USD } from '../lib/subscription-terms'
 import { normalizeCategory } from '../lib/categories'
 import { getCampaignSiteUrl } from '../lib/campaign-defaults'
@@ -38,11 +39,15 @@ async function fill(row: GmailBatchRow, siteUrl: string, previewBase: string): P
     monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
     contactEmail: row.email,
   })
+  const invitation = await getInvitationByToken(invitationToken)
+  const prospectId = await findCampaignProspectIdByEmail(row.email)
   return fillGmailRowLinks(row, {
     siteUrl,
     previewBaseUrl: previewBase,
     databaseUrl: process.env.DATABASE_URL,
     invitationToken,
+    prospectId,
+    curatedBusinessId: invitation?.curated_business_id ?? null,
     minter: { createPreviewToken },
   })
 }

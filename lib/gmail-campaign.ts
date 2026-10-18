@@ -2,7 +2,11 @@ import { CATEGORIES, normalizeCategory } from './categories'
 import { formatCategorySearchPhrase, formatCityLabel } from './display'
 import { parseEnrollPreviewTrialDays } from './enroll-preview-days'
 import { usableCampaignPostalAddress } from './email'
-import { isConfiguredSubscriptionPrice } from './subscription-terms'
+import {
+  formatSubscriptionPrice,
+  isConfiguredSubscriptionPrice,
+  SUBSCRIPTION_MONTHLY_PRICE_USD,
+} from './subscription-terms'
 
 /** Gmail test sends leave from this mailbox. Sending itself is outside the repo. */
 export const GMAIL_TEST_FROM = 'gui.quickprolist@gmail.com'
@@ -167,13 +171,6 @@ export function assignGmailSubject(
   return { variant: 'B', subject: GMAIL_SUBJECT_B }
 }
 
-export function formatClaimedPrice(price: number | string | null | undefined): string {
-  if (price == null || price === '') return ''
-  const amount = typeof price === 'number' ? price : Number(price)
-  if (!Number.isFinite(amount)) return ''
-  return `$${amount.toFixed(2)}`
-}
-
 export const CLAIMED_MONTHLY_PRICE_CENTS = 2999
 
 /** True only for 29.99. Missing and other amounts are not the claim in the copy. */
@@ -200,10 +197,14 @@ export function renderGmailTestEmail(input: {
 } {
   const postal = usableCampaignPostalAddress(input.postalAddress)
   if (!postal) throw new Error('Refusing to render a Gmail email without a postal address')
+  const claimedPrice = input.monthlyPrice ?? SUBSCRIPTION_MONTHLY_PRICE_USD
+  if (!isClaimedMonthlyPrice(claimedPrice)) {
+    throw new Error('Refusing to render a Gmail email when the price is not 29.99')
+  }
   const city = formatCityLabel(input.city)
   const categoryPhrase = gmailCategoryPhrase(input.category) ?? ''
   const trialDays = input.trialDays ?? parseEnrollPreviewTrialDays(process.env.ENROLL_PREVIEW_TRIAL_DAYS)
-  const price = formatClaimedPrice(input.monthlyPrice ?? 29.99)
+  const price = formatSubscriptionPrice()
   const contactVerb = input.hasPhone === false ? 'contact' : 'call'
   const assigned = assignGmailSubject(input.businessName, input.email ?? input.businessName)
   const text = GMAIL_TEST_BODY_TEMPLATE.replaceAll('{businessName}', input.businessName.trim())

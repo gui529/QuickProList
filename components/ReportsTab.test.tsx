@@ -49,7 +49,14 @@ function makeReport(overrides: Partial<BusinessReport> = {}): BusinessReport {
       }),
       makeInvitation({ id: 'still-pending', status: 'pending' }),
     ],
-    ...overrides,
+    contact_email: overrides.contact_email ?? null,
+    search_impressions: overrides.search_impressions ?? 0,
+    profile_views: overrides.profile_views ?? 0,
+    phone_clicks: overrides.phone_clicks ?? 0,
+    website_clicks: overrides.website_clicks ?? 0,
+    directions_clicks: overrides.directions_clicks ?? 0,
+    winback_sent_at: overrides.winback_sent_at ?? null,
+    trial_reminder_sent_at: overrides.trial_reminder_sent_at ?? null,
   }
 }
 

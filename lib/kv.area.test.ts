@@ -2,7 +2,9 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const { rowsState, queryMock } = vi.hoisted(() => {
   const rowsState: { data: Array<Record<string, unknown>> } = { data: [] }
-  const queryMock = vi.fn(async () => rowsState.data)
+  const queryMock = vi.fn<(...args: unknown[]) => Promise<Array<Record<string, unknown>>>>(
+    async () => rowsState.data
+  )
   return { rowsState, queryMock }
 })
 
