@@ -84,7 +84,7 @@ export function gmailFromHeader(): string {
   return `"${GMAIL_FROM_DISPLAY_NAME}" <${GMAIL_TEST_FROM}>`
 }
 
-export const GMAIL_TEST_BODY_TEMPLATE = `You probably get plenty of marketing pitches, so I'll keep this short. I set up a preview listing for {businessName} on QuickProList, a local directory where homeowners find pros and {contactVerb} them directly. No per-lead fees, no bidding, no middleman. Your preview is ready to look over (two minutes): {enrollUrl}
+export const GMAIL_TEST_BODY_TEMPLATE = `You probably get plenty of marketing pitches, so I'll keep this short. I set up a preview listing for {businessName} on QuickProList, a local directory where homeowners find pros and {contactVerb} them directly. No per-lead fees, no bidding, no middleman. Your preview is ready to look over (two minutes): {previewUrl}
 If you click start, it's live in search for {trialDays} days, free, no card. After that it comes down on its own unless you choose {price}/month, flat.
 Guilherme, QuickProList
 ${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} {postalAddress}`
@@ -185,6 +185,8 @@ export function renderGmailTestEmail(input: {
   city: string
   category: string
   enrollUrl: string
+  /** Body link. `{previewUrl}` is allowed until the mint script fills it. */
+  previewUrl: string
   postalAddress?: string | null
   trialDays?: number
   monthlyPrice?: number | string | null
@@ -202,6 +204,8 @@ export function renderGmailTestEmail(input: {
   if (!isClaimedMonthlyPrice(claimedPrice)) {
     throw new Error('Refusing to render a Gmail email when the price is not 29.99')
   }
+  const previewUrl = input.previewUrl.trim()
+  if (!previewUrl) throw new Error('Refusing to render a Gmail email without a preview URL')
   const city = formatCityLabel(input.city)
   const categoryPhrase = gmailCategoryPhrase(input.category) ?? ''
   const trialDays = input.trialDays ?? parseEnrollPreviewTrialDays(process.env.ENROLL_PREVIEW_TRIAL_DAYS)
@@ -211,12 +215,14 @@ export function renderGmailTestEmail(input: {
   const text = GMAIL_TEST_BODY_TEMPLATE.replaceAll('{businessName}', input.businessName.trim())
     .replaceAll('{city}', city)
     .replaceAll('{categoryPhrase}', categoryPhrase)
+    .replaceAll('{previewUrl}', previewUrl)
     .replaceAll('{enrollUrl}', input.enrollUrl.trim())
     .replaceAll('{postalAddress}', postal)
     .replaceAll('{trialDays}', String(trialDays))
     .replaceAll('{price}', price)
     .replaceAll('{contactVerb}', contactVerb)
-  assertNoUnfilledGmailPlaceholder(text)
+  const deferredPreview = previewUrl === '{previewUrl}' ? text.replaceAll('{previewUrl}', '') : text
+  assertNoUnfilledGmailPlaceholder(deferredPreview)
   return {
     subject: gmailActiveSubject(input.city),
     subjectVariant: assigned.variant,

@@ -284,6 +284,7 @@ export function buildGmailTestBatch(input: {
       city: prospect.city,
       category: prospect.category,
       enrollUrl,
+      previewUrl: '{previewUrl}',
       postalAddress: postal,
       monthlyPrice: claim?.monthlyPrice,
       hasPhone: Boolean(claim?.phone?.trim()),

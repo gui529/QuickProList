@@ -29,6 +29,7 @@ import { loadSentRegistry, type SentRegistryEntry } from './campaign-sent-regist
 import { planGmailDay } from './gmail-follow-ups'
 
 const enroll = 'https://www.quickprolist.com/enroll/11111111-1111-4111-8111-111111111111'
+const preview = 'https://dev.example.com/preview/AbCdEfGhIjKlMnOpQrStUv'
 
 function claimsFor(rows: Array<Pick<ProspectRecord, 'email'>>): Record<string, { monthlyPrice: number }> {
   const claims: Record<string, { monthlyPrice: number }> = {}
@@ -65,6 +66,7 @@ describe('Gmail test copy', () => {
       city: 'marietta',
       category: 'plumbing',
       enrollUrl: enroll,
+      previewUrl: preview,
       hasPhone: true,
       monthlyPrice: 29.99,
       postalAddress: postal,
@@ -72,11 +74,14 @@ describe('Gmail test copy', () => {
     expect(rendered.from).toBe(`"${GMAIL_FROM_DISPLAY_NAME}" <${GMAIL_TEST_FROM}>`)
     expect(rendered.subject).toBe('your Marietta listing preview')
     expect(rendered.subjectVariant === 'A' || rendered.subjectVariant === 'B').toBe(true)
-    expect(rendered.text).toBe(`You probably get plenty of marketing pitches, so I'll keep this short. I set up a preview listing for Marietta Plumbing on QuickProList, a local directory where homeowners find pros and call them directly. No per-lead fees, no bidding, no middleman. Your preview is ready to look over (two minutes): ${enroll}
+    expect(rendered.text).toBe(`You probably get plenty of marketing pitches, so I'll keep this short. I set up a preview listing for Marietta Plumbing on QuickProList, a local directory where homeowners find pros and call them directly. No per-lead fees, no bidding, no middleman. Your preview is ready to look over (two minutes): ${preview}
 If you click start, it's live in search for 30 days, free, no card. After that it comes down on its own unless you choose $29.99/month, flat.
 Guilherme, QuickProList
 ${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} ${postal}`)
-    expect(rendered.text.match(/https?:\/\/\S+/g)).toEqual([enroll])
+    expect(rendered.text.match(/https?:\/\/\S+/g)).toEqual([preview])
+    expect(rendered.text).not.toContain(enroll)
+    expect(GMAIL_TEST_BODY_TEMPLATE).toContain('{previewUrl}')
+    expect(GMAIL_TEST_BODY_TEMPLATE).not.toContain('{enrollUrl}')
     expect(rendered.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
   })
 
@@ -87,6 +92,7 @@ ${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} ${postal}`)
       city: 'atlanta',
       category: 'plumbing',
       enrollUrl: enroll,
+      previewUrl: preview,
       hasPhone: false,
       monthlyPrice: 29.99,
       postalAddress: '1 Test Street, Atlanta, GA 30301',
@@ -111,6 +117,7 @@ ${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} ${postal}`)
       city: 'atlanta',
       category: 'airconditioningheating',
       enrollUrl: enroll,
+      previewUrl: preview,
       postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(active.subject).toBe('your Atlanta listing preview')
@@ -125,6 +132,7 @@ ${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} ${postal}`)
         city: 'atlanta',
         category: 'plumbing',
         enrollUrl: enroll,
+        previewUrl: preview,
         postalAddress: '1 Test Street, Atlanta, GA 30301',
         monthlyPrice: 19.99,
       })
@@ -378,6 +386,9 @@ describe('invitation claims for the Gmail batch', () => {
     expect(matched.sendReady.map((row) => row.email)).toEqual(['owner@ready.example'])
     expect(matched.sendReady[0]?.text).toContain('call them directly')
     expect(matched.sendReady[0]?.text).toContain(`${formatSubscriptionPrice()}/month`)
+    expect(matched.sendReady[0]?.text).toContain('{previewUrl}')
+    expect(matched.sendReady[0]?.text).not.toContain('/enroll/')
+    expect(matched.sendReady[0]?.enrollUrl).toContain('/enroll/')
     expect(matched.held).toEqual([])
 
     const mismatch = buildGmailTestBatch({
@@ -413,6 +424,7 @@ describe('Gmail claim checks', () => {
       city: 'atlanta',
       category: 'plumbing',
       enrollUrl: enroll,
+      previewUrl: preview,
       postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(fourteen.text).toContain("it's live in search for 14 days, free, no card.")
@@ -422,6 +434,7 @@ describe('Gmail claim checks', () => {
       city: 'atlanta',
       category: 'plumbing',
       enrollUrl: enroll,
+      previewUrl: preview,
       postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
     expect(fallback.text).toContain("it's live in search for 30 days, free, no card.")
