@@ -1,6 +1,7 @@
 import { DEFAULT_MESSAGE, expandCampaignMessage, recordContact } from './campaigns'
 import { sendEmail } from './email'
 import { createInvitation } from './invitations'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from './subscription-terms'
 import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
 import { errorMessage as toErrorMessage } from './errors'
 
@@ -65,7 +66,7 @@ export async function sendCampaignEmail(
       businessName,
       category,
       cities: [city],
-      monthlyPrice: 29.99,
+      monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
       yelpId,
       contactEmail: email,
       yelpData: yelpId

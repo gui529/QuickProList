@@ -13,6 +13,7 @@ import { resolve } from 'node:path'
 import { loadCampaignEnv } from './load-campaign-env'
 import { isDatabaseConfigured } from '../lib/db'
 import { createInvitation } from '../lib/invitations'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from '../lib/subscription-terms'
 import { normalizeCategory } from '../lib/categories'
 import { getCampaignSiteUrl } from '../lib/campaign-defaults'
 import type { GmailBatchRow, GmailTestBatch } from '../lib/gmail-test-batch'
@@ -34,7 +35,7 @@ async function fill(row: GmailBatchRow, siteUrl: string, previewBase: string): P
     businessName: row.business,
     category: normalizeCategory(row.trade),
     cities: [row.city.trim().toLowerCase()],
-    monthlyPrice: 29.99,
+    monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
     contactEmail: row.email,
   })
   return fillGmailRowLinks(row, {

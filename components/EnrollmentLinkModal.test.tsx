@@ -42,5 +42,6 @@ describe('EnrollmentLinkModal', () => {
     const body = JSON.parse(String(init.body))
     expect(body.contactEmail).toBe('owner@acme.example')
     expect(body.businessName).toBe('Acme Plumbing')
+    expect(body.monthlyPrice).toBe(29.99)
   })
 })

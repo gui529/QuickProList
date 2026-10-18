@@ -39,6 +39,7 @@ vi.mock('@/lib/invitations', () => ({
 
 import { POST } from './route'
 import { __reset as resetCurated, __all as allCurated } from '@/lib/kv.test-double'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from '@/lib/subscription-terms'
 
 function makeRequest(body: unknown): Request {
   return new Request('https://example.test/api/invitations', {
@@ -107,7 +108,26 @@ describe('POST /api/invitations (trial path, multi-city)', () => {
       expect.objectContaining({
         contactEmail: 'owner@acme.example',
         businessName: 'Acme Plumbing',
+        monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
       })
     )
+  })
+
+  it('stores the subscription price even when the request price is 0 or omitted', async () => {
+    for (const monthlyPrice of [0, undefined, '']) {
+      createInvitationMock.mockClear()
+      const res = await POST(
+        makeRequest({
+          businessName: 'Acme Plumbing',
+          category: 'plumbing',
+          cities: ['Marietta'],
+          monthlyPrice,
+        }) as never
+      )
+      expect(res.status).toBe(200)
+      expect(createInvitationMock).toHaveBeenCalledWith(
+        expect.objectContaining({ monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD })
+      )
+    }
   })
 })

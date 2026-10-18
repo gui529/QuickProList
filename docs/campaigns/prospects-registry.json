@@ -269,7 +269,8 @@
       "city": "marietta",
       "category": "plumbing",
       "source": "own_site",
-      "status": "pending",
+      "status": "skip",
+      "skipReason": "domain mismatch: barnettplumbing.com redirects to an unrelated California Barnett Plumbing; mail would go to the wrong company",
       "websiteUrl": "https://barnettplumber.com/",
       "emailSource": "https://barnettplumber.com/about/",
       "roleAddress": true

@@ -1,6 +1,7 @@
 import type { Business } from './business'
 import { isDatabaseConfigured, query } from './db'
 import { isUuid } from './is-uuid'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from './subscription-terms'
 
 export interface EnrollmentInvitation {
   id: string
@@ -254,13 +255,14 @@ export async function createTrialInvitation(input: CreateTrialInvitationInput): 
     `INSERT INTO enrollment_invitations (
        business_name, yelp_id, yelp_data, category, cities, monthly_price, status,
        curated_business_id, trial_ends_at
-     ) VALUES ($1,$2,$3::jsonb,$4,$5,0,'trial',$6,$7)`,
+     ) VALUES ($1,$2,$3::jsonb,$4,$5,$6,'trial',$7,$8)`,
     [
       input.businessName,
       input.yelpId || null,
       input.yelpData ? JSON.stringify(input.yelpData) : null,
       input.category,
       input.cities,
+      SUBSCRIPTION_MONTHLY_PRICE_USD,
       input.curatedBusinessId,
       input.trialEndsAt,
     ]

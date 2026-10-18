@@ -8,6 +8,7 @@
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
 import type { EnrollmentInvitation, CreateInvitationInput, CreateTrialInvitationInput } from './invitations'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from './subscription-terms'
 
 // Inlined copy of lib/invitations.ts's isInvitationExpired. This used to be
 // `export { isInvitationExpired } from './invitations'`, but under
@@ -191,7 +192,7 @@ export async function createTrialInvitation(input: CreateTrialInvitationInput): 
     yelp_data: (input.yelpData as Record<string, unknown>) ?? null,
     category: input.category,
     cities: input.cities,
-    monthly_price: 0,
+    monthly_price: SUBSCRIPTION_MONTHLY_PRICE_USD,
     status: 'trial',
     stripe_session_id: null,
     stripe_subscription_id: null,
