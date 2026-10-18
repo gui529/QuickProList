@@ -65,7 +65,7 @@ vi.mock('@/lib/enrollment-trial', () => ({ activateEnrollmentTrial: activateEnro
 
 import PreviewPage, { generateMetadata, PREVIEW_BANNER_TEXT } from './page'
 import { EXISTING_LISTING_NOTE } from '@/lib/preview-listing'
-import { previewEnrollCta } from '@/lib/campaign-defaults'
+import { CAMPAIGN_TRIAL_DAYS, previewEnrollCta } from '@/lib/campaign-defaults'
 import { LISTING_NOT_LIVE_YET } from '@/lib/listing-preview-copy'
 import { formatSubscriptionPrice } from '@/lib/subscription-terms'
 
@@ -232,15 +232,35 @@ describe('contractor preview page', () => {
     expect(view.hrefs).toContain(`/enroll/${ENROLL}`)
   })
 
-  it('links Start your free preview to enroll and does not start the trial itself', async () => {
+  it('links Go live free for 30 days to enroll and does not start the trial itself', async () => {
     const view = await render(token)
-    const start = view.links.find((link) => link.text.includes('Start your free preview'))
+    const label = `Go live free for ${CAMPAIGN_TRIAL_DAYS} days`
+    const start = view.links.find((link) => link.text.includes(label))
+    expect(CAMPAIGN_TRIAL_DAYS).toBe(30)
+    expect(label).toBe('Go live free for 30 days')
     expect(start?.href).toBe(`/enroll/${ENROLL}`)
+    expect(view.text).not.toContain('Start your free preview')
     expect(activateEnrollmentTrialMock).not.toHaveBeenCalled()
 
     const source = readFileSync(path.join(__dirname, 'page.tsx'), 'utf8')
     expect(source).not.toMatch(/start-trial/)
     expect(source).not.toMatch(/activateEnrollmentTrial/)
+  })
+
+  it('states the no-card terms from the shared price and that a free trial is labeled Sponsored', async () => {
+    const view = await render(token)
+    const price = formatSubscriptionPrice()
+    expect(price).toBe('$29.99')
+    expect(view.text).toContain(
+      `No card needed. Comes down on its own after ${CAMPAIGN_TRIAL_DAYS} days unless you choose ${price}/mo.`
+    )
+    expect(view.text).toContain(
+      `During your free ${CAMPAIGN_TRIAL_DAYS} days, your listing is labeled Sponsored in search.`
+    )
+    expect(view.text).not.toContain('One free preview per business.')
+    const source = readFileSync(path.join(__dirname, 'page.tsx'), 'utf8')
+    expect(source).toContain('formatSubscriptionPrice()')
+    expect(source).not.toMatch(/29\.99/)
   })
 
   it('shows the same Not live yet line as enroll and the shared monthly price', async () => {

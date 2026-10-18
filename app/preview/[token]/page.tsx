@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { headers } from 'next/headers'
 import ProSiteView from '@/components/ProSiteView'
-import { getCampaignPostalAddress, previewEnrollCta } from '@/lib/campaign-defaults'
+import { CAMPAIGN_TRIAL_DAYS, getCampaignPostalAddress, previewEnrollCta } from '@/lib/campaign-defaults'
+import { formatSubscriptionPrice } from '@/lib/subscription-terms'
 import { isPreviewPagesEnabled } from '@/lib/feature-flags'
 import { isUuid } from '@/lib/is-uuid'
 import { LISTING_NOT_LIVE_YET } from '@/lib/listing-preview-copy'
@@ -124,9 +125,16 @@ export default async function PreviewPage({
               href={enroll}
               className="inline-flex mt-5 px-6 py-3 rounded-full bg-slate-900 text-white text-sm font-bold hover:bg-slate-800"
             >
-              Start your free preview
+              Go live free for {CAMPAIGN_TRIAL_DAYS} days
             </Link>
           )}
+          <p className="mt-3 text-sm text-slate-600">
+            No card needed. Comes down on its own after {CAMPAIGN_TRIAL_DAYS} days unless you choose{' '}
+            {formatSubscriptionPrice()}/mo.
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            During your free {CAMPAIGN_TRIAL_DAYS} days, your listing is labeled Sponsored in search.
+          </p>
         </div>
       </section>
 
