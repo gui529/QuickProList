@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
       yelpId: body.yelpId,
       yelpData: body.yelpData,
       curatedBusinessId: body.existingCuratedId || undefined,
+      contactEmail: typeof body.contactEmail === 'string' ? body.contactEmail : undefined,
     })
     return NextResponse.json({ token })
   } catch (err) {

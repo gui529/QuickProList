@@ -18,8 +18,10 @@ vi.mock('./suppressions', async (orig) => ({
 import {
   buildMarketingCtaLabel,
   buildMarketingEmailSubject,
+  COMMERCIAL_AD_DISCLOSURE,
   formatFromAddress,
   formatMarketingFromAddress,
+  sendCommercialNotice,
   sendEmail,
   sendDigestEmail,
 } from './email'
@@ -211,6 +213,57 @@ describe('sendEmail (lib/email.ts)', () => {
       expect(sendMock).toHaveBeenCalledTimes(1)
       const call = sendMock.mock.calls[0][0] as { headers?: unknown }
       expect(call.headers).toBeUndefined()
+    })
+
+    it('sends a commercial notice with an accurate From, the given subject, and the full footer', async () => {
+      process.env.POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
+      const body = [
+        'Your QuickProList preview for Biz ends on November 17, 2026.',
+        'If you do nothing, it comes down on November 17, 2026. Nothing is charged.',
+        'https://example.test/enroll/tok?subscribe=1',
+      ].join('\n')
+
+      await sendCommercialNotice('Owner@Example.com', 'Your QuickProList preview ends November 17, 2026', body)
+
+      const call = sendMock.mock.calls[0][0] as {
+        from: string
+        subject: string
+        html: string
+        text: string
+        headers: Record<string, string>
+        bcc?: string[]
+      }
+      expect(call.from).toBe('QuickProList <noreply@example.com>')
+      expect(call.subject).toBe('Your QuickProList preview ends November 17, 2026')
+      expect(call.text.startsWith('Your QuickProList preview for Biz ends on November 17, 2026.')).toBe(true)
+      expect(call.text).toContain(COMMERCIAL_AD_DISCLOSURE)
+      expect(call.text).toContain('1 Market St, Atlanta, GA 30303')
+      expect(call.html).toContain('Unsubscribe')
+      expect(call.html).toContain(COMMERCIAL_AD_DISCLOSURE)
+      const listUnsub = call.headers['List-Unsubscribe']
+      const url = listUnsub.slice(1, -1)
+      expect(call.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
+      expect(verifyUnsubscribeToken(decodeURIComponent(url.split('token=')[1]))).toBe('owner@example.com')
+      expect(call.text).toContain(url)
+      const productLinks = body.match(/https?:\/\/\S+/g) ?? []
+      expect(productLinks).toEqual(['https://example.test/enroll/tok?subscribe=1'])
+      expect(call.bcc).toBeUndefined()
+      expect(call.text).not.toContain('We are going to launch soon')
+      delete process.env.POSTAL_ADDRESS
+    })
+
+    it('refuses a commercial notice without a postal address or to a suppressed address', async () => {
+      delete process.env.POSTAL_ADDRESS
+      await expect(sendCommercialNotice('owner@example.com', 'Subject', 'Body')).rejects.toThrow(/POSTAL_ADDRESS/)
+      expect(sendMock).not.toHaveBeenCalled()
+
+      process.env.POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
+      isSuppressedMock.mockResolvedValue(true)
+      await expect(sendCommercialNotice('owner@example.com', 'Subject', 'Ends soon')).rejects.toBeInstanceOf(
+        SuppressedError
+      )
+      expect(sendMock).not.toHaveBeenCalled()
+      delete process.env.POSTAL_ADDRESS
     })
 
     it('applies the same suppression and footer to the performance digest', async () => {

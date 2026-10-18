@@ -204,6 +204,43 @@ function marketingCompliance(to: string, reason: string): ComplianceFooter {
   }
 }
 
+/** CAN-SPAM identification line for commercial mail such as the trial reminder. */
+export const COMMERCIAL_AD_DISCLOSURE = 'This is an advertisement from QuickProList.'
+
+/**
+ * Postal line for commercial email. There is no address checked into the repo
+ * (public pages omit one; issue #18). Set `POSTAL_ADDRESS` to the business's
+ * real mailing address. Never invent one.
+ */
+export function requirePostalAddress(): string {
+  const postal = process.env.POSTAL_ADDRESS?.trim()
+  if (!postal) {
+    throw new Error('POSTAL_ADDRESS not configured (required for commercial email)')
+  }
+  return postal
+}
+
+/**
+ * Same opt-out mechanism as campaign mail (signed one-click link, List-Unsubscribe,
+ * and List-Unsubscribe-Post), plus an ad-disclosure line and the postal address.
+ * Does not alter `marketingCompliance`, which campaign sends still use.
+ */
+function commercialCompliance(to: string): ComplianceFooter {
+  assertMarketingEmailConfigured()
+  const url = buildUnsubscribeUrl(to)
+  const postal = requirePostalAddress()
+  const lines = [COMMERCIAL_AD_DISCLOSURE, postal]
+  return {
+    html: `${lines.map((line) => escapeHtml(line)).join('<br/>')}<br/>
+        <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>`,
+    text: `\n\n${lines.join('\n')}\nUnsubscribe: ${url}`,
+    headers: {
+      'List-Unsubscribe': `<${url}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  }
+}
+
 export type CampaignEmailWave = 'listed' | 'outreach' | 'test' | 'follow-up'
 
 /** Why the recipient got this mail. Follow-ups exist, so this is not described as one-time. */
@@ -293,6 +330,60 @@ export async function sendEmail(
     text,
     ...(isMarketing ? { bcc: [getCampaignOwnerBccEmail()] } : {}),
     ...(compliance ? { headers: compliance.headers } : {}),
+  })
+  if (error) throw new Error(error.message)
+  return data?.id ?? ''
+}
+
+function commercialNoticeHtml(body: string): string {
+  const blocks = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      if (/^https?:\/\/\S+$/.test(line)) {
+        return `<p style="margin:0 0 14px;font-size:15px;line-height:1.7"><a href="${escapeHtml(line)}" style="color:#2563eb">${escapeHtml(line)}</a></p>`
+      }
+      return `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155">${escapeHtml(line)}</p>`
+    })
+  return blocks.join('')
+}
+
+/**
+ * Commercial notice: the caller-supplied body is first (no pitch wrapper, no
+ * extra links), then the compliant footer. From is QuickProList, not the
+ * cold-outreach sender name. Suppressed addresses are refused.
+ */
+export async function sendCommercialNotice(
+  to: string,
+  subject: string,
+  body: string
+): Promise<string> {
+  const fromRaw = process.env.RESEND_FROM_EMAIL
+  if (!fromRaw) throw new Error('RESEND_FROM_EMAIL not configured')
+  const from = formatFromAddress(fromRaw)
+
+  const normalized = normalizeEmail(to)
+  if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
+  const compliance = commercialCompliance(to)
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff">
+${commercialNoticeHtml(body)}
+<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#64748b">${compliance.html}</p>
+</body>
+</html>`
+
+  const client = getClient()
+  const { data, error } = await client.emails.send({
+    from,
+    to,
+    subject,
+    html,
+    text: `${body}${compliance.text}`,
+    headers: compliance.headers,
   })
   if (error) throw new Error(error.message)
   return data?.id ?? ''

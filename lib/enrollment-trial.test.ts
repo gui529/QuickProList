@@ -6,6 +6,7 @@ vi.mock('./email', () => ({
   sendEmail: vi.fn().mockResolvedValue('email-id'),
 }))
 
+import { sendEmail } from './email'
 import { __reset as resetInvitations, __seed as seedInvitation, getInvitationByToken } from './invitations.test-double'
 import { __reset as resetCurated, __all as allCurated, __seed as seedCurated } from './kv.test-double'
 import {
@@ -13,11 +14,16 @@ import {
   enrollPreviewTrialDays,
   EnrollmentTrialError,
 } from './enrollment-trial'
+import { formatPreviewEndDate } from './preview-date'
+
+const sendEmailMock = vi.mocked(sendEmail)
 
 describe('activateEnrollmentTrial', () => {
   beforeEach(() => {
     resetInvitations()
     resetCurated()
+    sendEmailMock.mockClear()
+    delete process.env.PRO_DASHBOARD_ENABLED
   })
 
   it('creates a live trial listing from a pending invitation', async () => {
@@ -30,7 +36,7 @@ describe('activateEnrollmentTrial', () => {
       monthly_price: 29.99,
     })
 
-    const result = await activateEnrollmentTrial(inv.token)
+    const result = await activateEnrollmentTrial(inv.token, 'owner@acme.test')
 
     expect(result.curatedBusinessId).toBeTruthy()
     expect(result.trialEndsAt).toBeTruthy()
@@ -44,6 +50,49 @@ describe('activateEnrollmentTrial', () => {
     const updated = await getInvitationByToken('tok-1')
     expect(updated?.status).toBe('trial')
     expect(updated?.curated_business_id).toBe(result.curatedBusinessId)
+    expect(curated[0].contact_email).toBe('owner@acme.test')
+
+    const endLabel = formatPreviewEndDate(result.trialEndsAt)
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    const body = sendEmailMock.mock.calls[0][2]
+    expect(body).toContain(endLabel)
+    expect(body).toContain('Nothing is charged automatically.')
+    expect(sendEmailMock.mock.calls[0][3]).toEqual({ kind: 'transactional' })
+  })
+
+  it('rejects a preview start with no reminder email and does not publish', async () => {
+    seedInvitation({
+      token: 'tok-email',
+      status: 'pending',
+      business_name: 'No Email Plumbing',
+    })
+
+    await expect(activateEnrollmentTrial('tok-email')).rejects.toMatchObject({
+      code: 'email_required',
+      message: 'Enter an email for preview reminders.',
+    })
+    expect(allCurated()).toHaveLength(0)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects an invalid reminder email', async () => {
+    seedInvitation({ token: 'tok-bad', status: 'pending' })
+    await expect(activateEnrollmentTrial('tok-bad', 'not-an-email')).rejects.toMatchObject({
+      message: 'Enter a valid email for preview reminders.',
+    })
+    expect(allCurated()).toHaveLength(0)
+  })
+
+  it('uses the invitation email when the request does not send one', async () => {
+    const inv = seedInvitation({
+      token: 'tok-prefill',
+      status: 'pending',
+      cities: ['marietta'],
+      contact_email: 'stored@acme.test',
+    })
+    await activateEnrollmentTrial(inv.token)
+    expect(allCurated()[0].contact_email).toBe('stored@acme.test')
+    expect(sendEmailMock.mock.calls[0][0]).toBe('stored@acme.test')
   })
 
   it('copies phone, address, website, name, city, and trade onto the new listing', async () => {

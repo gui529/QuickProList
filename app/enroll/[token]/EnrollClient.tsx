@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import EnrollListingPreview from '@/components/EnrollListingPreview'
-import { CATEGORIES } from '@/lib/categories'
+import { CATEGORIES, normalizeCategory } from '@/lib/categories'
+import { reminderEmailError } from '@/lib/reminder-email'
 import { buildEnrollHomeUrl } from '@/lib/enroll-home-url'
 import { saveMyListingId } from '@/lib/my-listing-storage'
 import type { EnrollmentInvitation } from '@/lib/invitations'
@@ -62,6 +63,12 @@ export default function EnrollClient({
   }, [invitation, success, wantSubscribe])
 
   async function handleStartPreview() {
+    const emailError = reminderEmailError(contactEmail)
+    if (emailError) {
+      setError(emailError)
+      return
+    }
+    const email = contactEmail.trim()
     setLoading(true)
     setError('')
     try {
@@ -70,7 +77,7 @@ export default function EnrollClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
-          email: contactEmail.trim() || undefined,
+          email,
         }),
       })
       const data = await res.json()
@@ -121,10 +128,7 @@ export default function EnrollClient({
         <div className="text-center max-w-lg">
           <div className="text-6xl mb-4">✓</div>
           <h1 className="text-4xl font-bold text-emerald-900 mb-2">Payment successful!</h1>
-          <p className="text-emerald-700 mb-6">
-            {invitation.business_name} is now featured on QuickProList. Customers searching for {categoryLabel} in{' '}
-            {invitation.cities.join(', ')} will see your business first.
-          </p>
+          <p className="text-emerald-700 mb-6">Your listing is live on QuickProList.</p>
           <p className="text-sm text-emerald-600">
             Your monthly subscription of ${invitation.monthly_price.toFixed(2)}/month is now active.
           </p>
@@ -150,10 +154,9 @@ export default function EnrollClient({
   }
 
   const searchCity = invitation.cities[0]
-  const searchHref =
-    searchCity
-      ? `/search?location=${encodeURIComponent(searchCity)}&category=${encodeURIComponent(invitation.category)}`
-      : null
+  const searchHref = searchCity
+    ? `/?location=${encodeURIComponent(searchCity)}&category=${encodeURIComponent(normalizeCategory(invitation.category))}`
+    : null
 
   if (step === 'preview' && invitation.status !== 'paid') {
     return (
@@ -182,15 +185,18 @@ export default function EnrollClient({
             )}
 
             <div className="mt-6 flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-                Email for listing updates
+              <label htmlFor="preview-reminder-email" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                Email for preview reminders
               </label>
               <input
+                id="preview-reminder-email"
                 type="email"
+                required
                 autoComplete="email"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="you@yourbusiness.com"
+                aria-invalid={error.toLowerCase().includes('email') ? true : undefined}
                 className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
               <p className="text-xs text-slate-500">Used for preview reminders and win-back — not shown on your listing.</p>

@@ -51,6 +51,7 @@ export default function EnrollmentLinkModal({ open, onClose, business, defaultCa
           // so the webhook updates that row instead of inserting a
           // duplicate bare one on checkout completion.
           existingCuratedId: business.source === 'manual' ? business.id : undefined,
+          contactEmail: business.contactEmail?.trim() || undefined,
         }),
       })
 

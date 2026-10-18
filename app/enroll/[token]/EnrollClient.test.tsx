@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import EnrollClient from './EnrollClient'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
@@ -72,5 +72,56 @@ describe('EnrollClient (success view dashboard link)', () => {
 
     expect(screen.queryByRole('link', { name: /view your dashboard/i })).toBeNull()
     expect(screen.getByText('Payment successful!')).toBeTruthy()
+  })
+
+  it('does not promise top placement after payment', () => {
+    window.history.pushState({}, '', '/enroll/test-token?success=1')
+
+    render(<EnrollClient invitation={makeInvitation()} token="test-token" dashboardToken={null} />)
+
+    expect(screen.getByText('Your listing is live on QuickProList.')).toBeTruthy()
+    expect(screen.queryByText(/will see your business first/i)).toBeNull()
+    expect(screen.queryByText(/featured/i)).toBeNull()
+  })
+
+  it('links current results to homepage search for that trade and city', () => {
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ status: 'pending', curated_business_id: null, cities: ['marietta'] })}
+        token="test-token"
+      />
+    )
+
+    const link = screen.getByRole('link', { name: /see current plumbers results in marietta/i })
+    expect(link.getAttribute('href')).toBe('/?location=marietta&category=plumbing')
+  })
+
+  it('prefills the reminder email and requires it before starting a preview', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
+        token="test-token"
+        initialContactEmail="owner@acme.example"
+      />
+    )
+
+    const input = screen.getByLabelText(/email for preview reminders/i) as HTMLInputElement
+    expect(input.value).toBe('owner@acme.example')
+    expect(input.required).toBe(true)
+
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: /start my 30-day preview/i }))
+    expect(screen.getByText('Enter an email for preview reminders.')).toBeTruthy()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fireEvent.change(input, { target: { value: 'not-an-email' } })
+    fireEvent.click(screen.getByRole('button', { name: /start my 30-day preview/i }))
+    expect(screen.getByText('Enter a valid email for preview reminders.')).toBeTruthy()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    vi.unstubAllGlobals()
   })
 })

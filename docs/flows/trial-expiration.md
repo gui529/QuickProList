@@ -47,7 +47,7 @@ Preview length defaults to **30 days** (`ENROLL_PREVIEW_TRIAL_DAYS`, set in `lib
 | Win-back email → new enroll link | This doc + enroll flow |
 | Admin **Enrollment link** or **Start trial** again | [admin-invitations-and-trials.md](./admin-invitations-and-trials.md) |
 
-**During an active preview:** `/enroll/[token]` redirects to the homepage unless `?subscribe=1` is present (checkout step). Trial-ending reminder email (~72h before end, `GET /api/cron/trial-reminder`) links to `?subscribe=1`.
+**During an active preview:** `/enroll/[token]` redirects to the homepage unless `?subscribe=1` is present (checkout step). Trial-ending reminder email (default 120 hours / about 5 days before end, `TRIAL_REMINDER_HOURS`, `GET /api/cron/trial-reminder`) links to `?subscribe=1`.
 
 **After expiry on this device:** If the pro started preview from this browser, the homepage may show an amber banner (`/api/listing-status/[id]` + `localStorage` `quickprolist:myListing`) with a checkout link when a pending/trial token exists.
 

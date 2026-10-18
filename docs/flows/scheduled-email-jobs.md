@@ -32,7 +32,7 @@ Details when preview lapses without payment: [trial-expiration.md](./trial-expir
 
 **Endpoint:** `GET /api/cron/trial-reminder` (daily in `vercel.json`)  
 **Auth:** `Authorization: Bearer {CRON_SECRET}`  
-**Logic:** `lib/trial-reminder.ts` — active `trial` status, `trial_ends_at` within `TRIAL_REMINDER_HOURS` (default 72), `contact_email` set, `trial_reminder_sent_at` null. Email includes `enroll/{token}?subscribe=1`.
+**Logic:** `lib/trial-reminder.ts` — active `trial` status, `trial_ends_at` within `TRIAL_REMINDER_HOURS` (default 120, about 5 days), `contact_email` set, `trial_reminder_sent_at` null. Commercial email (ad line, one-click opt-out, `POSTAL_ADDRESS`) with one subscribe link: `enroll/{token}?subscribe=1`. Subject: `Your QuickProList preview ends {date}`.
 
 Requires migration `016_invitation_contact_and_trial_reminder.sql` on Neon.
 
