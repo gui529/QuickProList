@@ -42,9 +42,9 @@ Campaign email **requires** `city` and `category` on the send payload (`app/api/
 **Client:** `app/enroll/[token]/EnrollClient.tsx` when `step === 'preview'` and `status !== 'paid'`.
 
 - Heading: “Your listing preview”.
-- `components/EnrollListingPreview.tsx` — static featured card (not loaded from search).
+- `components/EnrollListingPreview.tsx` — static preview card (not loaded from search). Copy on this screen does not promise a better spot in results.
 - Link: `` `/?location=${city}&category=${category}` `` — the homepage search that actually lists pros (see [homeowner-search.md](./homeowner-search.md)).
-- Primary: **Yes — start my 30-day preview** → `POST /api/enroll/start-trial` (`lib/enrollment-trial.ts`) creates/updates `curated_businesses` with `is_trial` + `trial_ends_at` (default 30 days, `ENROLL_PREVIEW_TRIAL_DAYS`), sets invitation `status: 'trial'`, publishes listing.
+- Primary: **Yes — start my {N}-day preview**, where N is `enrollPreviewTrialDays()` (`ENROLL_PREVIEW_TRIAL_DAYS`, fallback 30) passed from the server page → `POST /api/enroll/start-trial` (`lib/enrollment-trial.ts`) creates/updates `curated_businesses` with `is_trial` + `trial_ends_at`, sets invitation `status: 'trial'`, publishes listing.
 - **Email for preview reminders** (required to start the preview; prefilled from `contact_email` when the invitation already has one).
 - Secondary: subscribe now → checkout step.
 - Active trial: `?subscribe=1` opens checkout without homepage redirect.

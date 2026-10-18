@@ -25,6 +25,7 @@ import { POST } from './route'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 import {
   SUBSCRIPTION_CONSENT_REQUIRED_ERROR,
+  SUBSCRIPTION_PRICE_MISMATCH_ERROR,
   subscriptionDisclosureText,
 } from '@/lib/subscription-terms'
 
@@ -172,6 +173,24 @@ describe('POST /api/stripe/checkout (express consent)', () => {
     expect(createCheckoutSessionMock).not.toHaveBeenCalled()
     expect(recordSubscriptionConsentMock).not.toHaveBeenCalled()
     expect(getInvitationByTokenMock).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 and does not start checkout when the invitation price is missing or not 29.99', async () => {
+    const cases: Array<{ monthly_price: number; ip: string }> = [
+      { monthly_price: 49, ip: '10.2.0.1' },
+      { monthly_price: 0, ip: '10.2.0.2' },
+      { monthly_price: Number.NaN, ip: '10.2.0.3' },
+      { monthly_price: null as unknown as number, ip: '10.2.0.4' },
+    ]
+    for (const { monthly_price, ip } of cases) {
+      const invitation = makeInvitation({ monthly_price })
+      getInvitationByTokenMock.mockResolvedValue(invitation)
+      const res = await POST(makeRequest(invitation.token, ip) as never)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toEqual({ error: SUBSCRIPTION_PRICE_MISMATCH_ERROR })
+    }
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled()
+    expect(recordSubscriptionConsentMock).not.toHaveBeenCalled()
   })
 
   it('records the disclosure and a timestamp, then creates the session', async () => {

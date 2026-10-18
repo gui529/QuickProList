@@ -6,7 +6,9 @@ import {
   GMAIL_TEST_DAILY_CAP,
   assertNoUnfilledGmailPlaceholder,
   gmailFromHeader,
+  isClaimedMonthlyPrice,
 } from './gmail-campaign'
+import { formatSubscriptionPrice } from './subscription-terms'
 
 export const FOLLOW_UP_DAYS = [4, 10, 18] as const
 export type FollowUpDay = (typeof FOLLOW_UP_DAYS)[number]
@@ -88,11 +90,15 @@ export function renderGmailFollowUp(input: {
 }): GmailFollowUp {
   const postal = usableCampaignPostalAddress(input.postalAddress)
   if (!postal) throw new Error('Refusing to render a Gmail follow-up without a postal address')
+  if (!isClaimedMonthlyPrice(input.price)) {
+    throw new Error('Refusing to render a Gmail follow-up when the price is not 29.99')
+  }
   const businessName = input.businessName.trim()
   const enrollUrl = input.enrollUrl.trim()
+  const price = formatSubscriptionPrice()
   const bodies: Record<FollowUpDay, string> = {
     4: `One detail I left out: if you start the preview and it's not for you, do nothing. It comes down by itself after ${input.trialDays} days and you're never billed. Same link: ${enrollUrl}`,
-    10: `It probably sounds like one more Angi. It isn't. No leads sold, no bidding. Flat ${input.price}/month after the free ${input.trialDays} days, only if you want it. Would it be a bad idea to take a look? ${enrollUrl}`,
+    10: `It probably sounds like one more Angi. It isn't. No leads sold, no bidding. Flat ${price}/month after the free ${input.trialDays} days, only if you want it. Would it be a bad idea to take a look? ${enrollUrl}`,
     18: `I'll stop here so I'm not cluttering your inbox. If you ever want the ${businessName} listing, just reply and I'll send a fresh link. Thanks for reading.`,
   }
   const inReplyTo = input.inReplyTo?.trim() || null
@@ -109,10 +115,15 @@ export function renderGmailFollowUp(input: {
   }
 }
 
-/** Held, not sendable, when the postal address is missing. Same reason as the first email. */
+export type FollowUpHoldReason = typeof GMAIL_MISSING_POSTAL_REASON | 'price_mismatch'
+
+/** Held, not sendable, for a missing postal address or a price other than 29.99. */
 export function prepareGmailFollowUp(
   input: Parameters<typeof renderGmailFollowUp>[0]
-): { status: 'held'; reason: typeof GMAIL_MISSING_POSTAL_REASON } | { status: 'ready'; message: GmailFollowUp } {
+): { status: 'held'; reason: FollowUpHoldReason } | { status: 'ready'; message: GmailFollowUp } {
+  if (!isClaimedMonthlyPrice(input.price)) {
+    return { status: 'held', reason: 'price_mismatch' }
+  }
   if (!usableCampaignPostalAddress(input.postalAddress)) {
     return { status: 'held', reason: GMAIL_MISSING_POSTAL_REASON }
   }

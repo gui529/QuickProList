@@ -78,6 +78,35 @@ describe('Gmail follow-ups', () => {
     expect(day10.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
   })
 
+  it('holds a follow-up with price_mismatch when the price is empty or not 29.99', () => {
+    const base = {
+      businessName: 'Ready Plumbing',
+      enrollUrl: 'https://www.quickprolist.com/enroll/abc',
+      subject: 'your Marietta listing preview',
+      trialDays: 30,
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
+    }
+    for (const step of [4, 10, 18] as const) {
+      for (const price of ['', '   ', '$19.99', '30', 'Flat']) {
+        const held = prepareGmailFollowUp({ ...base, step, price })
+        expect(held).toEqual({ status: 'held', reason: 'price_mismatch' })
+        expect(() => renderGmailFollowUp({ ...base, step, price })).toThrow(/not 29\.99/)
+      }
+    }
+    const missingPostalToo = prepareGmailFollowUp({ ...base, step: 10, price: '', postalAddress: '' })
+    expect(missingPostalToo).toEqual({ status: 'held', reason: 'price_mismatch' })
+
+    for (const price of ['$29.99', '29.99']) {
+      const ready = prepareGmailFollowUp({ ...base, step: 10, price })
+      expect(ready.status).toBe('ready')
+      if (ready.status !== 'ready') continue
+      expect(ready.message.text).toContain('Flat $29.99/month after the free 30 days')
+      expect(ready.message.text).not.toContain('Flat /month')
+      expect(ready.message.text).not.toContain('$19.99')
+      expect(ready.message.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
+    }
+  })
+
   it('holds a follow-up when the postal address is missing and renders it when set', () => {
     const base = {
       step: 4 as const,

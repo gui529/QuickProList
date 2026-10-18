@@ -4,6 +4,7 @@ import {
   SUBSCRIPTION_CANCEL_SENTENCE,
   cancelSubscriptionMailto,
   formatSubscriptionPrice,
+  isConfiguredSubscriptionPrice,
   renewalNoticeLeadMs,
   shouldSendRenewalNotice,
   subscriptionConfirmationBody,
@@ -35,6 +36,16 @@ describe('subscription terms', () => {
     expect(swapped).toContain('Subscribing now keeps any remaining preview days.')
     expect(swapped).toContain('$29.99/month. The plan renews automatically every month until you cancel.')
     expect(swapped).toContain(SUBSCRIPTION_CANCEL_SENTENCE)
+  })
+
+  it('accepts only the configured subscription price', () => {
+    expect(isConfiguredSubscriptionPrice(29.99)).toBe(true)
+    expect(isConfiguredSubscriptionPrice('29.99')).toBe(true)
+    expect(isConfiguredSubscriptionPrice('$29.99')).toBe(true)
+    expect(isConfiguredSubscriptionPrice(' $29.99 ')).toBe(true)
+    for (const price of [null, undefined, '', '   ', 0, 19.99, 30, 49, Number.NaN, '$19.99']) {
+      expect(isConfiguredSubscriptionPrice(price)).toBe(false)
+    }
   })
 
   it('renders the success line from the configured price', () => {

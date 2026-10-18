@@ -5,6 +5,7 @@ import EnrollClient from './EnrollClient'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 import {
   formatSubscriptionPrice,
+  SUBSCRIPTION_PRICE_MISMATCH_ERROR,
   subscriptionDisclosureText,
   subscriptionSuccessLine,
 } from '@/lib/subscription-terms'
@@ -139,6 +140,85 @@ describe('EnrollClient (success view dashboard link)', () => {
         body: JSON.stringify({ token: 'test-token', consent: true }),
       })
     )
+
+    vi.unstubAllGlobals()
+  })
+
+  it('describes the preview as how the listing can look, without promising a better spot', () => {
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
+        token="test-token"
+      />
+    )
+
+    expect(screen.getByText(/this is how your listing can look on QuickProList/i)).toBeTruthy()
+    expect(screen.getByText(/this is how your listing can look in austin/i)).toBeTruthy()
+    expect(screen.queryByText(/pinned/i)).toBeNull()
+    expect(screen.queryByText(/featured/i)).toBeNull()
+    expect(screen.queryByText(/\bfirst\b/i)).toBeNull()
+  })
+
+  it('uses the trial length passed from the server', () => {
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
+        token="test-token"
+        previewTrialDays={14}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /start my 14-day preview/i })).toBeTruthy()
+    expect(screen.getByText(/live in search for 14 days/i)).toBeTruthy()
+    expect(screen.queryByText(/30-day/)).toBeNull()
+    expect(screen.queryByText(/for 30 days/)).toBeNull()
+  })
+
+  it('disables subscribe and checkout when the invitation price is missing or not 29.99', () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <EnrollClient
+        invitation={makeInvitation({
+          status: 'pending',
+          curated_business_id: null,
+          monthly_price: 49,
+        })}
+        token="test-token"
+      />
+    )
+
+    const subscribe = screen.getByRole('button', { name: /subscribe now/i }) as HTMLButtonElement
+    expect(subscribe.disabled).toBe(true)
+    expect(subscribe.textContent).toContain(`${formatSubscriptionPrice()}/mo`)
+    expect(screen.getByText(SUBSCRIPTION_PRICE_MISMATCH_ERROR)).toBeTruthy()
+    expect(screen.queryByText(/\$49/)).toBeNull()
+    fireEvent.click(subscribe)
+    expect(screen.queryByRole('button', { name: /secure checkout/i })).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    cleanup()
+
+    render(
+      <EnrollClient
+        invitation={makeInvitation({
+          status: 'pending',
+          curated_business_id: 'curated-1',
+          monthly_price: null as unknown as number,
+        })}
+        token="test-token"
+      />
+    )
+
+    expect(screen.getByText(formatSubscriptionPrice())).toBeTruthy()
+    expect(screen.getByText(subscriptionDisclosureText())).toBeTruthy()
+    expect(screen.getByText(SUBSCRIPTION_PRICE_MISMATCH_ERROR)).toBeTruthy()
+    const checkout = screen.getByRole('button', { name: /go to secure checkout/i }) as HTMLButtonElement
+    expect(checkout.disabled).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to these subscription terms/i }))
+    fireEvent.click(checkout)
+    expect(fetchMock).not.toHaveBeenCalled()
 
     vi.unstubAllGlobals()
   })

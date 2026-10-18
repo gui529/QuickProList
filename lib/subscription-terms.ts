@@ -1,11 +1,27 @@
 import { PUBLIC_CONTACT_EMAIL } from './site-contact'
 
-/** Listed price. Disclosure and the success line render this, not a hardcoded string. */
+/** Listed price. Disclosure, the button, the success line, and mail all render this. */
 export const SUBSCRIPTION_MONTHLY_PRICE_USD = 29.99
 
 export function formatSubscriptionPrice(amount = SUBSCRIPTION_MONTHLY_PRICE_USD): string {
   return `$${amount.toFixed(2)}`
 }
+
+/**
+ * True only for the configured monthly price. Missing, blank, and other amounts
+ * are not what Stripe is allowed to charge.
+ */
+export function isConfiguredSubscriptionPrice(price: number | string | null | undefined): boolean {
+  if (price == null || price === '') return false
+  const raw = typeof price === 'string' ? price.replace(/[$,\s]/g, '') : price
+  if (raw === '') return false
+  const amount = typeof raw === 'number' ? raw : Number(raw)
+  if (!Number.isFinite(amount)) return false
+  return Math.round(amount * 100) === Math.round(SUBSCRIPTION_MONTHLY_PRICE_USD * 100)
+}
+
+export const SUBSCRIPTION_PRICE_MISMATCH_ERROR =
+  'This listing price does not match the subscription price, so checkout is unavailable.'
 
 /**
  * Swappable on its own. Checkout does not set a Stripe trial period, so billing

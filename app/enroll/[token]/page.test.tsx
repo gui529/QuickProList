@@ -12,6 +12,7 @@ vi.mock('@/lib/invitations', async (importOriginal) => {
 
 import EnrollPage from './page'
 import type { EnrollmentInvitation } from '@/lib/invitations'
+import { enrollPreviewTrialDays } from '@/lib/enroll-preview-days'
 
 function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): EnrollmentInvitation {
   return {
@@ -85,5 +86,22 @@ describe('EnrollPage (expiration enforcement)', () => {
     const result = await EnrollPage({ params: Promise.resolve({ token: invitation.token }) })
 
     expect(textOf(result)).not.toContain('Link expired')
+    expect((result as ReactElement<{ previewTrialDays: number }>).props.previewTrialDays).toBe(
+      enrollPreviewTrialDays()
+    )
+  })
+
+  it('passes the configured preview length to the client', async () => {
+    const previous = process.env.ENROLL_PREVIEW_TRIAL_DAYS
+    process.env.ENROLL_PREVIEW_TRIAL_DAYS = '14'
+    try {
+      const invitation = makeInvitation()
+      getInvitationByTokenMock.mockResolvedValue(invitation)
+      const result = await EnrollPage({ params: Promise.resolve({ token: invitation.token }) })
+      expect((result as ReactElement<{ previewTrialDays: number }>).props.previewTrialDays).toBe(14)
+    } finally {
+      if (previous === undefined) delete process.env.ENROLL_PREVIEW_TRIAL_DAYS
+      else process.env.ENROLL_PREVIEW_TRIAL_DAYS = previous
+    }
   })
 })

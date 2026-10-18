@@ -2,6 +2,7 @@ import { CATEGORIES, normalizeCategory } from './categories'
 import { formatCategorySearchPhrase, formatCityLabel } from './display'
 import { parseEnrollPreviewTrialDays } from './enroll-preview-days'
 import { usableCampaignPostalAddress } from './email'
+import { isConfiguredSubscriptionPrice } from './subscription-terms'
 
 /** Gmail test sends leave from this mailbox. Sending itself is outside the repo. */
 export const GMAIL_TEST_FROM = 'gui.quickprolist@gmail.com'
@@ -177,10 +178,7 @@ export const CLAIMED_MONTHLY_PRICE_CENTS = 2999
 
 /** True only for 29.99. Missing and other amounts are not the claim in the copy. */
 export function isClaimedMonthlyPrice(price: number | string | null | undefined): boolean {
-  if (price == null || price === '') return false
-  const amount = typeof price === 'number' ? price : Number(price)
-  if (!Number.isFinite(amount)) return false
-  return Math.round(amount * 100) === CLAIMED_MONTHLY_PRICE_CENTS
+  return isConfiguredSubscriptionPrice(price)
 }
 
 export function renderGmailTestEmail(input: {

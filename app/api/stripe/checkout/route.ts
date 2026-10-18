@@ -4,6 +4,8 @@ import { createCheckoutSession } from '@/lib/stripe'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import {
   SUBSCRIPTION_CONSENT_REQUIRED_ERROR,
+  SUBSCRIPTION_PRICE_MISMATCH_ERROR,
+  isConfiguredSubscriptionPrice,
   subscriptionDisclosureText,
 } from '@/lib/subscription-terms'
 
@@ -36,6 +38,9 @@ export async function POST(req: NextRequest) {
     }
     if (invitation.status !== 'pending' && invitation.status !== 'trial') {
       return NextResponse.json({ error: 'Invitation is not eligible for checkout' }, { status: 400 })
+    }
+    if (!isConfiguredSubscriptionPrice(invitation.monthly_price)) {
+      return NextResponse.json({ error: SUBSCRIPTION_PRICE_MISMATCH_ERROR }, { status: 400 })
     }
 
     const baseUrl = (

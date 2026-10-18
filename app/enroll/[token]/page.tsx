@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { isProDashboardEnabled } from '@/lib/feature-flags'
 import { getInvitationByToken, isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
 import { getCuratedById } from '@/lib/kv'
+import { enrollPreviewTrialDays } from '@/lib/enroll-preview-days'
 import { legalContactMailto } from '@/lib/legal-site'
 import EnrollClient from './EnrollClient'
 
@@ -81,6 +82,7 @@ export default async function EnrollPage({ params }: { params: Promise<{ token: 
       dashboardToken={dashboardToken}
       proDashboardEnabled={proDashboardEnabled}
       initialContactEmail={invitation.contact_email}
+      previewTrialDays={enrollPreviewTrialDays()}
     />
   )
 }

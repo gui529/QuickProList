@@ -6,9 +6,13 @@ import EnrollListingPreview from '@/components/EnrollListingPreview'
 import { CATEGORIES, normalizeCategory } from '@/lib/categories'
 import { formatCityLabel } from '@/lib/display'
 import { reminderEmailError } from '@/lib/reminder-email'
+import { DEFAULT_ENROLL_PREVIEW_TRIAL_DAYS } from '@/lib/enroll-preview-days'
 import {
   cancelSubscriptionMailto,
+  formatSubscriptionPrice,
+  isConfiguredSubscriptionPrice,
   SUBSCRIPTION_CONSENT_REQUIRED_ERROR,
+  SUBSCRIPTION_PRICE_MISMATCH_ERROR,
   subscriptionDisclosureText,
   subscriptionSuccessLine,
 } from '@/lib/subscription-terms'
@@ -29,6 +33,8 @@ interface Props {
   dashboardToken?: string | null
   proDashboardEnabled?: boolean
   initialContactEmail?: string | null
+  /** Preview length from ENROLL_PREVIEW_TRIAL_DAYS. The server passes the live value. */
+  previewTrialDays?: number
 }
 
 export default function EnrollClient({
@@ -37,7 +43,10 @@ export default function EnrollClient({
   dashboardToken,
   proDashboardEnabled = false,
   initialContactEmail = null,
+  previewTrialDays = DEFAULT_ENROLL_PREVIEW_TRIAL_DAYS,
 }: Props) {
+  const priceLabel = formatSubscriptionPrice()
+  const priceMatches = isConfiguredSubscriptionPrice(invitation.monthly_price)
   const [wantSubscribe] = useState(() => {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).get('subscribe') === '1'
@@ -104,6 +113,7 @@ export default function EnrollClient({
   }
 
   async function handleSubscribe() {
+    if (!priceMatches) return
     if (!subscriptionConsent) {
       setError(SUBSCRIPTION_CONSENT_REQUIRED_ERROR)
       return
@@ -181,7 +191,7 @@ export default function EnrollClient({
             <div className="text-center mb-6">
               <h1 className="text-3xl font-bold text-slate-900 mb-2">Your listing preview</h1>
               <p className="text-slate-600 text-sm">
-                Not live yet — this is how your pinned profile can look on QuickProList.
+                Not live yet — this is how your listing can look on QuickProList.
               </p>
             </div>
 
@@ -229,20 +239,27 @@ export default function EnrollClient({
               disabled={loading}
               className="w-full mt-8 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
             >
-              {loading ? 'Starting preview…' : 'Yes — start my 30-day preview'}
+              {loading ? 'Starting preview…' : `Yes — start my ${previewTrialDays}-day preview`}
             </button>
 
             <button
               type="button"
-              onClick={() => setStep('checkout')}
-              className="w-full mt-3 text-sm text-slate-600 hover:text-slate-900 underline"
+              onClick={() => {
+                if (!priceMatches) return
+                setStep('checkout')
+              }}
+              disabled={!priceMatches}
+              className="w-full mt-3 text-sm text-slate-600 hover:text-slate-900 underline disabled:opacity-50 disabled:no-underline"
             >
-              I&apos;d rather subscribe now (${invitation.monthly_price.toFixed(2)}/mo)
+              I&apos;d rather subscribe now ({priceLabel}/mo)
             </button>
+            {!priceMatches && (
+              <p className="text-center text-xs text-rose-700 mt-2">{SUBSCRIPTION_PRICE_MISMATCH_ERROR}</p>
+            )}
 
             <p className="text-center text-xs text-slate-500 mt-4">
-              No card required for the preview. Your listing goes live in search for 30 days; subscribe anytime to
-              stay on after that.
+              No card required for the preview. Your listing goes live in search for {previewTrialDays} days; subscribe
+              anytime to stay on after that.
             </p>
           </div>
         </div>
@@ -273,9 +290,7 @@ export default function EnrollClient({
             <div className="border-t border-slate-200 pt-6">
               <div className="flex items-baseline justify-between mb-2">
                 <span className="text-slate-600 font-medium">Monthly price</span>
-                <span className="text-4xl font-bold text-slate-900">
-                  ${invitation.monthly_price.toFixed(2)}
-                </span>
+                <span className="text-4xl font-bold text-slate-900">{priceLabel}</span>
               </div>
             </div>
           </div>
@@ -313,9 +328,13 @@ export default function EnrollClient({
             </div>
           )}
 
+          {!priceMatches && (
+            <p className="text-center text-sm text-rose-700 mb-4">{SUBSCRIPTION_PRICE_MISMATCH_ERROR}</p>
+          )}
+
           <button
             onClick={handleSubscribe}
-            disabled={loading || invitation.status === 'paid' || !subscriptionConsent}
+            disabled={loading || invitation.status === 'paid' || !subscriptionConsent || !priceMatches}
             className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
           >
             {loading ? 'Processing…' : invitation.status === 'paid' ? 'Already Enrolled' : 'Go to secure checkout'}
