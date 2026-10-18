@@ -19,6 +19,7 @@ import {
   withGmailAttributionRef,
 } from './gmail-campaign'
 import type { ProspectRecord } from './campaign-prospect-registry'
+import { isAlreadyListed, type ListedIdentity } from './gmail-listed'
 import { normalizeEmail } from './suppressions'
 
 export type ExclusionReason =
@@ -30,6 +31,7 @@ export type ExclusionReason =
   | 'no_email'
   | 'skipped'
   | 'price_mismatch'
+  | 'already_listed'
 
 export interface GmailBatchRow {
   business: string
@@ -95,7 +97,9 @@ export function buildGmailTestBatch(input: {
    * Invitation monthly_price keyed by normalized email.
    * Missing and non-29.99 prices are held with reason price_mismatch and are not sent.
    */
-  claimsByEmail?: Record<string, { monthlyPrice: number | string | null }>
+  claimsByEmail?: Record<string, { monthlyPrice: number | string | null; phone?: string | null }>
+  /** Curated listings. A prospect matching email, phone, or name+city is excluded. */
+  listings?: ListedIdentity[]
   /**
    * When false, the do-not-contact list was not loaded. Nothing is send-ready.
    * Omit when the caller passed `suppressedEmails` (including an empty list).
@@ -139,8 +143,19 @@ export function buildGmailTestBatch(input: {
     }
 
     let reason: ExclusionReason | null = null
+    const claim = input.claimsByEmail?.[email]
+    const alreadyListed = isAlreadyListed(
+      {
+        email,
+        phone: claim?.phone,
+        name: prospect.businessName,
+        city: prospect.city,
+      },
+      input.listings ?? []
+    )
     if (status === 'bounced') reason = 'bounced'
     else if (status === 'suppressed' || suppressed.has(email)) reason = 'suppressed'
+    else if (alreadyListed) reason = 'already_listed'
     else if (status === 'complained') reason = 'complained'
     else if (findPriorContact(email, prospect.businessName, { resend: input.resend, gmail: input.gmail })) {
       reason = 'already_emailed'
@@ -168,7 +183,6 @@ export function buildGmailTestBatch(input: {
       text: rendered.text,
       wordCount: rendered.wordCount,
     }
-    const claim = input.claimsByEmail?.[email]
     const monthlyPrice = claim ? claim.monthlyPrice : null
     if (!isClaimedMonthlyPrice(monthlyPrice)) {
       held.push({ ...row, reason: 'price_mismatch' })

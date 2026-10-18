@@ -324,6 +324,74 @@ describe('Gmail claim checks', () => {
   })
 })
 
+describe('already listed prospects', () => {
+  const ready = prospect({ businessName: 'Ready Plumbing', email: 'owner@ready.example', city: 'atlanta' })
+  const postal = '1 Test Street, Atlanta, GA 30301'
+  const base = {
+    prospects: [ready],
+    resend: [] as [],
+    gmail: [] as [],
+    mxByDomain: { 'ready.example': true },
+    postalAddress: postal,
+    claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99, phone: '(404) 555-0100' } },
+  }
+
+  it('excludes an exact email, a normalized email, a normalized phone, and a normalized name plus city', () => {
+    const byEmail = buildGmailTestBatch({
+      ...base,
+      listings: [{ name: 'Someone Else', city: 'marietta', email: 'owner@ready.example' }],
+    })
+    expect(byEmail.excluded.map((row) => row.reason)).toEqual(['already_listed'])
+
+    const byEmailCase = buildGmailTestBatch({
+      ...base,
+      listings: [{ name: 'Someone Else', city: 'marietta', email: 'OWNER@READY.EXAMPLE' }],
+    })
+    expect(byEmailCase.excluded.map((row) => row.reason)).toEqual(['already_listed'])
+
+    const byPhone = buildGmailTestBatch({
+      ...base,
+      listings: [{ name: 'Other Co', city: 'marietta', phone: '1-404-555-0100' }],
+    })
+    expect(byPhone.excluded.map((row) => row.reason)).toEqual(['already_listed'])
+
+    const byName = buildGmailTestBatch({
+      ...base,
+      claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99 } },
+      listings: [{ name: 'Ready Plumbing & Heating', city: 'Atlanta, GA', email: 'other@example.com' }],
+    })
+    expect(byName.sendReady.map((row) => row.email)).toEqual(['owner@ready.example'])
+
+    const byNameCity = buildGmailTestBatch({
+      ...base,
+      claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99 } },
+      listings: [{ name: 'ready   plumbing', city: 'Atlanta, GA', email: 'other@example.com' }],
+    })
+    expect(byNameCity.excluded.map((row) => row.reason)).toEqual(['already_listed'])
+  })
+
+  it('keeps a prospect who does not match a listing', () => {
+    const batch = buildGmailTestBatch({
+      ...base,
+      listings: [{ name: 'Ready Plumbing', city: 'marietta', email: 'other@example.com', phone: '4045550199' }],
+    })
+    expect(batch.excluded).toEqual([])
+    expect(batch.sendReady.map((row) => row.email)).toEqual(['owner@ready.example'])
+  })
+
+  it('records suppressed when the address is both suppressed and already listed', () => {
+    const batch = buildGmailTestBatch({
+      ...base,
+      suppressedEmails: ['owner@ready.example'],
+      listings: [{ name: 'Ready Plumbing', city: 'atlanta', email: 'owner@ready.example' }],
+    })
+    expect(batch.sendReady).toEqual([])
+    expect(batch.excluded.map((row) => [row.email, row.reason])).toEqual([
+      ['owner@ready.example', 'suppressed'],
+    ])
+  })
+})
+
 describe('Gmail reply opt-outs', () => {
   it.each([
     ['no', true],
