@@ -11,6 +11,8 @@ import { loadContactHistory, emailDomain } from '../lib/campaign-contact-history
 import { loadProspectRegistry } from '../lib/campaign-prospect-registry'
 import { buildGmailTestBatch } from '../lib/gmail-test-batch'
 import { campaignPostalAddress } from '../lib/email'
+import { isDatabaseConfigured } from '../lib/db'
+import { listSuppressedValues, normalizeEmail } from '../lib/suppressions'
 
 async function mxFor(domain: string): Promise<boolean | null> {
   try {
@@ -38,12 +40,18 @@ async function main() {
     const mx = await mxFor(domain)
     if (mx !== null) mxByDomain[domain] = mx
   }
+  const suppressionListLoaded = isDatabaseConfigured()
+  const suppressedEmails = suppressionListLoaded
+    ? (await listSuppressedValues('email')).map((email) => normalizeEmail(email))
+    : []
   const batch = buildGmailTestBatch({
     prospects: registry.prospects,
     resend: history.resend,
     gmail: history.gmail,
     mxByDomain,
     postalAddress: campaignPostalAddress(),
+    suppressedEmails,
+    suppressionListLoaded,
   })
   const path = resolve(process.cwd(), 'docs/campaigns/gmail-test-batch.json')
   writeFileSync(path, `${JSON.stringify(batch, null, 2)}\n`, 'utf8')

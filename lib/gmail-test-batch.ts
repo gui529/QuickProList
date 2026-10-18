@@ -80,8 +80,16 @@ export function buildGmailTestBatch(input: {
   mxByDomain: Record<string, boolean>
   generatedAt?: string
   postalAddress?: string | null
+  /** Normalized or not. Matched case-insensitively. */
+  suppressedEmails?: string[]
+  /**
+   * When false, the do-not-contact list was not loaded. Nothing is send-ready.
+   * Omit when the caller passed `suppressedEmails` (including an empty list).
+   */
+  suppressionListLoaded?: boolean
 }): GmailTestBatch {
   const postal = usableCampaignPostalAddress(input.postalAddress)
+  const suppressed = new Set((input.suppressedEmails ?? []).map((email) => normalizeEmail(email)))
   const sendReady: GmailBatchRow[] = []
   const held: GmailBatchRow[] = []
   const flagged: GmailBatchRow[] = []
@@ -118,7 +126,7 @@ export function buildGmailTestBatch(input: {
 
     let reason: ExclusionReason | null = null
     if (status === 'bounced') reason = 'bounced'
-    else if (status === 'suppressed') reason = 'suppressed'
+    else if (status === 'suppressed' || suppressed.has(email)) reason = 'suppressed'
     else if (status === 'complained') reason = 'complained'
     else if (findPriorContact(email, prospect.businessName, { resend: input.resend, gmail: input.gmail })) {
       reason = 'already_emailed'
@@ -148,6 +156,7 @@ export function buildGmailTestBatch(input: {
     }
     if (roleAddress || mx === null) flagged.push(row)
     else if (!postal) held.push(row)
+    else if (input.suppressionListLoaded === false) held.push(row)
     else sendReady.push(row)
   }
 
@@ -160,9 +169,15 @@ export function buildGmailTestBatch(input: {
       'Postal address is the {postalAddress} placeholder (GitHub issue #18). Do not invent one. Rows that pass every other check stay in held, not sendReady, until CAMPAIGN_POSTAL_ADDRESS is set.'
     )
   }
+  if (input.suppressionListLoaded === false) {
+    blockers.push(
+      'Email suppression list was not loaded. Rows that passed every other check stay in held, not sendReady, until suppressions are checked.'
+    )
+  }
   blockers.push(
     `Send-ready count is ${sendReady.length} of about ${GMAIL_TEST_TARGET}. Add prospects with scripts/campaign-add-prospect.ts.`,
-    'Catch-all mailboxes were not probed. Role addresses (info@, help@, customerservice@) are flagged and kept out of sendReady.'
+    'Catch-all mailboxes were not probed. Role addresses (info@, help@, customerservice@) are flagged and kept out of sendReady.',
+    'Addresses on the email suppression list, including reason reply_opt_out, are excluded with reason suppressed.'
   )
 
   return {

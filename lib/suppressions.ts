@@ -44,6 +44,12 @@ export async function addSuppression(
   )
 }
 
+export async function listSuppressedValues(channel: SuppressionChannel): Promise<string[]> {
+  requireDatabase()
+  const rows = await query<{ value: string }>('SELECT value FROM suppressions WHERE channel = $1', [channel])
+  return rows.map((row) => row.value)
+}
+
 export async function removeSuppression(channel: SuppressionChannel, value: string): Promise<void> {
   requireDatabase()
   await query('DELETE FROM suppressions WHERE channel = $1 AND value = $2', [channel, value])

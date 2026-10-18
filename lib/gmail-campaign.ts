@@ -147,3 +147,250 @@ export function renderGmailTestEmail(input: {
     .replaceAll('{postalAddress}', postal)
   return { subject: buildGmailTestSubject(input.city), text, wordCount: countWords(text) }
 }
+
+/**
+ * Reply opt-outs for cold mail sent from GMAIL_TEST_FROM.
+ *
+ * Those messages have no unsubscribe link. A reply is the only opt-out.
+ * CAN-SPAM requires that request to be honored within 10 business days, so
+ * `scripts/campaign-scan-gmail-replies.ts` must be run at least every 5
+ * business days. It only reads the inbox (HTTP GET) or a fixture file. It
+ * never sends.
+ *
+ * Matching (err toward suppressing):
+ * - Whole words, any case, any surrounding whitespace or punctuation:
+ *   no, stop, unsubscribe / unsubscribed / unsubscribing, remove / removed.
+ * - Phrases that clearly mean stop, including when they are not those words:
+ *   not interested, take me off, don't email me, do not email me,
+ *   leave me alone, opt out, stop emailing, no thanks.
+ * - Quoted original text is ignored, so our own opt-out line is not treated
+ *   as the prospect's request.
+ * - Safe idioms are not opt-outs: "no problem", "no worries", "no rush",
+ *   "no big deal", "no biggie", "no offense", "no sweat".
+ *   "no problem, call me" stays eligible.
+ * - Any other use of those words is an opt-out, including ambiguous ones
+ *   ("stop by the shop", "please remove the typo"). A missed opt-out is
+ *   worse than dropping one cold-test prospect.
+ * - If a safe idiom and a real opt-out both appear, suppress.
+ * - Words that merely contain the letters ("know", "another", "cannot")
+ *   are not opt-outs.
+ * Opt-outs are written to the shared `suppressions` table (`reply_opt_out`),
+ * the same list `sendEmail` checks before a Resend marketing send.
+ */
+export const REPLY_OPT_OUT_REASON = 'reply_opt_out'
+export const REPLY_OPT_OUT_BUSINESS_DAY_SLA = 10
+/** Wider than the legal window so a late scan still records the reply. */
+export const REPLY_OPT_OUT_LOOKBACK_CALENDAR_DAYS = 30
+
+const REPLY_OPT_OUT_SAFE_PHRASES = [
+  'no problem',
+  'no worries',
+  'no rush',
+  'no big deal',
+  'no biggie',
+  'no offense',
+  'no sweat',
+] as const
+
+const REPLY_OPT_OUT_PHRASES = [
+  'not interested',
+  'take me off',
+  'do not email',
+  'dont email',
+  'leave me alone',
+  'opt out',
+  'stop emailing',
+  'no thanks',
+] as const
+
+const REPLY_OPT_OUT_WORD =
+  /(?:^|[^a-z0-9])(no|stop|unsubscribe|unsubscribed|unsubscribing|remove|removed)(?![a-z0-9])/i
+
+export interface InboundGmailReply {
+  fromEmail: string
+  body: string
+  receivedAt?: string
+}
+
+export function subtractBusinessDays(from: Date, businessDays: number): Date {
+  if (businessDays < 0) throw new Error('businessDays must be >= 0')
+  const cursor = new Date(from.getTime())
+  let left = businessDays
+  while (left > 0) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1)
+    const day = cursor.getUTCDay()
+    if (day !== 0 && day !== 6) left -= 1
+  }
+  return cursor
+}
+
+export function replyScanSince(now: Date): Date {
+  const since = new Date(now.getTime())
+  since.setUTCDate(since.getUTCDate() - REPLY_OPT_OUT_LOOKBACK_CALENDAR_DAYS)
+  return since
+}
+
+export function isWithinReplyOptOutSla(receivedAt: Date, now: Date): boolean {
+  return receivedAt.getTime() >= subtractBusinessDays(now, REPLY_OPT_OUT_BUSINESS_DAY_SLA).getTime()
+}
+
+/** Drop quoted originals so our own "Reply no" line is not the prospect's words. */
+export function prospectReplyText(body: string): string {
+  const lines = body.replace(/\r\n/g, '\n').split('\n')
+  const kept: string[] = []
+  for (const line of lines) {
+    if (/^\s*>/.test(line)) break
+    if (/^\s*On .+wrote:\s*$/i.test(line)) break
+    if (/^\s*-{5,}\s*original message\s*-{5,}\s*$/i.test(line)) break
+    if (/^\s*-{5,}\s*forwarded message\s*-{5,}\s*$/i.test(line)) break
+    kept.push(line)
+  }
+  return kept.join('\n').trim()
+}
+
+function collapseReplyWords(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+export function replyIsOptOut(body: string): boolean {
+  let text = ` ${collapseReplyWords(prospectReplyText(body))} `
+  for (const phrase of REPLY_OPT_OUT_SAFE_PHRASES) {
+    text = text.replaceAll(` ${phrase} `, ' ')
+  }
+  const collapsed = text.replace(/\s+/g, ' ').trim()
+  if (REPLY_OPT_OUT_PHRASES.some((phrase) => ` ${collapsed} `.includes(` ${phrase} `))) return true
+  return new RegExp(REPLY_OPT_OUT_WORD.source, 'i').test(collapsed)
+}
+
+export function emailFromHeader(from: string): string | null {
+  const angle = from.match(/<([^<>\s]+@[^<>\s]+)>/)
+  const raw = (angle?.[1] ?? from).trim()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return null
+  const email = raw.toLowerCase()
+  if (email === GMAIL_TEST_FROM) return null
+  return email
+}
+
+export interface ReplyOptOutWriter {
+  addSuppression(channel: 'email', value: string, reason: string): Promise<void>
+}
+
+export async function recordReplyOptOuts(
+  replies: InboundGmailReply[],
+  writer: ReplyOptOutWriter
+): Promise<{ suppressed: string[]; ignored: string[] }> {
+  const suppressed: string[] = []
+  const ignored: string[] = []
+  const seen = new Set<string>()
+  for (const reply of replies) {
+    const email = emailFromHeader(reply.fromEmail) ?? emailFromHeader(`<${reply.fromEmail}>`)
+    if (!email) {
+      ignored.push(reply.fromEmail)
+      continue
+    }
+    if (!replyIsOptOut(reply.body)) {
+      ignored.push(email)
+      continue
+    }
+    if (seen.has(email)) continue
+    seen.add(email)
+    await writer.addSuppression('email', email, REPLY_OPT_OUT_REASON)
+    suppressed.push(email)
+  }
+  return { suppressed, ignored }
+}
+
+interface GmailPayload {
+  mimeType?: string
+  headers?: { name: string; value: string }[]
+  body?: { data?: string }
+  parts?: GmailPayload[]
+}
+
+interface GmailApiMessage {
+  id?: string
+  internalDate?: string
+  snippet?: string
+  payload?: GmailPayload
+}
+
+function decodeBase64Url(data: string): string {
+  const pad = data.length % 4 === 0 ? '' : '='.repeat(4 - (data.length % 4))
+  const b64 = data.replace(/-/g, '+').replace(/_/g, '/') + pad
+  return Buffer.from(b64, 'base64').toString('utf8')
+}
+
+function collectBodies(part: GmailPayload | undefined, plain: string[], html: string[]): void {
+  if (!part) return
+  if (part.body?.data) {
+    const text = decodeBase64Url(part.body.data)
+    if (part.mimeType === 'text/plain') plain.push(text)
+    else if (part.mimeType === 'text/html') html.push(text.replace(/<[^>]+>/g, ' '))
+  }
+  for (const child of part.parts ?? []) collectBodies(child, plain, html)
+}
+
+export function replyFromGmailMessage(message: GmailApiMessage): InboundGmailReply | null {
+  const from = message.payload?.headers?.find((header) => header.name.toLowerCase() === 'from')?.value
+  const email = from ? emailFromHeader(from) : null
+  if (!email) return null
+  const plain: string[] = []
+  const html: string[] = []
+  collectBodies(message.payload, plain, html)
+  const body = plain.join('\n').trim() || html.join('\n').trim() || message.snippet || ''
+  const receivedAt = message.internalDate ? new Date(Number(message.internalDate)).toISOString() : undefined
+  return { fromEmail: email, body, receivedAt }
+}
+
+/**
+ * Read inbox replies. GET only — this function has no send URL and rejects
+ * any non-GET the caller might have wired into `fetchImpl`.
+ */
+export async function readGmailInboxReplies(options: {
+  accessToken: string
+  since: Date
+  fetchImpl?: typeof fetch
+}): Promise<InboundGmailReply[]> {
+  const fetchImpl = options.fetchImpl ?? fetch
+  const replies: InboundGmailReply[] = []
+  let pageToken: string | undefined
+  for (let page = 0; page < 20; page += 1) {
+    const params = new URLSearchParams({
+      q: `in:inbox newer_than:${REPLY_OPT_OUT_LOOKBACK_CALENDAR_DAYS}d -from:${GMAIL_TEST_FROM}`,
+      maxResults: '100',
+    })
+    if (pageToken) params.set('pageToken', pageToken)
+    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?${params}`
+    const list = (await gmailGetJson(fetchImpl, listUrl, options.accessToken)) as {
+      messages?: { id: string }[]
+      nextPageToken?: string
+    }
+    for (const item of list.messages ?? []) {
+      const messageUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(item.id)}?format=full`
+      const message = (await gmailGetJson(fetchImpl, messageUrl, options.accessToken)) as GmailApiMessage
+      const reply = replyFromGmailMessage(message)
+      if (!reply) continue
+      if (reply.receivedAt && new Date(reply.receivedAt).getTime() < options.since.getTime()) continue
+      replies.push(reply)
+    }
+    if (!list.nextPageToken) break
+    pageToken = list.nextPageToken
+  }
+  return replies
+}
+
+async function gmailGetJson(fetchImpl: typeof fetch, url: string, accessToken: string): Promise<unknown> {
+  if (url.includes('/messages/send') || url.includes('/drafts')) {
+    throw new Error('Refusing to call a Gmail send endpoint')
+  }
+  const response = await fetchImpl(url, {
+    method: 'GET',
+    headers: { authorization: `Bearer ${accessToken}` },
+  })
+  if (!response.ok) throw new Error(`Gmail read failed (${response.status})`)
+  return response.json()
+}

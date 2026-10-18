@@ -8,7 +8,10 @@ import {
   GMAIL_TEST_SUBJECT_TEMPLATE,
   isEnrollPlaceholder,
   POSTAL_ADDRESS_PLACEHOLDER,
+  REPLY_OPT_OUT_REASON,
+  recordReplyOptOuts,
   renderGmailTestEmail,
+  replyIsOptOut,
   withGmailAttributionRef,
 } from './gmail-campaign'
 import { buildGmailTestBatch } from './gmail-test-batch'
@@ -241,5 +244,77 @@ describe('Gmail test batch', () => {
     })
     expect(batch.sendReady).toEqual([])
     expect(batch.held).toHaveLength(1)
+  })
+
+  it('excludes a suppressed address with reason suppressed, including a different case', () => {
+    const batch = buildGmailTestBatch({
+      prospects: [prospect({ businessName: 'Ready Plumbing', email: 'Owner@Ready.example' })],
+      resend: [],
+      gmail: [],
+      mxByDomain: { 'ready.example': true },
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
+      suppressedEmails: ['owner@ready.example'],
+    })
+    expect(batch.sendReady).toEqual([])
+    expect(batch.held).toEqual([])
+    expect(batch.excluded.map((row) => [row.email, row.reason])).toEqual([
+      ['owner@ready.example', 'suppressed'],
+    ])
+  })
+})
+
+describe('Gmail reply opt-outs', () => {
+  it.each([
+    ['no', true],
+    ['NO', true],
+    ['  no  ', true],
+    ['\nstop\n', true],
+    ['  STOP  ', true],
+    ['unsubscribe', true],
+    ['  UnSubscribe  ', true],
+    ['Please REMOVE me', true],
+    ['remove me', true],
+    ['not interested', true],
+    ['Not Interested!', true],
+    ['take me off your list', true],
+    ["don't email me", true],
+    ['do not email me', true],
+    ['leave me alone', true],
+    ['opt-out', true],
+    ['no thanks', true],
+    ['stop by the shop', true],
+    ['no problem, call me', false],
+    ['No Problem!', false],
+    ['no worries, send the details', false],
+    ['I know a plumber', false],
+    ['another time', false],
+    ['cannot make it', false],
+  ])('classifies %j as opt-out=%s', (body, expected) => {
+    expect(replyIsOptOut(body)).toBe(expected)
+  })
+
+  it('ignores the opt-out line when it is only in the quoted original', () => {
+    const quoted = `Yes, call me\n\nOn Fri, Oct 17, 2026 at 1:00 PM Guilherme wrote:\n> Reply "no" and I won't email again.`
+    expect(replyIsOptOut(quoted)).toBe(false)
+    expect(replyIsOptOut(`not interested\n\n${quoted}`)).toBe(true)
+  })
+
+  it('records reply_opt_out for the sender and skips a non-opt-out', async () => {
+    const added: Array<[string, string, string]> = []
+    const result = await recordReplyOptOuts(
+      [
+        { fromEmail: 'Owner <Owner@Ready.example>', body: '  remove  ' },
+        { fromEmail: 'owner@ready.example', body: 'remove me' },
+        { fromEmail: 'Pat <pat@shop.example>', body: 'no problem, call me' },
+      ],
+      {
+        addSuppression: async (channel, value, reason) => {
+          added.push([channel, value, reason])
+        },
+      }
+    )
+    expect(result.suppressed).toEqual(['owner@ready.example'])
+    expect(added).toEqual([['email', 'owner@ready.example', REPLY_OPT_OUT_REASON]])
+    expect(result.ignored).toContain('pat@shop.example')
   })
 })
