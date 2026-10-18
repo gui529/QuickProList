@@ -14,6 +14,7 @@ import {
   isEnrollPlaceholder,
   POSTAL_ADDRESS_PLACEHOLDER,
   REPLY_OPT_OUT_REASON,
+  gmailSendBlockedBySuppression,
   recordReplyOptOuts,
   renderGmailTestEmail,
   replyIsOptOut,
@@ -905,5 +906,60 @@ describe('Gmail batch send order', () => {
     }
     expect(registry.prospects.find((row) => row.businessName === 'Pell Plumbing')?.roleAddressApproved).toBe(true)
     expect(registry.prospects.find((row) => row.email === 'contact@itsbyjay.com')?.roleAddressApproved).toBe(true)
+  })
+})
+
+describe('domain suppression', () => {
+  const postal = '1 Test Street, Atlanta, GA 30301'
+
+  it('blocks every address on a company domain in the batch and at send time, but not other gmail addresses', () => {
+    const rows = [
+      prospect({
+        businessName: 'ITS Info',
+        email: 'info@itsbyjay.com',
+        websiteUrl: 'https://www.itsbyjay.com/',
+      }),
+      prospect({
+        businessName: 'ITS Owner',
+        email: 'jay@itsbyjay.com',
+        websiteUrl: 'https://www.itsbyjay.com/',
+      }),
+      prospect({
+        businessName: 'Opted Gmail',
+        email: 'opted.out@gmail.com',
+        websiteUrl: 'https://opted.example',
+      }),
+      prospect({
+        businessName: 'Other Gmail',
+        email: 'other.person@gmail.com',
+        websiteUrl: 'https://other.example',
+      }),
+    ]
+    const suppressedEmails = ['contact@itsbyjay.com', 'opted.out@gmail.com']
+    const batch = buildGmailTestBatch({
+      prospects: rows,
+      resend: [],
+      gmail: [],
+      mxByDomain: {
+        'itsbyjay.com': true,
+        'gmail.com': true,
+      },
+      postalAddress: postal,
+      claimsByEmail: claimsFor(rows),
+      suppressedEmails,
+      suppressionListLoaded: true,
+      generatedAt: '2026-10-18T00:00:00.000Z',
+    })
+
+    expect(batch.excluded.map((row) => [row.email, row.reason])).toEqual([
+      ['info@itsbyjay.com', 'suppressed'],
+      ['jay@itsbyjay.com', 'suppressed'],
+      ['opted.out@gmail.com', 'suppressed'],
+    ])
+    expect(batch.sendReady.map((row) => row.email)).toEqual(['other.person@gmail.com'])
+    expect(gmailSendBlockedBySuppression('info@itsbyjay.com', suppressedEmails)).toBe(true)
+    expect(gmailSendBlockedBySuppression('contact@itsbyjay.com', suppressedEmails)).toBe(true)
+    expect(gmailSendBlockedBySuppression('opted.out@gmail.com', suppressedEmails)).toBe(true)
+    expect(gmailSendBlockedBySuppression('other.person@gmail.com', suppressedEmails)).toBe(false)
   })
 })

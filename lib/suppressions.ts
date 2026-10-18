@@ -1,4 +1,5 @@
 import { isDatabaseConfigured, query } from './db'
+import { emailDomain, isFreeMailDomain } from './free-mail-domains'
 
 export type SuppressionChannel = 'sms' | 'email'
 
@@ -20,6 +21,20 @@ export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase()
 }
 
+/**
+ * True when `email` is on the do-not-contact list. An exact address always
+ * matches. On a company domain, any suppressed address on that same domain
+ * matches too. Free-mail and ISP domains match one address at a time.
+ */
+export function emailCoveredBySuppression(email: string, suppressedValues: Iterable<string>): boolean {
+  const normalized = normalizeEmail(email)
+  const values = [...suppressedValues].map((value) => normalizeEmail(value)).filter(Boolean)
+  if (values.includes(normalized)) return true
+  const domain = emailDomain(normalized)
+  if (!domain || isFreeMailDomain(domain)) return false
+  return values.some((value) => emailDomain(value) === domain)
+}
+
 /** `value` must already be normalized: lowercase email, or E.164 phone. */
 export async function isSuppressed(channel: SuppressionChannel, value: string): Promise<boolean> {
   requireDatabase()
@@ -27,7 +42,17 @@ export async function isSuppressed(channel: SuppressionChannel, value: string): 
     'SELECT value FROM suppressions WHERE channel = $1 AND value = $2',
     [channel, value]
   )
-  return rows.length > 0
+  if (rows.length > 0) return true
+  if (channel !== 'email') return false
+  const domain = emailDomain(value)
+  if (!domain || isFreeMailDomain(domain)) return false
+  const domainRows = await query<{ value: string }>(
+    `SELECT value FROM suppressions
+     WHERE channel = 'email' AND lower(split_part(value, '@', 2)) = $1
+     LIMIT 1`,
+    [domain]
+  )
+  return domainRows.length > 0
 }
 
 export async function addSuppression(

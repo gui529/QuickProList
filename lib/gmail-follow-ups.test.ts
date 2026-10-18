@@ -164,6 +164,39 @@ describe('Gmail follow-ups', () => {
     expect(followUpSkipReason({ source: 'Yelp', suppressed: true, invitation: live, now })).toBe('suppressed')
   })
 
+  it('treats a company-domain opt-out as suppression and leaves other gmail addresses alone', () => {
+    const now = new Date('2026-10-10T15:00:00.000Z')
+    const live = { status: 'pending', expiresAt: '2026-11-01T00:00:00.000Z' }
+    const source = 'own_site'
+    expect(
+      followUpSkipReason({
+        source,
+        email: 'info@itsbyjay.com',
+        suppressedEmails: ['contact@itsbyjay.com'],
+        invitation: live,
+        now,
+      })
+    ).toBe('suppressed')
+    expect(
+      followUpSkipReason({
+        source,
+        email: 'other.person@gmail.com',
+        suppressedEmails: ['opted.out@gmail.com'],
+        invitation: live,
+        now,
+      })
+    ).toBeNull()
+    expect(
+      followUpSkipReason({
+        source,
+        email: 'opted.out@gmail.com',
+        suppressedEmails: ['opted.out@gmail.com'],
+        invitation: live,
+        now,
+      })
+    ).toBe('suppressed')
+  })
+
   it('schedules due follow-ups before new contacts inside the cap of 5', () => {
     const followUps = ['f1', 'f2', 'f3']
     const fresh = ['n1', 'n2', 'n3', 'n4']

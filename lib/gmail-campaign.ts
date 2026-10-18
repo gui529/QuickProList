@@ -2,6 +2,7 @@ import { CATEGORIES, normalizeCategory } from './categories'
 import { formatCategorySearchPhrase, formatCityLabel } from './display'
 import { parseEnrollPreviewTrialDays } from './enroll-preview-days'
 import { usableCampaignPostalAddress } from './email'
+import { emailCoveredBySuppression } from './suppressions'
 import {
   formatSubscriptionPrice,
   isConfiguredSubscriptionPrice,
@@ -350,6 +351,14 @@ export function emailFromHeader(from: string): string | null {
   const email = raw.toLowerCase()
   if (email === GMAIL_TEST_FROM) return null
   return email
+}
+
+/**
+ * Send-time suppression check for a Gmail message. The batch file can be
+ * stale; this uses the same helper as batch building and follow-ups.
+ */
+export function gmailSendBlockedBySuppression(email: string, suppressedEmails: Iterable<string>): boolean {
+  return emailCoveredBySuppression(email, suppressedEmails)
 }
 
 export interface ReplyOptOutWriter {

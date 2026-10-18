@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { loadSentRegistry, type SentRegistryEntry } from './campaign-sent-registry'
+import { emailDomain as mailboxDomain } from './free-mail-domains'
 import { normalizeEmail } from './suppressions'
 
 export const GMAIL_SENT_LOG_RELATIVE_PATH = 'docs/campaigns/gmail-sent-log.json'
@@ -44,10 +45,7 @@ export function normalizeBusinessName(name: string): string {
 }
 
 export function emailDomain(email: string): string | null {
-  const normalized = normalizeEmail(email)
-  const at = normalized.lastIndexOf('@')
-  if (at < 1 || at === normalized.length - 1) return null
-  return normalized.slice(at + 1)
+  return mailboxDomain(normalizeEmail(email))
 }
 
 export interface PriorContact {

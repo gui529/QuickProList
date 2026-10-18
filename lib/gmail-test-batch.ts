@@ -28,7 +28,8 @@ import { isAlreadyListed, type ListedIdentity } from './gmail-listed'
 import { listingFieldsFromInvitation } from './invitation-listing'
 import type { EnrollmentInvitation } from './invitations'
 import { isAllowedProspectSource } from './prospect-sources'
-import { normalizeEmail } from './suppressions'
+import { isFreeMailDomain } from './free-mail-domains'
+import { emailCoveredBySuppression, normalizeEmail } from './suppressions'
 
 export type ExclusionReason =
   | 'bounced'
@@ -122,43 +123,7 @@ function resendStatusFor(email: string, sent: SentRegistryEntry[]): string | nul
   return hit?.deliveryStatus ?? (hit ? 'sent_status_unknown' : null)
 }
 
-/** Consumer inboxes. A company domain is not free mail. */
-const FREE_MAIL_DOMAINS = new Set([
-  'gmail.com',
-  'googlemail.com',
-  'yahoo.com',
-  'ymail.com',
-  'rocketmail.com',
-  'comcast.net',
-  'outlook.com',
-  'hotmail.com',
-  'live.com',
-  'msn.com',
-  'aol.com',
-  'icloud.com',
-  'me.com',
-  'mac.com',
-  'proton.me',
-  'protonmail.com',
-  'pm.me',
-  'att.net',
-  'sbcglobal.net',
-  'bellsouth.net',
-  'verizon.net',
-  'cox.net',
-])
-
-const FREE_MAIL_BRANDS = new Set([
-  'gmail',
-  'googlemail',
-  'yahoo',
-  'ymail',
-  'rocketmail',
-  'outlook',
-  'hotmail',
-  'live',
-  'aol',
-])
+export { isFreeMailDomain }
 
 export type GmailSendReadyGroup = 'own-domain' | 'other-domain' | 'free-mail' | 'approved-role'
 
@@ -167,13 +132,6 @@ const SEND_READY_GROUP_RANK: Record<GmailSendReadyGroup, number> = {
   'other-domain': 1,
   'free-mail': 2,
   'approved-role': 3,
-}
-
-export function isFreeMailDomain(domain: string): boolean {
-  const host = domain.trim().toLowerCase().replace(/^www\./, '')
-  if (!host) return false
-  if (FREE_MAIL_DOMAINS.has(host)) return true
-  return host.split('.').some((label) => FREE_MAIL_BRANDS.has(label))
 }
 
 function websiteHost(websiteUrl: string | null | undefined): string | null {
@@ -289,7 +247,7 @@ export function buildGmailTestBatch(input: {
       input.listings ?? []
     )
     if (status === 'bounced') reason = 'bounced'
-    else if (status === 'suppressed' || suppressed.has(email)) reason = 'suppressed'
+    else if (status === 'suppressed' || emailCoveredBySuppression(email, suppressed)) reason = 'suppressed'
     else if (!isAllowedProspectSource(prospect.source)) reason = 'disallowed_source'
     else if (alreadyListed) reason = 'already_listed'
     else if (status === 'complained') reason = 'complained'

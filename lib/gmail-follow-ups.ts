@@ -9,6 +9,7 @@ import {
   isClaimedMonthlyPrice,
 } from './gmail-campaign'
 import { isAllowedProspectSource } from './prospect-sources'
+import { emailCoveredBySuppression } from './suppressions'
 import { formatSubscriptionPrice } from './subscription-terms'
 
 export const FOLLOW_UP_DAYS = [4, 10, 18] as const
@@ -60,13 +61,21 @@ export function followUpSkipReason(input: {
   replied?: boolean
   optedOut?: boolean
   suppressed?: boolean
+  /** Checked with `suppressedEmails` through the shared domain helper. */
+  email?: string | null
+  suppressedEmails?: Iterable<string>
   /** Prospect `source`. Missing, Yelp, and unknown values skip. See docs/prospect-sources.md. */
   source?: string | null
   invitation: FollowUpInvitation | null
   now: Date
 }): FollowUpSkipReason | null {
   if (input.optedOut) return 'opted_out'
-  if (input.suppressed) return 'suppressed'
+  const covered =
+    input.suppressed === true ||
+    (input.email != null &&
+      input.suppressedEmails != null &&
+      emailCoveredBySuppression(input.email, input.suppressedEmails))
+  if (covered) return 'suppressed'
   if (!isAllowedProspectSource(input.source)) return 'disallowed_source'
   if (input.replied) return 'replied'
   const invitation = input.invitation
