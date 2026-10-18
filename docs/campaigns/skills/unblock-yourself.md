@@ -66,10 +66,18 @@ Then **send** if under cap — do not park the whole campaign on one hard site.
 
 ## Missing enroll link / invitation
 
-1. Neon MCP: invitation row for `curated_business_id` (`neon-mcp.md`).
-2. If none: send Wave 1 with **search URL** only (`--wave listed`); note on
-   board to generate invite via admin flow later.
-3. Do **not** block send on missing enroll URL for listed pros.
+Send-ready mail must contain exactly one `/enroll/<token>` preview link. Do not
+substitute a search URL. `scripts/campaign-manager-send.ts --prepare` is refused
+so it cannot build a Resend payload or create an invitation.
+
+The Gmail test batch uses `https://www.quickprolist.com/enroll/PENDING_INVITATION`
+until invitations can be created:
+
+```bash
+npx tsx scripts/campaign-gmail-enroll-urls.ts
+```
+
+That script exits with an error when `DATABASE_URL` is missing. Do not invent tokens.
 
 ---
 

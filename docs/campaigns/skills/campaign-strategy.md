@@ -49,8 +49,11 @@ they can see themselves in search. Goal: enroll / 30-day preview / paid.
 - Use **listed-pro copy** (not “can we add you?” — they are already listed).
 - Need a real **to** address — **agent discovers it** (contact page, search,
   helper); never idle waiting on owner. See `unblock-yourself.md`.
-- `--enroll-url` when an invitation exists; else search link with canonical
-  category slug (`plumbing`, not `plumbers`).
+- The Gmail test batch is the send path (`docs/campaigns/gmail-test-batch.json`),
+  from `gui.quickprolist@gmail.com`, not Resend. Mail is refused without exactly
+  one `/enroll/<token>` preview link. Do not substitute a search URL. Create the
+  invitation with `scripts/campaign-gmail-enroll-urls.ts` when one does not exist.
+  `campaign-manager-send.ts` refuses `--prepare` and `--finalize`.
 
 ### Wave 2 — Fill the third slot
 

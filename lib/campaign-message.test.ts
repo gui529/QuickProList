@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { expandCampaignMessage } from './campaign-message'
+import { LISTED_MESSAGE } from './campaigns'
 
 describe('expandCampaignMessage', () => {
   it('replaces placeholders with formatted labels', () => {
@@ -31,6 +32,42 @@ describe('expandCampaignMessage', () => {
     const out = expandCampaignMessage('{senderIntro}', { businessName: 'Biz' })
     expect(out).toBe("I'm Jeremy with QuickProList")
     delete process.env.CAMPAIGN_SENDER_NAME
+  })
+
+  it('does not render a doubled profession after {category} pros', () => {
+    expect(
+      expandCampaignMessage('{category} pros', {
+        businessName: 'Paces',
+        city: 'atlanta',
+        category: 'generalcontractors',
+      })
+    ).toBe('Contractors')
+    expect(
+      expandCampaignMessage('{category} pros', {
+        businessName: 'Colony',
+        city: 'atlanta',
+        category: 'roofing',
+      })
+    ).toBe('Roofers')
+    expect(
+      expandCampaignMessage('{category} pros', {
+        businessName: 'Peppers',
+        city: 'atlanta',
+        category: 'airconditioningheating',
+      })
+    ).toBe('HVAC pros')
+  })
+
+  it('opens listed copy with the business and does not embed a search URL', () => {
+    const out = expandCampaignMessage(LISTED_MESSAGE, {
+      businessName: 'Colony Roofers',
+      city: 'atlanta',
+      category: 'roofing',
+    })
+    expect(out.startsWith('Colony Roofers')).toBe(true)
+    expect(out).not.toContain('Roofers pros')
+    expect(out).not.toContain('/search?')
+    expect(out).toContain('link below')
   })
 
   it('expands {siteUrl} from SITE_URL', () => {

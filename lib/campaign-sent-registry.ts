@@ -17,6 +17,8 @@ export interface SentRegistryEntry {
   sentAt: string
   wave?: 'listed' | 'outreach' | 'test' | 'follow-up'
   notes?: string
+  /** Last known Resend status. Absent on older rows until a lookup records it. */
+  deliveryStatus?: 'bounced' | 'delivered' | 'suppressed' | 'complained' | 'sent' | 'unknown'
 }
 
 export interface SentRegistry {

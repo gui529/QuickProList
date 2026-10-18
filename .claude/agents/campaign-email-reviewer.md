@@ -24,7 +24,7 @@ Read `docs/sales-persuasion-playbook.md` and compare implementation to Mission 2
    before `sendEmail`, enroll URL when invitation created.
 5. `components/CampaignTab.tsx` — UX nudges for required fields and placeholders.
 6. `lib/email.test.ts` / `lib/campaign-message.test.ts` — expectations match behavior.
-7. Deliverability: no emoji subjects, unsubscribe intact, no postal address in footer.
+7. Deliverability: no emoji subjects, unsubscribe (or the reply opt-out) intact, and a valid physical postal address (CAN-SPAM). `CAMPAIGN_POSTAL_ADDRESS` is required before any send-ready email. Do not invent an address. A missing address or a `{postalAddress}` placeholder fails this check.
 8. Enroll/footer links point at `/terms` and `/privacy` (production copy in `lib/legal-site.ts`).
 
 ## Output format (required)
