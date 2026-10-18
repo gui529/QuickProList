@@ -91,6 +91,19 @@ describe('EnrollPage (expiration enforcement)', () => {
     )
   })
 
+  it('does not send the contact email to the client, only a masked hint', async () => {
+    const invitation = makeInvitation({ contact_email: 'owner@acme.example' })
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    const result = await EnrollPage({ params: Promise.resolve({ token: invitation.token }) })
+    const props = result as ReactElement<{ contactEmailHint?: string | null }>
+    const serialized = JSON.stringify(props)
+
+    expect(props.props.contactEmailHint).toBe('o***@acme.example')
+    expect(serialized).not.toContain('owner@acme.example')
+    expect(textOf(result)).not.toContain('owner@acme.example')
+  })
+
   it('passes the configured preview length to the client', async () => {
     const previous = process.env.ENROLL_PREVIEW_TRIAL_DAYS
     process.env.ENROLL_PREVIEW_TRIAL_DAYS = '14'

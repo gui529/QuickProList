@@ -32,7 +32,8 @@ interface Props {
    */
   dashboardToken?: string | null
   proDashboardEnabled?: boolean
-  initialContactEmail?: string | null
+  /** Masked hint only. The field itself stays blank so the link does not reveal the inbox. */
+  contactEmailHint?: string | null
   /** Preview length from ENROLL_PREVIEW_TRIAL_DAYS. The server passes the live value. */
   previewTrialDays?: number
   /** From `?subscribe=1`. Passed by the server so the first render matches. */
@@ -46,7 +47,7 @@ export default function EnrollClient({
   token,
   dashboardToken,
   proDashboardEnabled = false,
-  initialContactEmail = null,
+  contactEmailHint = null,
   previewTrialDays = DEFAULT_ENROLL_PREVIEW_TRIAL_DAYS,
   subscribe = false,
   checkoutSuccess = false,
@@ -62,7 +63,7 @@ export default function EnrollClient({
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [contactEmail, setContactEmail] = useState(initialContactEmail ?? '')
+  const [contactEmail, setContactEmail] = useState('')
   const [subscriptionConsent, setSubscriptionConsent] = useState(false)
 
   const categoryLabel = CATEGORIES.find((c) => c.value === invitation.category)?.label || invitation.category
@@ -219,7 +220,11 @@ export default function EnrollClient({
                 aria-invalid={error.toLowerCase().includes('email') ? true : undefined}
                 className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
-              <p className="text-xs text-slate-500">Used for preview reminders and win-back — not shown on your listing.</p>
+              <p className="text-xs text-slate-500">
+                {contactEmailHint
+                  ? `On file: ${contactEmailHint}. Type the address for preview reminders and win-back — it is not shown on your listing.`
+                  : 'Used for preview reminders and win-back — not shown on your listing.'}
+              </p>
             </div>
 
             {error && (

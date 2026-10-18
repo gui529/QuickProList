@@ -11,9 +11,16 @@ vi.mock('@/lib/preview-tokens', async (orig) => ({
   markPreviewOptedOut: markPreviewOptedOutMock,
 }))
 
+import { createHmac } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { GET, POST } from './route'
 import { createUnsubscribeToken } from '@/lib/unsubscribe'
+
+function legacyUnsubscribeToken(email: string): string {
+  const payload = Buffer.from(email.trim().toLowerCase()).toString('base64url')
+  const sig = createHmac('sha256', 'test-secret').update(payload).digest('base64url')
+  return `${payload}.${sig}`
+}
 
 const req = (method: string, token: string, preview?: string) => {
   const url = new URL('https://example.test/api/unsubscribe')
@@ -69,5 +76,32 @@ describe('/api/unsubscribe', () => {
     expect((await GET(req('GET', 'x.y'))).status).toBe(400)
     expect((await POST(req('POST', 'x.y'))).status).toBe(400)
     expect(addSuppressionMock).not.toHaveBeenCalled()
+  })
+
+  it('old base64 links still unsubscribe on POST and keep &preview= on the confirm form', async () => {
+    const preview = 'AAAAAAAAAAAAAAAAAAAAAA'
+    const token = legacyUnsubscribeToken('Owner@Example.com')
+    const getRes = await GET(req('GET', token, preview))
+    expect(getRes.status).toBe(200)
+    const html = await getRes.text()
+    expect(html).toContain('owner@example.com')
+    expect(html).toContain(`preview=${preview}`)
+    expect(html).toContain(`token=${encodeURIComponent(token)}`)
+    expect(addSuppressionMock).not.toHaveBeenCalled()
+
+    const postRes = await POST(req('POST', token, preview))
+    expect(postRes.status).toBe(200)
+    expect(addSuppressionMock).toHaveBeenCalledWith('email', 'owner@example.com', 'unsubscribe')
+    expect(markPreviewOptedOutMock).toHaveBeenCalledWith(preview, 'owner@example.com')
+  })
+
+  it('rejects a tampered new token and does not record a suppression', async () => {
+    const token = createUnsubscribeToken('owner@example.com')
+    const [version, id, sig] = token.split('.')
+    const tampered = `${version}.${id}.${sig.slice(0, -1)}${sig.endsWith('a') ? 'b' : 'a'}`
+    expect((await GET(req('GET', tampered))).status).toBe(400)
+    expect((await POST(req('POST', tampered, 'AAAAAAAAAAAAAAAAAAAAAA'))).status).toBe(400)
+    expect(addSuppressionMock).not.toHaveBeenCalled()
+    expect(markPreviewOptedOutMock).not.toHaveBeenCalled()
   })
 })

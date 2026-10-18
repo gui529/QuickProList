@@ -4,6 +4,7 @@ import { getInvitationByToken, isInvitationExpired, type EnrollmentInvitation } 
 import { isUuid } from '@/lib/is-uuid'
 import { getCuratedById } from '@/lib/kv'
 import { enrollPreviewTrialDays } from '@/lib/enroll-preview-days'
+import { maskEmailHint } from '@/lib/reminder-email'
 import EnrollClient from './EnrollClient'
 
 const PRIVATE_YELP_DATA_KEYS = [
@@ -17,10 +18,11 @@ const PRIVATE_YELP_DATA_KEYS = [
 ]
 
 function invitationForClient(invitation: EnrollmentInvitation): EnrollmentInvitation {
-  if (!invitation.yelp_data) return invitation
-  const yelpData = { ...invitation.yelp_data }
-  for (const key of PRIVATE_YELP_DATA_KEYS) delete yelpData[key]
-  return { ...invitation, yelp_data: yelpData }
+  const yelpData = invitation.yelp_data ? { ...invitation.yelp_data } : null
+  if (yelpData) {
+    for (const key of PRIVATE_YELP_DATA_KEYS) delete yelpData[key]
+  }
+  return { ...invitation, contact_email: null, yelp_data: yelpData }
 }
 
 function firstQueryValue(value: string | string[] | undefined): string | undefined {
@@ -70,7 +72,7 @@ export default async function EnrollPage({
       token={token}
       dashboardToken={dashboardToken}
       proDashboardEnabled={proDashboardEnabled}
-      initialContactEmail={invitation.contact_email}
+      contactEmailHint={maskEmailHint(invitation.contact_email)}
       previewTrialDays={enrollPreviewTrialDays()}
       subscribe={subscribe}
       checkoutSuccess={checkoutSuccess}

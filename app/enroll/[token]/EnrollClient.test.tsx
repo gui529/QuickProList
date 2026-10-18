@@ -125,7 +125,6 @@ describe('EnrollClient (success view dashboard link)', () => {
       <EnrollClient
         invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
         token="test-token"
-        initialContactEmail="owner@acme.example"
       />
     )
 
@@ -144,7 +143,8 @@ describe('EnrollClient (success view dashboard link)', () => {
     const href = cancel.getAttribute('href') ?? ''
     expect(href.startsWith('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription&body=')).toBe(true)
     expect(decodeURIComponent(href)).toContain('Acme Plumbing')
-    expect(decodeURIComponent(href)).toContain('owner@acme.example')
+    expect(decodeURIComponent(href)).toContain('Account email: (the email on this subscription)')
+    expect(decodeURIComponent(href)).not.toContain('owner@acme.example')
 
     fireEvent.click(checkbox)
     fireEvent.click(checkout)
@@ -250,7 +250,7 @@ describe('EnrollClient (success view dashboard link)', () => {
     expect(link.getAttribute('href')).toBe('/?location=marietta&category=plumbing')
   })
 
-  it('prefills the reminder email and requires it before starting a preview', async () => {
+  it('leaves the reminder email blank and still requires it before starting a preview', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
@@ -258,13 +258,15 @@ describe('EnrollClient (success view dashboard link)', () => {
       <EnrollClient
         invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
         token="test-token"
-        initialContactEmail="owner@acme.example"
+        contactEmailHint="o***@acme.example"
       />
     )
 
     const input = screen.getByLabelText(/email for preview reminders/i) as HTMLInputElement
-    expect(input.value).toBe('owner@acme.example')
+    expect(input.value).toBe('')
     expect(input.required).toBe(true)
+    expect(screen.getByText(/On file: o\*\*\*@acme\.example/)).toBeTruthy()
+    expect(screen.queryByDisplayValue('owner@acme.example')).toBeNull()
 
     fireEvent.change(input, { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: /start my 30-day preview/i }))

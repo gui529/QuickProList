@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { qaLoginAllowed } from './qa-login'
+import { constantTimeEqual, qaLoginAllowed } from './qa-login'
 
 const original = {
   secret: process.env.QA_ADMIN_SECRET,
@@ -11,6 +11,15 @@ afterEach(() => {
   else process.env.QA_ADMIN_SECRET = original.secret
   if (original.env === undefined) delete process.env.VERCEL_ENV
   else process.env.VERCEL_ENV = original.env
+})
+
+describe('constantTimeEqual', () => {
+  it('matches equal strings and rejects different lengths and values without throwing', () => {
+    expect(constantTimeEqual('secret', 'secret')).toBe(true)
+    expect(constantTimeEqual('secret', 'secretx')).toBe(false)
+    expect(constantTimeEqual('', 'secret')).toBe(false)
+    expect(constantTimeEqual('secret', '')).toBe(false)
+  })
 })
 
 describe('qaLoginAllowed', () => {
