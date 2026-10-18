@@ -30,7 +30,7 @@ export function planGmailDay<T>(
 }
 
 export function gmailFooter(postalAddress: string): string {
-  return `${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}\n${postalAddress}`
+  return `${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} ${postalAddress}`
 }
 
 /**

@@ -51,8 +51,7 @@ describe('Gmail test copy', () => {
     expect(GMAIL_TEST_BODY_TEMPLATE).toContain(
       "If you click start, it's live in search for {trialDays} days, free, no card."
     )
-    expect(GMAIL_TEST_BODY_TEMPLATE).not.toContain('Nothing is public unless you click start')
-    expect(GMAIL_TEST_BODY_TEMPLATE).toContain(`${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}`)
+    expect(GMAIL_TEST_BODY_TEMPLATE).toContain(`${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} {postalAddress}`)
 
     const postal = '1 Test Street, Atlanta, GA 30301'
     const rendered = renderGmailTestEmail({
@@ -66,27 +65,17 @@ describe('Gmail test copy', () => {
       postalAddress: postal,
     })
     expect(rendered.from).toBe(`"${GMAIL_FROM_DISPLAY_NAME}" <${GMAIL_TEST_FROM}>`)
-    expect(rendered.text).toBe(`Hi,
-
-I mocked up a QuickProList listing for Marietta Plumbing. QuickProList is a local directory of plumbers around Marietta.
-
+    expect(rendered.subject).toBe('your Marietta listing preview')
+    expect(rendered.subjectVariant === 'A' || rendered.subjectVariant === 'B').toBe(true)
+    expect(rendered.text).toBe(`You probably get plenty of marketing pitches, so I'll keep this short. I set up a preview listing for Marietta Plumbing on QuickProList, a local directory where homeowners find pros and call them directly. No per-lead fees, no bidding, no middleman. Your preview is ready to look over (two minutes): ${enroll}
 If you click start, it's live in search for 30 days, free, no card. After that it comes down on its own unless you choose $29.99/month, flat.
-
-It's not a lead service: homeowners call you directly. No per-lead fees, no bidding.
-
-Worth two minutes to look?
-${enroll}
-
 Guilherme, QuickProList
-
-${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}
-${postal}`)
+${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} ${postal}`)
     expect(rendered.text.match(/https?:\/\/\S+/g)).toEqual([enroll])
-    expect(rendered.subject === 'Marietta Plumbing preview' || rendered.subject === GMAIL_SUBJECT_B).toBe(true)
-    expect(countWords('Marietta Plumbing preview')).toBeLessThanOrEqual(4)
+    expect(rendered.text).not.toMatch(/\{[A-Za-z][A-Za-z0-9]*\}/)
   })
 
-  it('says contact instead of call when the listing has no phone, and still sends', () => {
+  it('says contact them directly when the listing has no phone, and still sends', () => {
     const rendered = renderGmailTestEmail({
       businessName: 'Ready Plumbing',
       email: 'owner@ready.example',
@@ -97,8 +86,8 @@ ${postal}`)
       monthlyPrice: 29.99,
       postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
-    expect(rendered.text).toContain('homeowners contact you directly')
-    expect(rendered.text).not.toContain('homeowners call you directly')
+    expect(rendered.text).toContain('homeowners find pros and contact them directly')
+    expect(rendered.text).not.toContain('call them directly')
   })
 
   it('falls back to subject B when A would be longer than 4 words, and keeps a short A stable', () => {
@@ -111,19 +100,16 @@ ${postal}`)
     for (let i = 0; i < 40; i += 1) variants.add(assignGmailSubject('Acme', `pro${i}@example.com`).variant)
     expect(variants).toEqual(new Set(['A', 'B']))
     expect(assignGmailSubject('Acme', 'a@example.com').subject).not.toBe('your Atlanta listing preview')
-  })
-
-  it('keeps acronyms like HVAC while lowercasing the rest of the phrase', () => {
-    const rendered = renderGmailTestEmail({
+    const active = renderGmailTestEmail({
       businessName: 'Peppers Heating & Air Conditioning',
+      email: 'a@example.com',
       city: 'atlanta',
       category: 'airconditioningheating',
       enrollUrl: enroll,
       postalAddress: '1 Test Street, Atlanta, GA 30301',
     })
-    expect(rendered.subject).toBe(GMAIL_SUBJECT_B)
-    expect(rendered.text).toContain('a local directory of HVAC pros around Atlanta')
-    expect(rendered.text).not.toContain('HVAC pros pros')
+    expect(active.subject).toBe('your Atlanta listing preview')
+    expect(active.subjectVariant === 'A' || active.subjectVariant === 'B').toBe(true)
   })
 
   it('adds a ref query without folding it into the enroll token', () => {
@@ -231,6 +217,7 @@ describe('Gmail test batch', () => {
 
     expect(batch.board).toBe('PAUSED')
     expect(batch.readyToSend).toBe(false)
+    expect(batch.template.subject).toBe('your {city} listing preview')
     expect(batch.template.subjectA).toBe('{businessName} preview')
     expect(batch.template.subjectB).toBe('not a lead service')
     expect(batch.fromHeader).toBe('"Guilherme at QuickProList" <gui.quickprolist@gmail.com>')
@@ -349,7 +336,8 @@ describe('Gmail claim checks', () => {
       claimsByEmail: { 'owner@ready.example': { monthlyPrice: '29.99', phone: '4045550100' } },
     })
     expect(matched.sendReady.map((ready) => ready.email)).toEqual(['owner@ready.example'])
-    expect(matched.sendReady[0]?.text).toContain('homeowners call you directly')
+    expect(matched.sendReady[0]?.text).toContain('call them directly')
+    expect(matched.sendReady[0]?.subject).toBe('your Atlanta listing preview')
   })
 
   it('holds an unknown trade and still prepares a phoneless listing with contact wording', () => {
@@ -373,7 +361,7 @@ describe('Gmail claim checks', () => {
       claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99, phone: '   ' } },
     })
     expect(noPhone.sendReady).toHaveLength(1)
-    expect(noPhone.sendReady[0]?.text).toContain('homeowners contact you directly')
+    expect(noPhone.sendReady[0]?.text).toContain('contact them directly')
     expect(noPhone.held.map((row) => row.reason)).not.toContain('missing_phone')
   })
 })

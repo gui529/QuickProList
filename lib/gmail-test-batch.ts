@@ -8,6 +8,7 @@ import { formatCategoryLabel, formatCityLabel } from './display'
 import { usableCampaignPostalAddress } from './email'
 import {
   ENROLL_URL_PLACEHOLDER,
+  GMAIL_ACTIVE_SUBJECT_TEMPLATE,
   GMAIL_SUBJECT_A_TEMPLATE,
   GMAIL_SUBJECT_B,
   GMAIL_TEST_BODY_TEMPLATE,
@@ -75,7 +76,7 @@ export interface GmailTestBatch {
   generatedAt: string
   ownerBlockers: string[]
   notes: string[]
-  template: { subjectA: string; subjectB: string; text: string }
+  template: { subject: string; subjectA: string; subjectB: string; text: string }
   sendReady: GmailBatchRow[]
   /** Passed every other check, but CAMPAIGN_POSTAL_ADDRESS is unset. */
   held: GmailBatchRow[]
@@ -259,7 +260,12 @@ export function buildGmailTestBatch(input: {
       'Dropped addresses include Resend statuses recorded on docs/campaigns/sent-registry.json.',
       'MX values come from DNS lookups at generation time.',
     ],
-    template: { subjectA: GMAIL_SUBJECT_A_TEMPLATE, subjectB: GMAIL_SUBJECT_B, text: GMAIL_TEST_BODY_TEMPLATE },
+    template: {
+      subject: GMAIL_ACTIVE_SUBJECT_TEMPLATE,
+      subjectA: GMAIL_SUBJECT_A_TEMPLATE,
+      subjectB: GMAIL_SUBJECT_B,
+      text: GMAIL_TEST_BODY_TEMPLATE,
+    },
     sendReady,
     held,
     flagged,

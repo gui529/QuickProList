@@ -66,30 +66,22 @@ export function isRoleAddress(email: string): boolean {
 }
 
 export const GMAIL_FROM_DISPLAY_NAME = 'Guilherme at QuickProList'
+/** Active first-touch subject. The A/B pair below is no longer sent. */
+export const GMAIL_ACTIVE_SUBJECT_TEMPLATE = 'your {city} listing preview'
+/** Retired from active sends. assignGmailSubject still records A or B. */
 export const GMAIL_SUBJECT_A_TEMPLATE = '{businessName} preview'
 export const GMAIL_SUBJECT_B = 'not a lead service'
-export const GMAIL_AD_LINE = 'This is a promotional email from QuickProList.'
+export const GMAIL_AD_LINE = 'This email is an ad.'
 export const GMAIL_OPT_OUT_LINE = 'Not interested? Reply "no" or "stop" and I won\'t email you again.'
 
 export function gmailFromHeader(): string {
   return `"${GMAIL_FROM_DISPLAY_NAME}" <${GMAIL_TEST_FROM}>`
 }
 
-export const GMAIL_TEST_BODY_TEMPLATE = `Hi,
-
-I mocked up a QuickProList listing for {businessName}. QuickProList is a local directory of {categoryPhrase} around {city}.
-
+export const GMAIL_TEST_BODY_TEMPLATE = `You probably get plenty of marketing pitches, so I'll keep this short. I set up a preview listing for {businessName} on QuickProList, a local directory where homeowners find pros and {contactVerb} them directly. No per-lead fees, no bidding, no middleman. Your preview is ready to look over (two minutes): {enrollUrl}
 If you click start, it's live in search for {trialDays} days, free, no card. After that it comes down on its own unless you choose {price}/month, flat.
-
-It's not a lead service: homeowners {contactVerb} you directly. No per-lead fees, no bidding.
-
-Worth two minutes to look?
-{enrollUrl}
-
 Guilherme, QuickProList
-
-${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}
-{postalAddress}`
+${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE} {postalAddress}`
 
 /** Lowercase mid-sentence. All-caps acronyms such as HVAC stay uppercase. */
 export function categoryPhraseInSentence(category: string): string {
@@ -146,6 +138,10 @@ export function gmailCategoryPhrase(category: string): string | null {
   if (!known) return null
   const phrase = categoryPhraseInSentence(known.value).trim()
   return phrase || null
+}
+
+export function gmailActiveSubject(city: string): string {
+  return GMAIL_ACTIVE_SUBJECT_TEMPLATE.replaceAll('{city}', formatCityLabel(city))
 }
 
 export function gmailSubjectA(businessName: string): string {
@@ -222,7 +218,7 @@ export function renderGmailTestEmail(input: {
     .replaceAll('{contactVerb}', contactVerb)
   assertNoUnfilledGmailPlaceholder(text)
   return {
-    subject: assigned.subject,
+    subject: gmailActiveSubject(input.city),
     subjectVariant: assigned.variant,
     text,
     wordCount: countWords(text),
