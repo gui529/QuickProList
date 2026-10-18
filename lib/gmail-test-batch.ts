@@ -5,6 +5,7 @@ import {
 } from './campaign-contact-history'
 import type { SentRegistryEntry } from './campaign-sent-registry'
 import { formatCategoryLabel, formatCityLabel } from './display'
+import { usableCampaignPostalAddress } from './email'
 import {
   ENROLL_URL_PLACEHOLDER,
   GMAIL_TEST_BODY_TEMPLATE,
@@ -14,6 +15,7 @@ import {
   GMAIL_TEST_TARGET,
   isRoleAddress,
   renderGmailTestEmail,
+  withGmailAttributionRef,
 } from './gmail-campaign'
 import type { ProspectRecord } from './campaign-prospect-registry'
 import { normalizeEmail } from './suppressions'
@@ -52,6 +54,8 @@ export interface GmailTestBatch {
   notes: string[]
   template: { subject: string; text: string }
   sendReady: GmailBatchRow[]
+  /** Passed every other check, but CAMPAIGN_POSTAL_ADDRESS is unset. */
+  held: GmailBatchRow[]
   flagged: GmailBatchRow[]
   excluded: GmailBatchRow[]
   needsEmail: GmailBatchRow[]
@@ -77,7 +81,9 @@ export function buildGmailTestBatch(input: {
   generatedAt?: string
   postalAddress?: string | null
 }): GmailTestBatch {
+  const postal = usableCampaignPostalAddress(input.postalAddress)
   const sendReady: GmailBatchRow[] = []
+  const held: GmailBatchRow[] = []
   const flagged: GmailBatchRow[] = []
   const excluded: GmailBatchRow[] = []
   const needsEmail: GmailBatchRow[] = []
@@ -124,32 +130,40 @@ export function buildGmailTestBatch(input: {
       continue
     }
 
+    const enrollUrl = withGmailAttributionRef(ENROLL_URL_PLACEHOLDER, prospect.businessName)
     const rendered = renderGmailTestEmail({
       businessName: prospect.businessName,
       city: prospect.city,
       category: prospect.category,
-      enrollUrl: ENROLL_URL_PLACEHOLDER,
-      postalAddress: input.postalAddress,
+      enrollUrl,
+      postalAddress: postal,
     })
     const row: GmailBatchRow = {
       ...base,
-      enrollUrl: ENROLL_URL_PLACEHOLDER,
+      enrollUrl,
       enrollUrlStatus: 'placeholder',
       subject: rendered.subject,
       text: rendered.text,
       wordCount: rendered.wordCount,
     }
     if (roleAddress || mx === null) flagged.push(row)
+    else if (!postal) held.push(row)
     else sendReady.push(row)
   }
 
   const blockers = [
     'Board stays PAUSED. Do not send until the owner unpauses.',
     'Enroll URLs are placeholders. DATABASE_URL was not available here, so invitations were not created. Run scripts/campaign-gmail-enroll-urls.ts when the database is configured.',
-    'Postal address is the {postalAddress} placeholder (GitHub issue #18). Do not invent one.',
-    `Send-ready count is ${sendReady.length} of about ${GMAIL_TEST_TARGET}. Add prospects with scripts/campaign-add-prospect.ts.`,
-    'Catch-all mailboxes were not probed. Role addresses (info@, help@, customerservice@) are flagged and kept out of sendReady.',
   ]
+  if (!postal) {
+    blockers.push(
+      'Postal address is the {postalAddress} placeholder (GitHub issue #18). Do not invent one. Rows that pass every other check stay in held, not sendReady, until CAMPAIGN_POSTAL_ADDRESS is set.'
+    )
+  }
+  blockers.push(
+    `Send-ready count is ${sendReady.length} of about ${GMAIL_TEST_TARGET}. Add prospects with scripts/campaign-add-prospect.ts.`,
+    'Catch-all mailboxes were not probed. Role addresses (info@, help@, customerservice@) are flagged and kept out of sendReady.'
+  )
 
   return {
     version: 1,
@@ -168,6 +182,7 @@ export function buildGmailTestBatch(input: {
     ],
     template: { subject: GMAIL_TEST_SUBJECT_TEMPLATE, text: GMAIL_TEST_BODY_TEMPLATE },
     sendReady,
+    held,
     flagged,
     excluded,
     needsEmail,

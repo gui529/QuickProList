@@ -12,18 +12,18 @@ import { createInvitation } from '../lib/invitations'
 import { normalizeCategory } from '../lib/categories'
 import { getCampaignSiteUrl } from '../lib/campaign-defaults'
 import type { GmailBatchRow, GmailTestBatch } from '../lib/gmail-test-batch'
-import { ENROLL_URL_PLACEHOLDER } from '../lib/gmail-campaign'
+import { ENROLL_URL_PLACEHOLDER, enrollUrlWithToken, isEnrollPlaceholder } from '../lib/gmail-campaign'
 
 loadCampaignEnv()
 
 const path = resolve(process.cwd(), 'docs/campaigns/gmail-test-batch.json')
 
 function needsLink(row: GmailBatchRow): boolean {
-  return Boolean(row.email && row.enrollUrl === ENROLL_URL_PLACEHOLDER)
+  return Boolean(row.email && isEnrollPlaceholder(row.enrollUrl))
 }
 
 async function fill(row: GmailBatchRow, siteUrl: string): Promise<GmailBatchRow> {
-  if (!needsLink(row) || !row.email) return row
+  if (!needsLink(row) || !row.email || !row.enrollUrl) return row
   const token = await createInvitation({
     businessName: row.business,
     category: normalizeCategory(row.trade),
@@ -31,12 +31,12 @@ async function fill(row: GmailBatchRow, siteUrl: string): Promise<GmailBatchRow>
     monthlyPrice: 29.99,
     contactEmail: row.email,
   })
-  const enrollUrl = `${siteUrl}/enroll/${token}`
+  const enrollUrl = enrollUrlWithToken(siteUrl, token, row.enrollUrl)
   return {
     ...row,
     enrollUrl,
     enrollUrlStatus: 'live',
-    text: row.text?.split(ENROLL_URL_PLACEHOLDER).join(enrollUrl),
+    text: row.text?.split(row.enrollUrl).join(enrollUrl),
   }
 }
 
@@ -52,7 +52,7 @@ async function main() {
   const siteUrl = getCampaignSiteUrl()
   batch.sendReady = await Promise.all(batch.sendReady.map((row) => fill(row, siteUrl)))
   batch.flagged = await Promise.all(batch.flagged.map((row) => fill(row, siteUrl)))
-  const stillPlaceholder = [...batch.sendReady, ...batch.flagged].some((row) => row.enrollUrl === ENROLL_URL_PLACEHOLDER)
+  const stillPlaceholder = [...batch.sendReady, ...batch.flagged].some((row) => isEnrollPlaceholder(row.enrollUrl))
   batch.ownerBlockers = batch.ownerBlockers.filter((line) => !line.startsWith('Enroll URLs are placeholders.'))
   if (stillPlaceholder) {
     batch.ownerBlockers.unshift('Some enroll URLs are still placeholders.')

@@ -16,6 +16,7 @@ import { findSentByEmail, loadSentRegistry, recordSent, type SentRegistryEntry }
 import { createInvitation } from '../lib/invitations'
 import { normalizeCategory } from '../lib/categories'
 import {
+  assertCampaignPostalAddress,
   assertCampaignPreviewLinks,
   assertRecentBounceRate,
   assertRecipientDomainHasMx,
@@ -197,6 +198,7 @@ async function main() {
   }
 
   if (prepare) {
+    assertCampaignPostalAddress()
     const statuses = recentDeliveryStatuses(loadSentRegistry().sent)
     const unmeasured = bounceRateMeasurementWarning(statuses)
     if (unmeasured) console.error(unmeasured)

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { LISTED_MESSAGE } from './campaigns'
 import { expandCampaignMessage } from './campaign-message'
 import {
+  assertCampaignPostalAddress,
   assertCampaignPreviewLinks,
   assertRecentBounceRate,
   assertRecipientDomainHasMx,
@@ -28,6 +29,22 @@ function row(partial: Partial<SentRegistryEntry> & Pick<SentRegistryEntry, 'emai
 }
 
 describe('prepare checks', () => {
+  it('refuses to prepare a send-ready email without a postal address', () => {
+    const previous = process.env.CAMPAIGN_POSTAL_ADDRESS
+    delete process.env.CAMPAIGN_POSTAL_ADDRESS
+    try {
+      expect(() => assertCampaignPostalAddress()).toThrow(/CAMPAIGN_POSTAL_ADDRESS/)
+      expect(() => assertCampaignPostalAddress('{postalAddress}')).toThrow(CampaignPrepareError)
+      expect(() => assertCampaignPostalAddress('   ')).toThrow(/Do not invent one/)
+      expect(assertCampaignPostalAddress('1 Test Street, Atlanta, GA 30301')).toBe(
+        '1 Test Street, Atlanta, GA 30301'
+      )
+    } finally {
+      if (previous === undefined) delete process.env.CAMPAIGN_POSTAL_ADDRESS
+      else process.env.CAMPAIGN_POSTAL_ADDRESS = previous
+    }
+  })
+
   it('refuses a domain with no MX record', async () => {
     await expect(
       assertRecipientDomainHasMx('pro@missing.test', async () => {

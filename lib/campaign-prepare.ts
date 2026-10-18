@@ -5,6 +5,8 @@ import {
   buildMarketingEmailSubject,
   buildPersonalMarketingEmail,
   campaignFooterText,
+  campaignPostalAddress,
+  usableCampaignPostalAddress,
   type CampaignEmailWave,
 } from './email'
 import type { SentRegistryEntry } from './campaign-sent-registry'
@@ -76,6 +78,17 @@ export function bounceRateMeasurementWarning(statuses: CampaignDeliveryStatus[])
   const sample = summarizeBounceRate(statuses)
   if (sample.window === 0 || sample.known > 0) return null
   return `Bounce rate not measured: none of the last ${sample.window} sent-registry sends have a delivery status. Set deliveryStatus from Resend (not a send) before preparing. Not pausing, because the rate is unknown.`
+}
+
+/** Refuse a send-ready prepare while CAMPAIGN_POSTAL_ADDRESS is unset. */
+export function assertCampaignPostalAddress(value?: string | null): string {
+  const postal = usableCampaignPostalAddress(value === undefined ? campaignPostalAddress() : value)
+  if (!postal) {
+    throw new CampaignPrepareError(
+      'Refusing to prepare: CAMPAIGN_POSTAL_ADDRESS is unset. CAN-SPAM requires a valid postal address before a send-ready email. Do not invent one.'
+    )
+  }
+  return postal
 }
 
 export function assertRecentBounceRate(statuses: CampaignDeliveryStatus[]): void {

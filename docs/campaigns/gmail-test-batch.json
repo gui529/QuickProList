@@ -6,11 +6,11 @@
   "capPerDay": 5,
   "targetSize": 20,
   "readyToSend": false,
-  "generatedAt": "2026-10-17T21:59:45.897Z",
+  "generatedAt": "2026-10-18T01:07:40.835Z",
   "ownerBlockers": [
     "Board stays PAUSED. Do not send until the owner unpauses.",
     "Enroll URLs are placeholders. DATABASE_URL was not available here, so invitations were not created. Run scripts/campaign-gmail-enroll-urls.ts when the database is configured.",
-    "Postal address is the {postalAddress} placeholder (GitHub issue #18). Do not invent one.",
+    "Postal address is the {postalAddress} placeholder (GitHub issue #18). Do not invent one. Rows that pass every other check stay in held, not sendReady, until CAMPAIGN_POSTAL_ADDRESS is set.",
     "Send-ready count is 0 of about 20. Add prospects with scripts/campaign-add-prospect.ts.",
     "Catch-all mailboxes were not probed. Role addresses (info@, help@, customerservice@) are flagged and kept out of sendReady."
   ],
@@ -20,10 +20,11 @@
     "MX values come from DNS lookups at generation time."
   ],
   "template": {
-    "subject": "Preview your {city} listing",
-    "text": "{businessName} already shows up when homeowners near {city} look for {categoryPhrase}.\n\nI'm with QuickProList, writing from gui.quickprolist@gmail.com. This is your listing preview. No card, no invoice unless you choose to continue:\n\n{enrollUrl}\n\nAfter the preview, staying listed is $29.99/month.\n\nReply \"no\" or \"unsubscribe\" and I won't email again.\n\n{postalAddress}"
+    "subject": "your {city} listing preview",
+    "text": "Hi,\n\nYou probably get plenty of marketing pitches, so I'll keep this short.\n\nI set up a preview listing for {businessName} on QuickProList, a local directory of {categoryPhrase} around {city}.\n\nIt's not a lead service: homeowners call you directly. No per-lead fees, no bidding against other pros.\n\nYour preview is ready to look over (two minutes):\n{enrollUrl}\n\nThe 30-day preview is free, no card needed. After that it's a flat $29.99/month if you stay.\n\nGuilherme, QuickProList\n\nThis is a promotional email from QuickProList. Reply \"no\" and I won't email again.\n{postalAddress}"
   },
   "sendReady": [],
+  "held": [],
   "flagged": [],
   "excluded": [
     {

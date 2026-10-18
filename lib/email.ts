@@ -220,6 +220,16 @@ export function campaignPostalAddress(): string | null {
   return value || null
 }
 
+/**
+ * A real street address. Blank and the `{postalAddress}` placeholder are not
+ * usable, and this does not invent one.
+ */
+export function usableCampaignPostalAddress(value?: string | null): string | null {
+  const postal = value?.trim() ?? ''
+  if (!postal || postal.includes('{postalAddress}')) return null
+  return postal
+}
+
 export function campaignFooterText(wave?: CampaignEmailWave): string {
   const postal = campaignPostalAddress()
   const reason = campaignComplianceReason(wave)
