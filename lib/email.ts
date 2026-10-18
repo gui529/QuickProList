@@ -341,7 +341,7 @@ function commercialNoticeHtml(body: string): string {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      if (/^https?:\/\/\S+$/.test(line)) {
+      if (/^(?:https?:\/\/|mailto:)\S+$/.test(line)) {
         return `<p style="margin:0 0 14px;font-size:15px;line-height:1.7"><a href="${escapeHtml(line)}" style="color:#2563eb">${escapeHtml(line)}</a></p>`
       }
       return `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155">${escapeHtml(line)}</p>`
@@ -349,22 +349,36 @@ function commercialNoticeHtml(body: string): string {
   return blocks.join('')
 }
 
+export interface CommercialNoticeOptions {
+  /**
+   * When true (default), a suppressed address is refused. Billing notices pass
+   * false so a marketing opt-out does not block a required subscription email.
+   * The compliant footer is still attached either way.
+   */
+  enforceSuppression?: boolean
+}
+
 /**
  * Commercial notice: the caller-supplied body is first (no pitch wrapper, no
  * extra links), then the compliant footer. From is QuickProList, not the
- * cold-outreach sender name. Suppressed addresses are refused.
+ * cold-outreach sender name. Suppressed addresses are refused unless
+ * `enforceSuppression` is false.
  */
 export async function sendCommercialNotice(
   to: string,
   subject: string,
-  body: string
+  body: string,
+  options: CommercialNoticeOptions = {}
 ): Promise<string> {
   const fromRaw = process.env.RESEND_FROM_EMAIL
   if (!fromRaw) throw new Error('RESEND_FROM_EMAIL not configured')
   const from = formatFromAddress(fromRaw)
 
   const normalized = normalizeEmail(to)
-  if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
+  const enforceSuppression = options.enforceSuppression !== false
+  if (enforceSuppression && (await isSuppressed('email', normalized))) {
+    throw new SuppressedError('email', normalized)
+  }
   const compliance = commercialCompliance(to)
 
   const html = `<!DOCTYPE html>

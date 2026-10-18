@@ -19,6 +19,10 @@ export interface EnrollmentInvitation {
   canceled_at: string | null
   trial_ends_at: string | null
   contact_email?: string | null
+  subscription_consent_at?: string | null
+  subscription_consent_text?: string | null
+  renewal_notice_period_end?: string | null
+  subscription_confirmation_sent_at?: string | null
 }
 
 function asInvitation(row: EnrollmentInvitation): EnrollmentInvitation {
@@ -124,6 +128,40 @@ export async function markInvitationTrial(
      SET status = 'trial', curated_business_id = $2, trial_ends_at = $3
      WHERE token = $1`,
     [token, curatedBusinessId, trialEndsAt]
+  )
+}
+
+export async function recordSubscriptionConsent(
+  token: string,
+  consentText: string,
+  consentedAt: string
+): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET subscription_consent_at = $2, subscription_consent_text = $3
+     WHERE token = $1`,
+    [token, consentedAt, consentText]
+  )
+}
+
+export async function markSubscriptionConfirmationSent(id: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET subscription_confirmation_sent_at = $2
+     WHERE id = $1`,
+    [id, new Date().toISOString()]
+  )
+}
+
+export async function markRenewalNoticeSent(id: string, periodEnd: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET renewal_notice_period_end = $2
+     WHERE id = $1`,
+    [id, periodEnd]
   )
 }
 

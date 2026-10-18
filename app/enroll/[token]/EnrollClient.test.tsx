@@ -3,6 +3,11 @@ import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import EnrollClient from './EnrollClient'
 import type { EnrollmentInvitation } from '@/lib/invitations'
+import {
+  formatSubscriptionPrice,
+  subscriptionDisclosureText,
+  subscriptionSuccessLine,
+} from '@/lib/subscription-terms'
 
 function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): EnrollmentInvitation {
   return {
@@ -74,14 +79,68 @@ describe('EnrollClient (success view dashboard link)', () => {
     expect(screen.getByText('Payment successful!')).toBeTruthy()
   })
 
-  it('does not promise top placement after payment', () => {
+  it('states that the listing is live and the subscription renews monthly at the configured price', () => {
     window.history.pushState({}, '', '/enroll/test-token?success=1')
 
-    render(<EnrollClient invitation={makeInvitation()} token="test-token" dashboardToken={null} />)
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ monthly_price: 49, cities: ['austin', 'marietta'] })}
+        token="test-token"
+        dashboardToken={null}
+      />
+    )
 
-    expect(screen.getByText('Your listing is live on QuickProList.')).toBeTruthy()
+    const line = subscriptionSuccessLine('Acme Plumbing', 'Plumbers', 'Austin, Marietta')
+    expect(line).toBe(
+      `Acme Plumbing is now listed on QuickProList for Plumbers in Austin, Marietta. Your ${formatSubscriptionPrice()}/month subscription renews monthly until you cancel.`
+    )
+    expect(screen.getByText(line)).toBeTruthy()
+    expect(screen.queryByText(/\$49/)).toBeNull()
     expect(screen.queryByText(/will see your business first/i)).toBeNull()
     expect(screen.queryByText(/featured/i)).toBeNull()
+    expect(screen.queryByText(/now active/i)).toBeNull()
+  })
+
+  it('shows the disclosure beside checkout and blocks payment until the box is checked', () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <EnrollClient
+        invitation={makeInvitation({ status: 'pending', curated_business_id: null })}
+        token="test-token"
+        initialContactEmail="owner@acme.example"
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /subscribe now/i }))
+
+    expect(screen.getByText(subscriptionDisclosureText())).toBeTruthy()
+    const checkbox = screen.getByRole('checkbox', { name: /i agree to these subscription terms/i }) as HTMLInputElement
+    expect(checkbox.checked).toBe(false)
+    const checkout = screen.getByRole('button', { name: /go to secure checkout/i }) as HTMLButtonElement
+    expect(checkout.disabled).toBe(true)
+
+    fireEvent.click(checkout)
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    const cancel = screen.getByRole('link', { name: /email to cancel/i })
+    const href = cancel.getAttribute('href') ?? ''
+    expect(href.startsWith('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription&body=')).toBe(true)
+    expect(decodeURIComponent(href)).toContain('Acme Plumbing')
+    expect(decodeURIComponent(href)).toContain('owner@acme.example')
+
+    fireEvent.click(checkbox)
+    fireEvent.click(checkout)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/stripe/checkout',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'test-token', consent: true }),
+      })
+    )
+
+    vi.unstubAllGlobals()
   })
 
   it('links current results to homepage search for that trade and city', () => {

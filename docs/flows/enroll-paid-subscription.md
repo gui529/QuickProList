@@ -59,16 +59,18 @@ Campaign email **requires** `city` and `category` on the send payload (`app/api/
 
 - **Back to preview**.
 - Shows `monthly_price` from invitation.
-- **Go to secure checkout** → `POST /api/stripe/checkout` with JSON `{ token }` → browser redirect to Stripe Checkout URL (`lib/stripe.ts` `success_url` = `{returnUrl}?success=1`).
+- Disclosure next to the button (one string, `subscriptionDisclosureText()` in `lib/subscription-terms.ts`): monthly auto-renewal at the configured price, how to cancel, and `SUBSCRIPTION_BILLING_STARTS_SENTENCE` (the only swappable sentence).
+- Unchecked **I agree to these subscription terms** box. The button stays disabled until it is checked. `POST /api/stripe/checkout` requires JSON `{ token, consent: true }` and records `subscription_consent_at` plus the disclosure text before creating the session.
+- **Go to secure checkout** → browser redirect to Stripe Checkout URL (`lib/stripe.ts` `success_url` = `{returnUrl}?success=1`).
 
 ### 5. Return from Stripe
 
-- URL `?success=1` → success screen (“Payment successful!”).
+- URL `?success=1` → success screen (“Payment successful!”) and `subscriptionSuccessLine()` — the business is listed for the category and cities, and the configured price renews monthly until they cancel.
 - **View your dashboard** link only when `PRO_DASHBOARD_ENABLED` is true and a `dashboardToken` exists (`lib/feature-flags.ts`).
 
 ### 6. After webhook (async)
 
-Listing published in search; transactional welcome email may include a dashboard URL when **`PRO_DASHBOARD_ENABLED`**. See [stripe-webhook-effects.md](./stripe-webhook-effects.md).
+Listing published in search. A confirmation email states the price, monthly auto-renewal, when billing starts, and a prefilled cancel mailto. A dashboard URL is included only when **`PRO_DASHBOARD_ENABLED`**. See [stripe-webhook-effects.md](./stripe-webhook-effects.md).
 
 ---
 

@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import EnrollListingPreview from '@/components/EnrollListingPreview'
 import { CATEGORIES, normalizeCategory } from '@/lib/categories'
+import { formatCityLabel } from '@/lib/display'
 import { reminderEmailError } from '@/lib/reminder-email'
+import {
+  cancelSubscriptionMailto,
+  SUBSCRIPTION_CONSENT_REQUIRED_ERROR,
+  subscriptionDisclosureText,
+  subscriptionSuccessLine,
+} from '@/lib/subscription-terms'
 import { buildEnrollHomeUrl } from '@/lib/enroll-home-url'
 import { saveMyListingId } from '@/lib/my-listing-storage'
 import type { EnrollmentInvitation } from '@/lib/invitations'
@@ -45,6 +52,7 @@ export default function EnrollClient({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [contactEmail, setContactEmail] = useState(initialContactEmail ?? '')
+  const [subscriptionConsent, setSubscriptionConsent] = useState(false)
   const [localDashboardToken, setLocalDashboardToken] = useState<string | null>(dashboardToken ?? null)
 
   const [success] = useState(() => {
@@ -96,6 +104,10 @@ export default function EnrollClient({
   }
 
   async function handleSubscribe() {
+    if (!subscriptionConsent) {
+      setError(SUBSCRIPTION_CONSENT_REQUIRED_ERROR)
+      return
+    }
     setLoading(true)
     setError('')
 
@@ -103,7 +115,7 @@ export default function EnrollClient({
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, consent: true }),
       })
 
       const data = await res.json()
@@ -128,9 +140,12 @@ export default function EnrollClient({
         <div className="text-center max-w-lg">
           <div className="text-6xl mb-4">✓</div>
           <h1 className="text-4xl font-bold text-emerald-900 mb-2">Payment successful!</h1>
-          <p className="text-emerald-700 mb-6">Your listing is live on QuickProList.</p>
-          <p className="text-sm text-emerald-600">
-            Your monthly subscription of ${invitation.monthly_price.toFixed(2)}/month is now active.
+          <p className="text-emerald-700 mb-6">
+            {subscriptionSuccessLine(
+              invitation.business_name,
+              categoryLabel,
+              invitation.cities.map((city) => formatCityLabel(city)).join(', ')
+            )}
           </p>
           {effectiveDashboardToken && (
             <Link
@@ -262,8 +277,27 @@ export default function EnrollClient({
                   ${invitation.monthly_price.toFixed(2)}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">Billed monthly, cancel anytime</p>
             </div>
+          </div>
+
+          <div className="mb-6 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4 text-sm text-slate-700">
+            <p>{subscriptionDisclosureText()}</p>
+            <a
+              href={cancelSubscriptionMailto(invitation.business_name, contactEmail)}
+              className="inline-block mt-2 underline hover:text-slate-900"
+            >
+              Email to cancel
+            </a>
+            <label htmlFor="subscription-consent" className="mt-4 flex items-start gap-2 text-sm text-slate-800">
+              <input
+                id="subscription-consent"
+                type="checkbox"
+                className="mt-1"
+                checked={subscriptionConsent}
+                onChange={(e) => setSubscriptionConsent(e.target.checked)}
+              />
+              <span>I agree to these subscription terms.</span>
+            </label>
           </div>
 
           {invitation.status === 'paid' && (
@@ -281,14 +315,14 @@ export default function EnrollClient({
 
           <button
             onClick={handleSubscribe}
-            disabled={loading || invitation.status === 'paid'}
+            disabled={loading || invitation.status === 'paid' || !subscriptionConsent}
             className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
           >
             {loading ? 'Processing…' : invitation.status === 'paid' ? 'Already Enrolled' : 'Go to secure checkout'}
           </button>
 
           <p className="text-center text-xs text-slate-500 mt-6">
-            By subscribing, you agree to be featured in QuickProList search results for the selected cities,
+            By subscribing, you agree to be listed in QuickProList search results for the selected cities,
             and to our{' '}
             <Link href="/terms" className="underline hover:text-slate-700">
               Terms of Service

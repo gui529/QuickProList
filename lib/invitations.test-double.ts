@@ -58,6 +58,10 @@ export function __seed(overrides: Partial<EnrollmentInvitation> = {}): Enrollmen
     canceled_at: overrides.canceled_at ?? null,
     trial_ends_at: overrides.trial_ends_at ?? null,
     contact_email: overrides.contact_email ?? null,
+    subscription_consent_at: overrides.subscription_consent_at ?? null,
+    subscription_consent_text: overrides.subscription_consent_text ?? null,
+    renewal_notice_period_end: overrides.renewal_notice_period_end ?? null,
+    subscription_confirmation_sent_at: overrides.subscription_confirmation_sent_at ?? null,
   }
   invitations.push(full)
   return full
@@ -107,6 +111,29 @@ export async function markInvitationTrial(
   inv.status = 'trial'
   inv.curated_business_id = curatedBusinessId
   inv.trial_ends_at = trialEndsAt
+}
+
+export async function recordSubscriptionConsent(
+  token: string,
+  consentText: string,
+  consentedAt: string
+): Promise<void> {
+  const inv = invitations.find((i) => i.token === token)
+  if (!inv) throw new Error('Invitation not found')
+  inv.subscription_consent_at = consentedAt
+  inv.subscription_consent_text = consentText
+}
+
+export async function markSubscriptionConfirmationSent(id: string): Promise<void> {
+  const inv = invitations.find((i) => i.id === id)
+  if (!inv) throw new Error('Invitation not found')
+  inv.subscription_confirmation_sent_at = new Date().toISOString()
+}
+
+export async function markRenewalNoticeSent(id: string, periodEnd: string): Promise<void> {
+  const inv = invitations.find((i) => i.id === id)
+  if (!inv) throw new Error('Invitation not found')
+  inv.renewal_notice_period_end = periodEnd
 }
 
 export async function markInvitationPaid(

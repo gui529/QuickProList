@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getInvitationByToken, isInvitationExpired } from '@/lib/invitations'
+import { getInvitationByToken, isInvitationExpired, recordSubscriptionConsent } from '@/lib/invitations'
 import { createCheckoutSession } from '@/lib/stripe'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
+import {
+  SUBSCRIPTION_CONSENT_REQUIRED_ERROR,
+  subscriptionDisclosureText,
+} from '@/lib/subscription-terms'
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
@@ -11,6 +15,10 @@ export async function POST(req: NextRequest) {
 
   if (!token) {
     return NextResponse.json({ error: 'token is required' }, { status: 400 })
+  }
+
+  if (body.consent !== true) {
+    return NextResponse.json({ error: SUBSCRIPTION_CONSENT_REQUIRED_ERROR }, { status: 400 })
   }
 
   try {
@@ -36,6 +44,7 @@ export async function POST(req: NextRequest) {
       'https://www.quickprolist.com'
     ).replace(/\/$/, '')
     const returnUrl = `${baseUrl}/enroll/${token}`
+    await recordSubscriptionConsent(token, subscriptionDisclosureText(), new Date().toISOString())
     const checkoutUrl = await createCheckoutSession(
       token,
       invitation.business_name,

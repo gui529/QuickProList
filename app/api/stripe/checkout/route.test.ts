@@ -4,13 +4,18 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 // DATABASE_URL) — keep the real `isInvitationExpired` so this test
 // exercises the checkout route's actual expiration enforcement, not a mock
 // of it.
-const { getInvitationByTokenMock, createCheckoutSessionMock } = vi.hoisted(() => ({
+const { getInvitationByTokenMock, createCheckoutSessionMock, recordSubscriptionConsentMock } = vi.hoisted(() => ({
   getInvitationByTokenMock: vi.fn(),
   createCheckoutSessionMock: vi.fn().mockResolvedValue('https://checkout.stripe.test/session'),
+  recordSubscriptionConsentMock: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('@/lib/invitations', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/invitations')>()
-  return { ...actual, getInvitationByToken: getInvitationByTokenMock }
+  return {
+    ...actual,
+    getInvitationByToken: getInvitationByTokenMock,
+    recordSubscriptionConsent: recordSubscriptionConsentMock,
+  }
 })
 vi.mock('@/lib/stripe', () => ({
   createCheckoutSession: createCheckoutSessionMock,
@@ -18,6 +23,10 @@ vi.mock('@/lib/stripe', () => ({
 
 import { POST } from './route'
 import type { EnrollmentInvitation } from '@/lib/invitations'
+import {
+  SUBSCRIPTION_CONSENT_REQUIRED_ERROR,
+  subscriptionDisclosureText,
+} from '@/lib/subscription-terms'
 
 function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): EnrollmentInvitation {
   return {
@@ -41,11 +50,15 @@ function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): Enrollme
   }
 }
 
-function makeRequest(token: string, ip: string): Request {
+function makeRequest(
+  token: string,
+  ip: string,
+  body: Record<string, unknown> = { consent: true }
+): Request {
   return new Request('https://example.test/api/stripe/checkout', {
     method: 'POST',
     headers: { 'x-forwarded-for': ip, origin: 'https://example.test' },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ token, ...body }),
   })
 }
 
@@ -53,6 +66,7 @@ describe('POST /api/stripe/checkout (expiration enforcement)', () => {
   beforeEach(() => {
     getInvitationByTokenMock.mockReset()
     createCheckoutSessionMock.mockClear()
+    recordSubscriptionConsentMock.mockClear()
   })
 
   it('rejects a pending invitation whose expires_at has passed with a 410', async () => {
@@ -63,6 +77,7 @@ describe('POST /api/stripe/checkout (expiration enforcement)', () => {
 
     expect(res.status).toBe(410)
     expect(createCheckoutSessionMock).not.toHaveBeenCalled()
+    expect(recordSubscriptionConsentMock).not.toHaveBeenCalled()
   })
 
   it('allows a pending invitation whose expires_at is still in the future', async () => {
@@ -82,6 +97,7 @@ describe('POST /api/stripe/checkout (return URL origin)', () => {
   beforeEach(() => {
     getInvitationByTokenMock.mockReset()
     createCheckoutSessionMock.mockClear()
+    recordSubscriptionConsentMock.mockClear()
   })
 
   afterEach(() => {
@@ -124,11 +140,52 @@ describe('POST /api/stripe/checkout (return URL origin)', () => {
     const req = new Request('https://example.test/api/stripe/checkout', {
       method: 'POST',
       headers: { 'x-forwarded-for': '10.0.0.5' },
-      body: JSON.stringify({ token: invitation.token }),
+      body: JSON.stringify({ token: invitation.token, consent: true }),
     })
     const res = await POST(req as never)
 
     expect(res.status).toBe(200)
     expect(returnUrlArg()).toBe(`https://www.quickprolist.com/enroll/${invitation.token}`)
+  })
+})
+
+describe('POST /api/stripe/checkout (express consent)', () => {
+  beforeEach(() => {
+    getInvitationByTokenMock.mockReset()
+    createCheckoutSessionMock.mockClear()
+    recordSubscriptionConsentMock.mockClear()
+  })
+
+  it('refuses checkout when the consent box was not checked', async () => {
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    for (const [ip, body] of [
+      ['10.1.0.1', {}],
+      ['10.1.0.2', { consent: false }],
+    ] as const) {
+      const res = await POST(makeRequest(invitation.token, ip, body) as never)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toEqual({ error: SUBSCRIPTION_CONSENT_REQUIRED_ERROR })
+    }
+
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled()
+    expect(recordSubscriptionConsentMock).not.toHaveBeenCalled()
+    expect(getInvitationByTokenMock).not.toHaveBeenCalled()
+  })
+
+  it('records the disclosure and a timestamp, then creates the session', async () => {
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    const res = await POST(makeRequest(invitation.token, '10.1.0.3') as never)
+
+    expect(res.status).toBe(200)
+    expect(recordSubscriptionConsentMock).toHaveBeenCalledTimes(1)
+    const [token, text, consentedAt] = recordSubscriptionConsentMock.mock.calls[0]
+    expect(token).toBe(invitation.token)
+    expect(text).toBe(subscriptionDisclosureText())
+    expect(Number.isNaN(Date.parse(consentedAt))).toBe(false)
+    expect(createCheckoutSessionMock).toHaveBeenCalledTimes(1)
   })
 })

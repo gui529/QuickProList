@@ -119,7 +119,8 @@ redirects to `/login` and the header hides the Dashboard link.
    endpoint** and point it at
    `https://<your-domain>/api/stripe/webhook`.
 2. Subscribe it to at least `checkout.session.completed`,
-   `customer.subscription.updated`, and `customer.subscription.deleted`.
+   `invoice.upcoming`, `customer.subscription.updated`, and
+   `customer.subscription.deleted`.
 3. Copy the endpoint's signing secret into the production environment's
    `STRIPE_WEBHOOK_SECRET` (e.g. Vercel project settings).
 
@@ -132,7 +133,8 @@ redirects to `/login` and the header hides the Dashboard link.
 - `ENROLL_PREVIEW_TRIAL_DAYS` (optional) — days for self-serve enroll preview from campaign links (default `30`).
 - `PRO_DASHBOARD_ENABLED` (optional) — set to `true` to expose `/dashboard/[token]` to pros, admin dashboard links, and performance digests. Default **off**; production stays off (do not recommend enabling).
 - `TRIAL_REMINDER_HOURS` (optional) — how far before `trial_ends_at` to send the trial-ending email (default `120`, about 5 days).
-- `CAMPAIGN_POSTAL_ADDRESS` — mailing address required before a commercial trial-reminder (and send-ready campaign mail) can go out. Not stored in the repo. Do not invent one.
+- `RENEWAL_NOTICE_LEAD_HOURS` (optional) — how far before a renewal `invoice.upcoming` still sends the notice (default `240`, 10 days). Set it at least as high as Stripe's upcoming-invoice lead.
+- `CAMPAIGN_POSTAL_ADDRESS` — mailing address required before a commercial trial-reminder, subscription confirmation, renewal notice, or send-ready campaign mail can go out. Not stored in the repo. Do not invent one.
 - `UNSUBSCRIBE_SECRET` — signs one-click unsubscribe links in marketing email (or set `CRON_SECRET` to the same value). Required before campaign or win-back sends.
 - `RESEND_WEBHOOK_SECRET` (optional) — verifies `POST /api/resend/webhook` for bounces/complaints → suppression list.
 

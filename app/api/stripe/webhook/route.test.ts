@@ -14,6 +14,7 @@ const {
   findLatestManualCuratedIdMock,
   clearCuratedTrialMock,
   sendEmailMock,
+  sendCommercialNoticeMock,
 } = vi.hoisted(() => {
   // route.ts reads STRIPE_WEBHOOK_SECRET as a module-level constant, so it
   // must be set before the module graph is imported below.
@@ -30,6 +31,7 @@ const {
   const findLatestManualCuratedIdMock = vi.fn().mockResolvedValue('curated-1')
   const clearCuratedTrialMock = vi.fn().mockResolvedValue(undefined)
   const sendEmailMock = vi.fn().mockResolvedValue('email-id')
+  const sendCommercialNoticeMock = vi.fn().mockResolvedValue('email-id')
   return {
     constructEventMock,
     handleSubscriptionCanceledMock,
@@ -42,6 +44,7 @@ const {
     findLatestManualCuratedIdMock,
     clearCuratedTrialMock,
     sendEmailMock,
+    sendCommercialNoticeMock,
   }
 })
 
@@ -64,6 +67,7 @@ vi.mock('@/lib/kv', () => ({
 
 vi.mock('@/lib/email', () => ({
   sendEmail: sendEmailMock,
+  sendCommercialNotice: sendCommercialNoticeMock,
 }))
 
 vi.mock('@/lib/invitations', async () => import('@/lib/invitations.test-double'))
@@ -74,6 +78,7 @@ import {
   __seed as seedInvitation,
   getInvitationByToken,
 } from '@/lib/invitations.test-double'
+import { subscriptionDisclosureText } from '@/lib/subscription-terms'
 
 function makeRequest(): Request {
   return new Request('https://example.test/api/stripe/webhook', {
@@ -94,6 +99,8 @@ describe('POST /api/stripe/webhook (idempotency)', () => {
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
+    sendCommercialNoticeMock.mockClear()
+    delete process.env.PRO_DASHBOARD_ENABLED
   })
 
   it('only inserts the curated business once when Stripe retries the same event', async () => {
@@ -225,7 +232,7 @@ describe('POST /api/stripe/webhook (idempotency)', () => {
   })
 })
 
-describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)', () => {
+describe('POST /api/stripe/webhook (subscription confirmation on checkout.session.completed)', () => {
   beforeEach(() => {
     resetInvitations()
     constructEventMock.mockClear()
@@ -236,10 +243,27 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
+    sendCommercialNoticeMock.mockClear()
+    delete process.env.PRO_DASHBOARD_ENABLED
   })
 
-  it('sends a welcome email with the dashboard link when payment succeeds', async () => {
+  function paidEvent(token: string, email?: string) {
+    return {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_123',
+          subscription: 'sub_test_456',
+          metadata: { invitationToken: token },
+          ...(email ? { customer_details: { email } } : {}),
+        },
+      },
+    }
+  }
+
+  it('sends the terms, cancel link, and dashboard link when payment succeeds', async () => {
     process.env.PRO_DASHBOARD_ENABLED = 'true'
+    process.env.SITE_URL = 'https://www.quickprolist.com'
     const invitation = seedInvitation({
       status: 'pending',
       business_name: 'Acme Plumbing',
@@ -251,32 +275,35 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
       name: 'Acme Plumbing',
       dashboardToken: 'dash-token-123',
     })
-
-    const event = {
-      type: 'checkout.session.completed',
-      data: {
-        object: {
-          id: 'cs_test_123',
-          subscription: 'sub_test_456',
-          metadata: { invitationToken: invitation.token },
-          customer_details: { email: 'owner@acmeplumbing.test' },
-        },
-      },
-    }
-    constructEventMock.mockReturnValue(event)
+    constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
 
     expect(getCuratedByIdMock).toHaveBeenCalledWith('curated-1')
     expect(clearCuratedTrialMock).toHaveBeenCalledWith('curated-1')
-    expect(sendEmailMock).toHaveBeenCalledTimes(1)
-    expect(sendEmailMock.mock.calls[0][0]).toBe('owner@acmeplumbing.test')
-    expect(sendEmailMock.mock.calls[0][2]).toContain('/dashboard/dash-token-123')
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    const [to, subject, body, options] = sendCommercialNoticeMock.mock.calls[0]
+    expect(to).toBe('owner@acmeplumbing.test')
+    expect(subject).toBe('Your QuickProList subscription')
+    expect(body).toContain(subscriptionDisclosureText())
+    expect(body).toContain('mailto:contact@quickprolist.com')
+    expect(body).toContain('Acme Plumbing')
+    expect(decodeURIComponent(body)).toContain('owner@acmeplumbing.test')
+    expect(body).toContain('https://www.quickprolist.com/dashboard/dash-token-123')
+    expect(options).toEqual({ enforceSuppression: false })
+
+    const paid = await getInvitationByToken(invitation.token)
+    expect(paid?.subscription_confirmation_sent_at).toBeTruthy()
+
+    const retry = await POST(makeRequest() as never)
+    expect(retry.status).toBe(200)
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    expect(addCuratedManualMock).toHaveBeenCalledTimes(1)
   })
 
-  it('does not send a dashboard welcome email when the pro dashboard flag is off', async () => {
-    delete process.env.PRO_DASHBOARD_ENABLED
+  it('still sends the terms when the pro dashboard flag is off, without a dashboard link', async () => {
     const invitation = seedInvitation({
       status: 'pending',
       business_name: 'Acme Plumbing',
@@ -288,26 +315,16 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
       name: 'Acme Plumbing',
       dashboardToken: 'dash-token-123',
     })
-
-    const event = {
-      type: 'checkout.session.completed',
-      data: {
-        object: {
-          id: 'cs_test_123',
-          subscription: 'sub_test_456',
-          metadata: { invitationToken: invitation.token },
-          customer_details: { email: 'owner@acmeplumbing.test' },
-        },
-      },
-    }
-    constructEventMock.mockReturnValue(event)
+    constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
-    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    expect(sendCommercialNoticeMock.mock.calls[0][2]).toContain(subscriptionDisclosureText())
+    expect(sendCommercialNoticeMock.mock.calls[0][2]).not.toContain('/dashboard/')
   })
 
-  it('does not send a welcome email when the curated business has no dashboard token', async () => {
+  it('still sends the terms when the curated business has no dashboard token', async () => {
     process.env.PRO_DASHBOARD_ENABLED = 'true'
     const invitation = seedInvitation({
       status: 'pending',
@@ -320,49 +337,143 @@ describe('POST /api/stripe/webhook (welcome email on checkout.session.completed)
       name: 'Acme Plumbing',
       dashboardToken: undefined,
     })
-
-    const event = {
-      type: 'checkout.session.completed',
-      data: {
-        object: {
-          id: 'cs_test_123',
-          subscription: 'sub_test_456',
-          metadata: { invitationToken: invitation.token },
-          customer_details: { email: 'owner@acmeplumbing.test' },
-        },
-      },
-    }
-    constructEventMock.mockReturnValue(event)
+    constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
-    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    expect(sendCommercialNoticeMock.mock.calls[0][2]).not.toContain('/dashboard/')
   })
 
-  it('does not send a welcome email when there is no contact email to send it to', async () => {
+  it('does not send a confirmation when there is no contact email', async () => {
     const invitation = seedInvitation({
       status: 'pending',
       business_name: 'Acme Plumbing',
       category: 'plumbing',
       cities: ['austin'],
     })
-
-    const event = {
-      type: 'checkout.session.completed',
-      data: {
-        object: {
-          id: 'cs_test_123',
-          subscription: 'sub_test_456',
-          metadata: { invitationToken: invitation.token },
-        },
-      },
-    }
-    constructEventMock.mockReturnValue(event)
+    constructEventMock.mockReturnValue(paidEvent(invitation.token))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
     expect(getCuratedByIdMock).not.toHaveBeenCalled()
     expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+  })
+
+  it('retries a missed confirmation after the invitation is already paid', async () => {
+    const invitation = seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      curated_business_id: 'curated-1',
+      subscription_confirmation_sent_at: null,
+    })
+    getCuratedByIdMock.mockResolvedValue({ id: 'curated-1', name: 'Acme Plumbing' })
+    constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(addCuratedManualMock).not.toHaveBeenCalled()
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    expect(sendCommercialNoticeMock.mock.calls[0][2]).toContain('mailto:contact@quickprolist.com')
+  })
+})
+
+describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => {
+  beforeEach(() => {
+    resetInvitations()
+    constructEventMock.mockClear()
+    sendCommercialNoticeMock.mockClear()
+    getCuratedByIdMock.mockReset()
+    delete process.env.RENEWAL_NOTICE_LEAD_HOURS
+  })
+
+  function upcomingEvent(subscriptionId: string, periodEndSec: number) {
+    return {
+      type: 'invoice.upcoming',
+      data: {
+        object: {
+          customer_email: 'billing@acmeplumbing.test',
+          period_end: periodEndSec,
+          lines: {
+            data: [{ period: { start: periodEndSec, end: periodEndSec + 30 * 24 * 60 * 60 } }],
+          },
+          parent: { subscription_details: { subscription: subscriptionId } },
+        },
+      },
+    }
+  }
+
+  it('sends a notice inside the lead window and does not send it again for the same period', async () => {
+    seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_renew_1',
+      curated_business_id: 'curated-renew-1',
+      contact_email: 'owner@acmeplumbing.test',
+    })
+    getCuratedByIdMock.mockResolvedValue({
+      id: 'curated-renew-1',
+      contactEmail: 'owner@acmeplumbing.test',
+    })
+    const periodEnd = Math.floor((Date.now() + 5 * 24 * 60 * 60 * 1000) / 1000)
+    constructEventMock.mockReturnValue(upcomingEvent('sub_renew_1', periodEnd))
+
+    const first = await POST(makeRequest() as never)
+    expect(first.status).toBe(200)
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    const [to, subject, body, options] = sendCommercialNoticeMock.mock.calls[0]
+    expect(to).toBe('owner@acmeplumbing.test')
+    expect(subject).toMatch(/^Your QuickProList subscription renews on /)
+    expect(body).toContain('$29.99/month. The plan renews automatically every month until you cancel.')
+    expect(body).toContain('mailto:contact@quickprolist.com')
+    expect(decodeURIComponent(body)).toContain('Acme Plumbing')
+    expect(decodeURIComponent(body)).toContain('owner@acmeplumbing.test')
+    expect(body).not.toContain('Billing starts the day you subscribe.')
+    expect(options).toEqual({ enforceSuppression: false })
+
+    const second = await POST(makeRequest() as never)
+    expect(second.status).toBe(200)
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips an upcoming invoice outside the lead window', async () => {
+    seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_renew_far',
+      contact_email: 'owner@acmeplumbing.test',
+    })
+    const periodEnd = Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000)
+    constructEventMock.mockReturnValue(upcomingEvent('sub_renew_far', periodEnd))
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+  })
+
+  it('reads the subscription id from invoice.subscription when parent details are absent', async () => {
+    seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_legacy',
+      contact_email: 'owner@acmeplumbing.test',
+    })
+    const periodEnd = Math.floor((Date.now() + 2 * 24 * 60 * 60 * 1000) / 1000)
+    constructEventMock.mockReturnValue({
+      type: 'invoice.upcoming',
+      data: {
+        object: {
+          customer_email: 'owner@acmeplumbing.test',
+          subscription: 'sub_legacy',
+          lines: { data: [{ period: { start: periodEnd, end: periodEnd + 1000 } }] },
+        },
+      },
+    })
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -377,6 +488,8 @@ describe('POST /api/stripe/webhook (subscription status handling)', () => {
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
+    sendCommercialNoticeMock.mockClear()
+    delete process.env.PRO_DASHBOARD_ENABLED
   })
 
   it('does not delist on customer.subscription.updated with status past_due (grace period)', async () => {
@@ -418,6 +531,8 @@ describe('POST /api/stripe/webhook (dunning notice on invoice.payment_failed)', 
     setCuratedContactEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     sendEmailMock.mockClear()
+    sendCommercialNoticeMock.mockClear()
+    delete process.env.PRO_DASHBOARD_ENABLED
   })
 
   function makeInvoiceFailedEvent(subscriptionId: string) {

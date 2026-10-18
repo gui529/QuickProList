@@ -36,6 +36,8 @@ Details when preview lapses without payment: [trial-expiration.md](./trial-expir
 
 Requires migration `016_invitation_contact_and_trial_reminder.sql` on Neon.
 
+The notice before a paid renewal is not this job. That email is sent from the Stripe `invoice.upcoming` webhook (`lib/subscription-notice.ts`).
+
 ---
 
 ## Key files
