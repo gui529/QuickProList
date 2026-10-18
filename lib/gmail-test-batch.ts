@@ -8,11 +8,14 @@ import { formatCategoryLabel, formatCityLabel } from './display'
 import { usableCampaignPostalAddress } from './email'
 import {
   ENROLL_URL_PLACEHOLDER,
+  GMAIL_SUBJECT_A_TEMPLATE,
+  GMAIL_SUBJECT_B,
   GMAIL_TEST_BODY_TEMPLATE,
   GMAIL_TEST_DAILY_CAP,
   GMAIL_TEST_FROM,
-  GMAIL_TEST_SUBJECT_TEMPLATE,
   GMAIL_TEST_TARGET,
+  gmailCategoryPhrase,
+  gmailFromHeader,
   isClaimedMonthlyPrice,
   isRoleAddress,
   renderGmailTestEmail,
@@ -32,6 +35,7 @@ export type ExclusionReason =
   | 'skipped'
   | 'price_mismatch'
   | 'already_listed'
+  | 'missing_category'
 
 export interface GmailBatchRow {
   business: string
@@ -48,14 +52,17 @@ export interface GmailBatchRow {
   resendStatus: string | null
   reason?: ExclusionReason
   subject?: string
+  subjectVariant?: 'A' | 'B'
   text?: string
   wordCount?: number
+  from?: string
 }
 
 export interface GmailTestBatch {
   version: 1
   channel: 'gmail'
   from: string
+  fromHeader: string
   board: 'PAUSED'
   capPerDay: number
   targetSize: number
@@ -63,7 +70,7 @@ export interface GmailTestBatch {
   generatedAt: string
   ownerBlockers: string[]
   notes: string[]
-  template: { subject: string; text: string }
+  template: { subjectA: string; subjectB: string; text: string }
   sendReady: GmailBatchRow[]
   /** Passed every other check, but CAMPAIGN_POSTAL_ADDRESS is unset. */
   held: GmailBatchRow[]
@@ -167,21 +174,31 @@ export function buildGmailTestBatch(input: {
       continue
     }
 
+    const categoryPhrase = gmailCategoryPhrase(prospect.category)
+    if (!categoryPhrase) {
+      held.push({ ...base, reason: 'missing_category' })
+      continue
+    }
     const enrollUrl = withGmailAttributionRef(ENROLL_URL_PLACEHOLDER, prospect.businessName)
     const rendered = renderGmailTestEmail({
       businessName: prospect.businessName,
+      email,
       city: prospect.city,
       category: prospect.category,
       enrollUrl,
       postalAddress: postal,
+      monthlyPrice: claim?.monthlyPrice,
+      hasPhone: Boolean(claim?.phone?.trim()),
     })
     const row: GmailBatchRow = {
       ...base,
       enrollUrl,
       enrollUrlStatus: 'placeholder',
       subject: rendered.subject,
+      subjectVariant: rendered.subjectVariant,
       text: rendered.text,
       wordCount: rendered.wordCount,
+      from: rendered.from,
     }
     const monthlyPrice = claim ? claim.monthlyPrice : null
     if (!isClaimedMonthlyPrice(monthlyPrice)) {
@@ -218,6 +235,7 @@ export function buildGmailTestBatch(input: {
     version: 1,
     channel: 'gmail',
     from: GMAIL_TEST_FROM,
+    fromHeader: gmailFromHeader(),
     board: 'PAUSED',
     capPerDay: GMAIL_TEST_DAILY_CAP,
     targetSize: GMAIL_TEST_TARGET,
@@ -229,7 +247,7 @@ export function buildGmailTestBatch(input: {
       'Dropped addresses include Resend statuses recorded on docs/campaigns/sent-registry.json.',
       'MX values come from DNS lookups at generation time.',
     ],
-    template: { subject: GMAIL_TEST_SUBJECT_TEMPLATE, text: GMAIL_TEST_BODY_TEMPLATE },
+    template: { subjectA: GMAIL_SUBJECT_A_TEMPLATE, subjectB: GMAIL_SUBJECT_B, text: GMAIL_TEST_BODY_TEMPLATE },
     sendReady,
     held,
     flagged,

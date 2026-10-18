@@ -1,3 +1,4 @@
+import { CATEGORIES, normalizeCategory } from './categories'
 import { formatCategorySearchPhrase, formatCityLabel } from './display'
 import { parseEnrollPreviewTrialDays } from './enroll-preview-days'
 
@@ -53,24 +54,30 @@ export function isRoleAddress(email: string): boolean {
   return ROLE_LOCAL_PARTS.has(bare)
 }
 
-export const GMAIL_TEST_SUBJECT_TEMPLATE = 'your {city} listing preview'
+export const GMAIL_FROM_DISPLAY_NAME = 'Guilherme at QuickProList'
+export const GMAIL_SUBJECT_A_TEMPLATE = '{businessName} preview'
+export const GMAIL_SUBJECT_B = 'not a lead service'
+export const GMAIL_AD_LINE = 'This is a promotional email from QuickProList.'
+export const GMAIL_OPT_OUT_LINE = 'Not interested? Reply "no" or "stop" and I won\'t email you again.'
+
+export function gmailFromHeader(): string {
+  return `"${GMAIL_FROM_DISPLAY_NAME}" <${GMAIL_TEST_FROM}>`
+}
 
 export const GMAIL_TEST_BODY_TEMPLATE = `Hi,
 
-You probably get plenty of marketing pitches, so I'll keep this short.
+I mocked up a QuickProList listing for {businessName}. QuickProList is a local directory of {categoryPhrase} around {city}.
 
-I set up a preview listing for {businessName} on QuickProList, a local directory of {categoryPhrase} around {city}.
+If you click start, it's live in search for {trialDays} days, free, no card. After that it comes down on its own unless you choose {price}/month, flat.
 
-It's not a lead service: homeowners call you directly. No per-lead fees, no bidding against other pros.
+It's not a lead service: homeowners {contactVerb} you directly. No per-lead fees, no bidding.
 
-Your preview is ready to look over (two minutes):
+Worth two minutes to look?
 {enrollUrl}
-
-The {trialDays}-day preview is free, no card needed. After that it's a flat $29.99/month if you stay.
 
 Guilherme, QuickProList
 
-This is a promotional email from QuickProList. Reply "no" and I won't email again.
+${GMAIL_AD_LINE} ${GMAIL_OPT_OUT_LINE}
 {postalAddress}`
 
 /** Lowercase mid-sentence. All-caps acronyms such as HVAC stay uppercase. */
@@ -121,14 +128,42 @@ export function enrollUrlWithToken(siteUrl: string, token: string, previousUrl: 
   return next.toString()
 }
 
-export function buildGmailTestSubject(city: string): string {
-  const label = formatCityLabel(city.trim() || 'your area')
-  const specific = GMAIL_TEST_SUBJECT_TEMPLATE.replaceAll('{city}', label)
-  // A lowercase first letter is intentional. Only length and emoji can reject it.
-  if (countWords(specific) >= 3 && countWords(specific) <= 7 && !/\p{Extended_Pictographic}/u.test(specific)) {
-    return specific
-  }
-  return 'your listing preview'
+/** Known trade only. Unknown categories are not guessed. */
+export function gmailCategoryPhrase(category: string): string | null {
+  const key = normalizeCategory(category || '')
+  const known = CATEGORIES.find((item) => item.value === key)
+  if (!known) return null
+  const phrase = categoryPhraseInSentence(known.value).trim()
+  return phrase || null
+}
+
+export function gmailSubjectA(businessName: string): string {
+  return GMAIL_SUBJECT_A_TEMPLATE.replaceAll('{businessName}', businessName.trim())
+}
+
+/**
+ * A is "{businessName} preview" and B is "not a lead service".
+ * The choice is a stable hash of the email, except A is never used when it
+ * would be longer than 4 words.
+ */
+export function assignGmailSubject(
+  businessName: string,
+  email: string
+): { variant: 'A' | 'B'; subject: string } {
+  const subjectA = gmailSubjectA(businessName)
+  if (countWords(subjectA) > 4) return { variant: 'B', subject: GMAIL_SUBJECT_B }
+  let hash = 0
+  const key = email.trim().toLowerCase()
+  for (let i = 0; i < key.length; i += 1) hash = (Math.imul(hash, 33) + key.charCodeAt(i)) >>> 0
+  if (hash % 2 === 0) return { variant: 'A', subject: subjectA }
+  return { variant: 'B', subject: GMAIL_SUBJECT_B }
+}
+
+export function formatClaimedPrice(price: number | string | null | undefined): string {
+  if (price == null || price === '') return ''
+  const amount = typeof price === 'number' ? price : Number(price)
+  if (!Number.isFinite(amount)) return ''
+  return `$${amount.toFixed(2)}`
 }
 
 export const CLAIMED_MONTHLY_PRICE_CENTS = 2999
@@ -143,23 +178,43 @@ export function isClaimedMonthlyPrice(price: number | string | null | undefined)
 
 export function renderGmailTestEmail(input: {
   businessName: string
+  email?: string
   city: string
   category: string
   enrollUrl: string
   postalAddress?: string | null
   trialDays?: number
-}): { subject: string; text: string; wordCount: number } {
+  monthlyPrice?: number | string | null
+  hasPhone?: boolean
+}): {
+  subject: string
+  subjectVariant: 'A' | 'B'
+  text: string
+  wordCount: number
+  from: string
+} {
   const city = formatCityLabel(input.city)
-  const categoryPhrase = categoryPhraseInSentence(input.category)
+  const categoryPhrase = gmailCategoryPhrase(input.category) ?? ''
   const postal = input.postalAddress?.trim() || POSTAL_ADDRESS_PLACEHOLDER
   const trialDays = input.trialDays ?? parseEnrollPreviewTrialDays(process.env.ENROLL_PREVIEW_TRIAL_DAYS)
+  const price = formatClaimedPrice(input.monthlyPrice ?? 29.99)
+  const contactVerb = input.hasPhone === false ? 'contact' : 'call'
+  const assigned = assignGmailSubject(input.businessName, input.email ?? input.businessName)
   const text = GMAIL_TEST_BODY_TEMPLATE.replaceAll('{businessName}', input.businessName.trim())
     .replaceAll('{city}', city)
     .replaceAll('{categoryPhrase}', categoryPhrase)
     .replaceAll('{enrollUrl}', input.enrollUrl.trim())
     .replaceAll('{postalAddress}', postal)
     .replaceAll('{trialDays}', String(trialDays))
-  return { subject: buildGmailTestSubject(input.city), text, wordCount: countWords(text) }
+    .replaceAll('{price}', price)
+    .replaceAll('{contactVerb}', contactVerb)
+  return {
+    subject: assigned.subject,
+    subjectVariant: assigned.variant,
+    text,
+    wordCount: countWords(text),
+    from: gmailFromHeader(),
+  }
 }
 
 /**
