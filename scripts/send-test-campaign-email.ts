@@ -36,6 +36,7 @@ async function main() {
 
   const { expandCampaignMessage, DEFAULT_MESSAGE } = await import('../lib/campaigns')
   const { createInvitation } = await import('../lib/invitations')
+  const { SUBSCRIPTION_MONTHLY_PRICE_USD } = await import('../lib/subscription-terms')
   const { sendEmail } = await import('../lib/email')
   const { isSuppressed, normalizeEmail } = await import('../lib/suppressions')
 
@@ -49,7 +50,7 @@ async function main() {
     businessName,
     category,
     cities: [city],
-    monthlyPrice: 29.99,
+    monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
   })
   const enrollUrl = `${siteUrl}/enroll/${token}`
   const body = expandCampaignMessage(DEFAULT_MESSAGE, { businessName, city, category })

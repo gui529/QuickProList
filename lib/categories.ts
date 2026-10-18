@@ -21,5 +21,16 @@ export function normalizeCategory(input: string): string {
   const known = CATEGORIES.find(
     (c) => c.value === key || c.label.toLowerCase() === key || c.term.toLowerCase() === key
   )
-  return known ? known.value : key
+  if (known) return known.value
+
+  // Plural labels in URLs/emails ("plumbers") → canonical value ("plumbing")
+  if (key.endsWith('s')) {
+    const singular = key.slice(0, -1)
+    const byTerm = CATEGORIES.find((c) => c.term.toLowerCase() === singular)
+    if (byTerm) return byTerm.value
+    const byValue = CATEGORIES.find((c) => c.value === singular)
+    if (byValue) return byValue.value
+  }
+
+  return key
 }

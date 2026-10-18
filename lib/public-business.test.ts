@@ -20,6 +20,7 @@ function business(): Business {
     cities: ['marietta'],
     category: 'plumbing',
     isTrial: true,
+    sponsored: true,
     trialEndsAt: '2099-01-01T00:00:00.000Z',
     proSiteEnabled: true,
     contactEmail: 'owner@acme.example',
@@ -41,6 +42,7 @@ describe('toPublicBusiness', () => {
       websiteUrl: 'https://acme.example',
       reviewUrl: 'https://reviews.example/secret',
       proSiteEnabled: true,
+      sponsored: true,
       cities: ['marietta'],
       category: 'plumbing',
     })

@@ -97,6 +97,7 @@ describe('lib/invitations.ts (in-memory test double)', () => {
     const all = await listInvitations()
     expect(all).toHaveLength(1)
     expect(all[0].status).toBe('trial')
+    expect(all[0].monthly_price).toBe(29.99)
     expect(all[0].curated_business_id).toBe('curated-3')
     expect(all[0].trial_ends_at).toBe('2099-01-01T00:00:00.000Z')
   })

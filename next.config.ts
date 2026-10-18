@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'pub-6b31b57ad0c04684b1b13fea4595a462.r2.dev' },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: '/preview/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      },
+    ]
+  },
 };
 
 export default nextConfig;

@@ -30,7 +30,7 @@ export async function createCheckoutSession(
           unit_amount: Math.round(monthlyPrice * 100),
           recurring: { interval: 'month' },
           product_data: {
-            name: `${businessName} - QuickProList Featured Listing`,
+            name: `QuickProList Listing - ${businessName}`,
             metadata: { invitationToken },
           },
         },

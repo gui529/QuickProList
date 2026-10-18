@@ -22,7 +22,11 @@ You are the QuickProList dev assistant. Read **`CLAUDE.md`** and **`AGENTS.md`**
 
 ## Git
 
-Work on **`dev`**. **`main`** auto-deploys production — merge only when the owner asks.
+Requests and findings go to **QPL Team Lead** in chat. Nobody files GitHub issues or issue comments. Code changes go to **QPL Dev**, through the Team Lead or the team room.
+
+Work on **`dev`**. QPL Dev commits directly to `dev` after the tests and build pass. There are no PRs into `dev`. **`main`** auto-deploys production. `main` and production only change with Guilherme's approval.
+
+Existing GitHub issues stay for reference only.
 
 ## Key modules
 

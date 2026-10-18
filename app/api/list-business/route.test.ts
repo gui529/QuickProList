@@ -34,10 +34,6 @@ function makeRequest(body: unknown): Request {
   })
 }
 
-function makeGetRequest(): Request {
-  return new Request('https://example.test/api/list-business', { method: 'GET' })
-}
-
 const validSubmission = {
   businessName: 'Acme Plumbing',
   contactName: 'Jane Doe',
@@ -87,7 +83,7 @@ describe('GET /api/list-business', () => {
   it('returns 401 without admin auth', async () => {
     requireAdminMock.mockRejectedValue(new AuthError(401, 'Not signed in'))
 
-    const res = await GET(makeGetRequest() as never)
+    const res = await GET()
 
     expect(res.status).toBe(401)
     expect(listListingRequestsMock).not.toHaveBeenCalled()
@@ -99,7 +95,7 @@ describe('GET /api/list-business', () => {
       { id: 'listing-1', business_name: 'Acme Plumbing', contact_name: 'Jane Doe', email: 'jane@example.com', phone: null, category: 'plumbing', zip: '78701', message: null, created_at: new Date().toISOString() },
     ])
 
-    const res = await GET(makeGetRequest() as never)
+    const res = await GET()
     const data = await res.json()
 
     expect(res.status).toBe(200)

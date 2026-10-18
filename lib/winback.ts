@@ -1,6 +1,7 @@
 import { getBusinessReports, type BusinessReport } from './reports'
 import { assertMarketingEmailConfigured, sendEmail } from './email'
 import { createInvitation } from './invitations'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from './subscription-terms'
 import { setWinbackSent } from './kv'
 import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
 
@@ -60,7 +61,7 @@ export async function sendWinbackEmails(): Promise<WinbackSendResult[]> {
       businessName: report.name,
       category: report.category,
       cities: report.cities,
-      monthlyPrice: 29.99,
+      monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
       curatedBusinessId: report.id,
     })
     const enrollUrl = `${siteUrl}/enroll/${token}`

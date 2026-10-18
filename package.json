@@ -12,7 +12,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "seed:pros": "npx tsx scripts/seed-curated-pros.ts",
-    "backfill:logos": "npx tsx scripts/backfill-curated-logos.ts"
+    "backfill:logos": "npx tsx scripts/backfill-curated-logos.ts",
+    "fetch:campaign-automation-env": "npx vercel env run -e production -- npx tsx scripts/write-campaign-automation-paste.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1147.0",

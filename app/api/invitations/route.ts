@@ -11,8 +11,9 @@ import {
 } from '@/lib/kv'
 import type { Business } from '@/lib/business'
 import { errorMessage } from '@/lib/errors'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from '@/lib/subscription-terms'
 
-async function gate(req?: NextRequest): Promise<NextResponse | null> {
+async function gate(): Promise<NextResponse | null> {
   try {
     await requireAdmin()
     return null
@@ -110,10 +111,11 @@ export async function POST(req: NextRequest) {
       businessName: body.businessName,
       category: body.category,
       cities,
-      monthlyPrice: body.monthlyPrice || 29.99,
+      monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
       yelpId: body.yelpId,
       yelpData: body.yelpData,
       curatedBusinessId: body.existingCuratedId || undefined,
+      contactEmail: typeof body.contactEmail === 'string' ? body.contactEmail : undefined,
     })
     return NextResponse.json({ token })
   } catch (err) {
@@ -123,7 +125,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await requireAdmin()
   } catch (err) {

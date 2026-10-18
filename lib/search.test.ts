@@ -141,8 +141,170 @@ describe('getMergedResults', () => {
     expect(results.map((b) => b.id)).toEqual([pro.id])
   })
 
+  it('labels a free preview as sponsored and leaves a manual directory row unlabeled', async () => {
+    const preview = __seed({
+      category: 'plumbing',
+      cities: ['marietta'],
+      name: 'Preview Plumbing',
+      is_trial: true,
+    })
+    const manual = __seed({
+      category: 'plumbing',
+      cities: ['marietta'],
+      name: 'Manual Plumbing',
+      is_trial: false,
+    })
+
+    const results = await getMergedResults({ location: 'Marietta' }, 'plumbing')
+    const byId = new Map(results.map((b) => [b.id, b.sponsored]))
+    expect(byId.get(preview.id)).toBe(true)
+    expect(byId.get(manual.id)).toBe(false)
+  })
+
   it('returns nothing for an unopened location', async () => {
     __seed({ category: 'plumbing', cities: ['marietta'] })
     await expect(getMergedResults({ location: 'Marietta, OH' }, 'plumbing')).resolves.toEqual([])
+  })
+
+  it('ranks a town match ahead of an earlier pro from another opened town', async () => {
+    const earlier = __seed({
+      id: '00000000-0000-4000-8000-0000000000a1',
+      category: 'plumbing',
+      cities: ['kennesaw'],
+      name: 'Kennesaw Pro',
+      created_at: '2020-01-01T00:00:00.000Z',
+    })
+    const later = __seed({
+      id: '00000000-0000-4000-8000-0000000000a2',
+      category: 'plumbing',
+      cities: ['marietta'],
+      name: 'Marietta Pro',
+      created_at: '2024-01-01T00:00:00.000Z',
+    })
+
+    const results = await getMergedResults({ location: 'Marietta, GA' }, 'plumbing')
+
+    expect(results.map((b) => b.id)).toEqual([later.id, earlier.id])
+  })
+
+  it('backfills open slots from the rest of the area after town matches', async () => {
+    const town = [0, 1].map((i) =>
+      __seed({
+        id: `00000000-0000-4000-8000-000000000b0${i}`,
+        category: 'plumbing',
+        cities: ['marietta'],
+        name: `Town ${i}`,
+        created_at: `2020-01-0${i + 1}T00:00:00.000Z`,
+      })
+    )
+    const area = [0, 1, 2, 3].map((i) =>
+      __seed({
+        id: `00000000-0000-4000-8000-000000000c0${i}`,
+        category: 'plumbing',
+        cities: ['kennesaw'],
+        name: `Area ${i}`,
+        created_at: `2021-01-0${i + 1}T00:00:00.000Z`,
+      })
+    )
+
+    const results = await getMergedResults({ location: 'Marietta' }, 'plumbing', {
+      now: new Date('2026-01-01T00:30:00.000Z'),
+    })
+
+    expect(results).toHaveLength(MAX_RESULTS)
+    expect(results.slice(0, 2).map((b) => b.id)).toEqual(town.map((b) => b.id))
+    expect(area.map((b) => b.id)).toContain(results[2].id)
+  })
+
+  it('rotates six pros across hour buckets and leaves three or fewer in signup order', async () => {
+    const six = Array.from({ length: 6 }, (_, i) =>
+      __seed({
+        id: `00000000-0000-4000-8000-000000000d0${i}`,
+        category: 'plumbing',
+        cities: ['marietta'],
+        name: `Pro ${i}`,
+        created_at: `2020-01-0${i + 1}T00:00:00.000Z`,
+      })
+    )
+    const seen = new Set<string>()
+    for (let hour = 0; hour < 72; hour++) {
+      const now = new Date(Date.UTC(2026, 0, 1, hour, 15, 0))
+      const once = await getMergedResults({ location: 'Marietta' }, 'plumbing', { now })
+      const twice = await getMergedResults({ location: 'Marietta' }, 'plumbing', { now })
+      const ids = once.map((b) => b.id)
+      expect(twice.map((b) => b.id)).toEqual(ids)
+      expect(ids).toHaveLength(MAX_RESULTS)
+      for (const id of ids) seen.add(id)
+    }
+    expect([...seen].sort()).toEqual(six.map((b) => b.id).sort())
+
+    __reset()
+    const three = [0, 1, 2].map((i) =>
+      __seed({
+        id: `00000000-0000-4000-8000-000000000e0${i}`,
+        category: 'plumbing',
+        cities: ['marietta'],
+        name: `Stable ${i}`,
+        created_at: `2020-02-0${i + 1}T00:00:00.000Z`,
+      })
+    )
+    const signupOrder = three.map((b) => b.id)
+    const morning = await getMergedResults({ location: 'Marietta' }, 'plumbing', {
+      now: new Date('2026-06-01T01:00:00.000Z'),
+    })
+    const evening = await getMergedResults({ location: 'Marietta' }, 'plumbing', {
+      now: new Date('2026-06-01T18:00:00.000Z'),
+    })
+    expect(morning.map((b) => b.id)).toEqual(signupOrder)
+    expect(evening.map((b) => b.id)).toEqual(signupOrder)
+  })
+
+  it('ignores a highlight that is not live and keeps a live highlight first', async () => {
+    const live = __seed({
+      id: '00000000-0000-4000-8000-000000000f01',
+      category: 'plumbing',
+      cities: ['marietta'],
+      name: 'Live',
+      created_at: '2020-01-01T00:00:00.000Z',
+    })
+    const delisted = __seed({
+      id: '00000000-0000-4000-8000-000000000f02',
+      category: 'plumbing',
+      cities: ['marietta'],
+      delisted_at: '2024-01-01T00:00:00.000Z',
+    })
+    const draft = __seed({
+      id: '00000000-0000-4000-8000-000000000f03',
+      category: 'plumbing',
+      cities: ['marietta'],
+      is_draft: true,
+    })
+    const expired = __seed({
+      id: '00000000-0000-4000-8000-000000000f04',
+      category: 'plumbing',
+      cities: ['marietta'],
+      is_trial: true,
+      trial_ends_at: '2000-01-01T00:00:00.000Z',
+    })
+    const pinned = __seed({
+      id: '00000000-0000-4000-8000-000000000f05',
+      category: 'plumbing',
+      cities: ['kennesaw'],
+      name: 'Pinned',
+      created_at: '2025-01-01T00:00:00.000Z',
+    })
+
+    for (const id of [delisted.id, draft.id, expired.id]) {
+      const results = await getMergedResults({ location: 'Marietta' }, 'plumbing', { highlightId: id })
+      expect(results.map((b) => b.id)).not.toContain(id)
+      expect(results[0].id).toBe(live.id)
+    }
+
+    const highlighted = await getMergedResults({ location: 'Marietta' }, 'plumbing', {
+      highlightId: pinned.id,
+    })
+    expect(highlighted[0].id).toBe(pinned.id)
+    expect(highlighted.filter((b) => b.id === pinned.id)).toHaveLength(1)
+    expect(highlighted.map((b) => b.id)).toContain(live.id)
   })
 })

@@ -17,8 +17,8 @@ export default function PrivacyPage() {
       <p>
         QuickProList (&quot;QuickProList,&quot; &quot;we,&quot; &quot;us&quot;) operates
         quickprolist.com, a directory that helps visitors find local home-service businesses
-        (plumbers, electricians, HVAC, and similar categories) and lets those businesses pay for
-        a featured listing. This policy explains what information we collect, from whom, why, and
+        (plumbers, electricians, HVAC, and similar categories) and lets those businesses pay to
+        be listed (paid listings are labeled &quot;Sponsored&quot;). This policy explains what information we collect, from whom, why, and
         what choices you have.
       </p>
       <p>
@@ -51,10 +51,10 @@ export default function PrivacyPage() {
 
       <h3>2.2 Business listings in search results</h3>
       <p>
-        Search results show businesses we have added to our directory (&quot;curated&quot;
-        listings), stored in our database. Some older listings may include information originally
-        obtained from third-party directories; we do not rely on live feeds from those sources
-        today.
+        Search results show businesses we have added to our directory, stored in our database.
+        Some listings were first created from publicly available business information from
+        third-party sources, including online directories. We do not receive live data from those
+        sources.
       </p>
       <p>
         If you submit your business through our &quot;List your business&quot; form, we store the
@@ -66,8 +66,8 @@ export default function PrivacyPage() {
         provides (name, phone, address, website, photos, and similar listing details).
       </p>
 
-      <h3>2.3 Business owners with a featured listing</h3>
-      <p>When a business enrolls in a paid featured listing, we collect and store:</p>
+      <h3>2.3 Business owners with a paid listing</h3>
+      <p>When a business enrolls in a paid listing, we collect and store:</p>
       <ul>
         <li>Enrollment and listing details (business name, category, service area, and price).</li>
         <li>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
 
       <h3>2.4 Outreach and campaign contacts</h3>
       <p>
-        We may contact local businesses by email or SMS to invite them to a featured listing. When
+        We may contact local businesses by email or SMS to invite them to a paid listing. When
         we do, we log the business name, contact information, message content, and delivery status.
         We maintain a suppression list of addresses and numbers that have opted out, bounced, or
         reported spam, and we check it before sending marketing messages.
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
       <h2>3. How we use information</h2>
       <ul>
         <li>Operate the directory and display listings.</li>
-        <li>Process paid featured-listing subscriptions through Stripe.</li>
+        <li>Process paid listing subscriptions through Stripe.</li>
         <li>
           Contact businesses about listing opportunities and, for subscribers, about billing or
           subscription status.
@@ -146,8 +146,9 @@ export default function PrivacyPage() {
           marketing email.
         </li>
         <li>
-          <strong>Subscribers:</strong> cancel anytime through the Stripe billing portal (linked
-          from your dashboard when available) or by emailing us.
+          <strong>Subscribers:</strong> cancel anytime online using the cancellation link in your
+          subscription confirmation email, the Manage billing button on your dashboard (when
+          available), or by emailing us.
         </li>
         <li>
           <strong>Privacy requests:</strong> email{' '}

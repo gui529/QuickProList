@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { Business } from '@/lib/business'
-import { CATEGORIES } from '@/lib/categories'
+import { formatSubscriptionPrice, SUBSCRIPTION_MONTHLY_PRICE_USD } from '@/lib/subscription-terms'
 import CityMultiSelect from './CityMultiSelect'
 
 interface Props {
@@ -14,7 +14,6 @@ interface Props {
 
 export default function EnrollmentLinkModal({ open, onClose, business, defaultCategory }: Props) {
   const [cities, setCities] = useState<string[]>(business.cities || [])
-  const [monthlyPrice, setMonthlyPrice] = useState(29.99)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [token, setToken] = useState('')
@@ -42,7 +41,7 @@ export default function EnrollmentLinkModal({ open, onClose, business, defaultCa
           businessName: business.name,
           category: business.category || defaultCategory,
           cities,
-          monthlyPrice,
+          monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
           yelpId: business.yelpId,
           yelpData: business.source === 'yelp' ? business : null,
           // Manual businesses only ever exist as curated rows (never as a
@@ -51,6 +50,7 @@ export default function EnrollmentLinkModal({ open, onClose, business, defaultCa
           // so the webhook updates that row instead of inserting a
           // duplicate bare one on checkout completion.
           existingCuratedId: business.source === 'manual' ? business.id : undefined,
+          contactEmail: business.contactEmail?.trim() || undefined,
         }),
       })
 
@@ -81,8 +81,6 @@ export default function EnrollmentLinkModal({ open, onClose, business, defaultCa
       window.prompt('Copy this link:', url)
     }
   }
-
-  const categoryLabel = CATEGORIES.find((c) => c.value === (business.category || defaultCategory))?.label
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 backdrop-blur-sm p-4" onClick={onClose}>
@@ -152,19 +150,8 @@ export default function EnrollmentLinkModal({ open, onClose, business, defaultCa
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Monthly price</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-medium text-slate-600">$</span>
-                  <input
-                    type="number"
-                    value={monthlyPrice}
-                    onChange={(e) => setMonthlyPrice(Math.max(0.99, parseFloat(e.target.value) || 29.99))}
-                    step="0.01"
-                    min="0.99"
-                    className="flex-1 rounded-lg ring-1 ring-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                  />
-                  <span className="text-slate-600 font-medium">/month</span>
-                </div>
+                <p className="block text-sm font-medium text-slate-700 mb-2">Monthly price</p>
+                <p className="text-sm text-slate-900">{formatSubscriptionPrice()}/month</p>
               </div>
 
               {error && (

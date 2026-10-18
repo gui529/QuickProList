@@ -1,4 +1,6 @@
 import { Resend } from 'resend'
+import { getCampaignOwnerBccEmail } from './campaign-owner-bcc'
+import { normalizeCategory } from './categories'
 import { formatCategoryLabel, formatCityLabel } from './display'
 import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
 import { buildUnsubscribeUrl } from './unsubscribe'
@@ -36,7 +38,8 @@ export function formatMarketingFromAddress(raw: string): string {
 
 function buildSearchUrl(siteUrl: string, city?: string, category?: string): string | null {
   if (!city?.trim() || !category?.trim()) return null
-  return `${siteUrl}/search?location=${encodeURIComponent(city.trim())}&category=${encodeURIComponent(category.trim())}`
+  const cat = normalizeCategory(category)
+  return `${siteUrl}/search?location=${encodeURIComponent(city.trim())}&category=${encodeURIComponent(cat)}`
 }
 
 export interface PersonalMarketingEmail {
@@ -66,15 +69,17 @@ export function buildPersonalMarketingEmail(
     .map((p) => p.replace(/\s*\n\s*/g, ' ').trim())
     .filter(Boolean)
 
-  const launchNote = 'We are going to launch soon, so we are building it up right now.'
   const pricingNote =
     'After the 30-day preview window, staying listed is $29.99/month if you choose to continue.'
 
   const textParts = ['Hi,', '', ...bodyParagraphs]
-  if (actionIntro && ctaUrl !== homeUrl) {
+  if (opts.enrollUrl && ctaUrl) {
+    textParts.push('', actionIntro ?? 'Preview what we would publish for you (about two minutes):', ctaUrl)
+    textParts.push('', pricingNote)
+  } else if (actionIntro && ctaUrl !== homeUrl) {
     textParts.push('', actionIntro, ctaUrl)
   }
-  textParts.push('', pricingNote, '', launchNote, compliance.text.trim())
+  textParts.push('', compliance.text.trim())
 
   const text = textParts.join('\n')
 
@@ -90,9 +95,14 @@ export function buildPersonalMarketingEmail(
       (line) =>
         `<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(line)}</p>`
     ),
-    ...(actionIntro && ctaUrl !== homeUrl ? [htmlLinkBlock(actionIntro, ctaUrl)] : []),
-    `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">${escapeHtml(pricingNote)}</p>`,
-    `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#222222">${escapeHtml(launchNote)}</p>`,
+    ...(opts.enrollUrl && ctaUrl
+      ? [
+          htmlLinkBlock(actionIntro ?? 'Preview what we would publish for you (about two minutes):', ctaUrl),
+          `<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#666666">${escapeHtml(pricingNote)}</p>`,
+        ]
+      : actionIntro && ctaUrl !== homeUrl
+        ? [htmlLinkBlock(actionIntro, ctaUrl)]
+        : []),
     `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888">${compliance.html}</p>`,
   ].join('\n')
 
@@ -137,6 +147,9 @@ function buildTransactionalEmailHtml(businessName: string, body: string, siteUrl
 export function buildMarketingEmailSubject(businessName: string, opts: SendEmailOptions): string {
   const city = opts.city ? formatCityLabel(opts.city) : null
   const category = opts.category ? formatCategoryLabel(opts.category) : null
+  if (opts.campaignWave === 'listed' && city) {
+    return `${businessName} is on our ${city} list — 30-day preview?`
+  }
   if (city) return `Okay to add ${businessName} to our ${city} list?`
   if (category) return `Okay to add ${businessName} as a ${category} on QuickProList?`
   return `Okay to add ${businessName} to QuickProList?`
@@ -181,7 +194,7 @@ function marketingCompliance(to: string, reason: string): ComplianceFooter {
   assertMarketingEmailConfigured()
   const url = buildUnsubscribeUrl(to)
   return {
-    html: `${escapeHtml(reason)}<br/>
+    html: `${escapeHtml(reason).replace(/\n/g, '<br/>')}<br/>
         <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>`,
     text: `\n\n${reason}\nUnsubscribe: ${url}`,
     headers: {
@@ -191,12 +204,83 @@ function marketingCompliance(to: string, reason: string): ComplianceFooter {
   }
 }
 
+/** CAN-SPAM identification line for commercial mail such as the trial reminder. */
+export const COMMERCIAL_AD_DISCLOSURE = 'This is an advertisement from QuickProList.'
+
+/**
+ * Postal line for commercial email. Uses `CAMPAIGN_POSTAL_ADDRESS`, the same
+ * owner-supplied value as campaign mail. Empty and the `{postalAddress}`
+ * placeholder are refused. Never invent an address.
+ */
+export function requirePostalAddress(): string {
+  const postal = usableCampaignPostalAddress(campaignPostalAddress())
+  if (!postal) {
+    throw new Error('CAMPAIGN_POSTAL_ADDRESS not configured (required for commercial email)')
+  }
+  return postal
+}
+
+/**
+ * Same opt-out mechanism as campaign mail (signed one-click link, List-Unsubscribe,
+ * and List-Unsubscribe-Post), plus an ad-disclosure line and the postal address.
+ * Does not alter `marketingCompliance`, which campaign sends still use.
+ */
+function commercialCompliance(to: string): ComplianceFooter {
+  assertMarketingEmailConfigured()
+  const url = buildUnsubscribeUrl(to)
+  const postal = requirePostalAddress()
+  const lines = [COMMERCIAL_AD_DISCLOSURE, postal]
+  return {
+    html: `${lines.map((line) => escapeHtml(line)).join('<br/>')}<br/>
+        <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>`,
+    text: `\n\n${lines.join('\n')}\nUnsubscribe: ${url}`,
+    headers: {
+      'List-Unsubscribe': `<${url}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  }
+}
+
+export type CampaignEmailWave = 'listed' | 'outreach' | 'test' | 'follow-up'
+
+/** Why the recipient got this mail. Follow-ups exist, so this is not described as one-time. */
+export function campaignComplianceReason(wave?: CampaignEmailWave): string {
+  if (wave === 'follow-up') {
+    return 'You received this follow-up because your business offers home services in an area we cover on QuickProList.'
+  }
+  return 'You received this because your business offers home services in an area we cover on QuickProList. If we do not hear back, we may send one short follow-up.'
+}
+
+/** Owner-supplied CAN-SPAM postal line. Empty until they set CAMPAIGN_POSTAL_ADDRESS. */
+export function campaignPostalAddress(): string | null {
+  const value = process.env.CAMPAIGN_POSTAL_ADDRESS?.trim()
+  return value || null
+}
+
+/**
+ * A real street address. Blank and the `{postalAddress}` placeholder are not
+ * usable, and this does not invent one.
+ */
+export function usableCampaignPostalAddress(value?: string | null): string | null {
+  const postal = value?.trim() ?? ''
+  if (!postal || postal.includes('{postalAddress}')) return null
+  return postal
+}
+
+export function campaignFooterText(wave?: CampaignEmailWave): string {
+  const postal = campaignPostalAddress()
+  const reason = campaignComplianceReason(wave)
+  return postal ? `${reason}\n${postal}` : reason
+}
+
 export interface SendEmailOptions {
   kind?: EmailKind
   yelpId?: string
   category?: string
   city?: string
   enrollUrl?: string
+  /** Wave 1 listed pros get honest subject/body (already on site). */
+  campaignWave?: CampaignEmailWave
   /** Overrides default subject (marketing vs transactional). */
   subject?: string
 }
@@ -216,10 +300,7 @@ export async function sendEmail(
   if (isMarketing) {
     const normalized = normalizeEmail(to)
     if (await isSuppressed('email', normalized)) throw new SuppressedError('email', normalized)
-    compliance = marketingCompliance(
-      to,
-      'You received this one-time note because your business offers home services in an area we cover on QuickProList.'
-    )
+    compliance = marketingCompliance(to, campaignFooterText(opts.campaignWave))
   }
 
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
@@ -247,7 +328,76 @@ export async function sendEmail(
     subject,
     html,
     text,
+    ...(isMarketing ? { bcc: [getCampaignOwnerBccEmail()] } : {}),
     ...(compliance ? { headers: compliance.headers } : {}),
+  })
+  if (error) throw new Error(error.message)
+  return data?.id ?? ''
+}
+
+function commercialNoticeHtml(body: string): string {
+  const blocks = body
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      if (/^(?:https?:\/\/|mailto:)\S+$/.test(line)) {
+        return `<p style="margin:0 0 14px;font-size:15px;line-height:1.7"><a href="${escapeHtml(line)}" style="color:#2563eb">${escapeHtml(line)}</a></p>`
+      }
+      return `<p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#334155">${escapeHtml(line)}</p>`
+    })
+  return blocks.join('')
+}
+
+export interface CommercialNoticeOptions {
+  /**
+   * When true (default), a suppressed address is refused. Billing notices pass
+   * false so a marketing opt-out does not block a required subscription email.
+   * The compliant footer is still attached either way.
+   */
+  enforceSuppression?: boolean
+}
+
+/**
+ * Commercial notice: the caller-supplied body is first (no pitch wrapper, no
+ * extra links), then the compliant footer. From is QuickProList, not the
+ * cold-outreach sender name. Suppressed addresses are refused unless
+ * `enforceSuppression` is false.
+ */
+export async function sendCommercialNotice(
+  to: string,
+  subject: string,
+  body: string,
+  options: CommercialNoticeOptions = {}
+): Promise<string> {
+  const fromRaw = process.env.RESEND_FROM_EMAIL
+  if (!fromRaw) throw new Error('RESEND_FROM_EMAIL not configured')
+  const from = formatFromAddress(fromRaw)
+
+  const normalized = normalizeEmail(to)
+  const enforceSuppression = options.enforceSuppression !== false
+  if (enforceSuppression && (await isSuppressed('email', normalized))) {
+    throw new SuppressedError('email', normalized)
+  }
+  const compliance = commercialCompliance(to)
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff">
+${commercialNoticeHtml(body)}
+<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#64748b">${compliance.html}</p>
+</body>
+</html>`
+
+  const client = getClient()
+  const { data, error } = await client.emails.send({
+    from,
+    to,
+    subject,
+    html,
+    text: `${body}${compliance.text}`,
+    headers: compliance.headers,
   })
   if (error) throw new Error(error.message)
   return data?.id ?? ''

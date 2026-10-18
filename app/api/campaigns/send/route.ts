@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
           category: category!.trim(),
           city: city!.trim(),
           yelpId: yelpId?.trim(),
+          phone: phone?.trim(),
           message: rawMessage,
         })
         if (result.status === 'failed') {

@@ -12,11 +12,12 @@ vi.mock('@/lib/invitations', async (importOriginal) => {
 
 import EnrollPage from './page'
 import type { EnrollmentInvitation } from '@/lib/invitations'
+import { enrollPreviewTrialDays } from '@/lib/enroll-preview-days'
 
 function makeInvitation(overrides: Partial<EnrollmentInvitation> = {}): EnrollmentInvitation {
   return {
     id: 'invitation-1',
-    token: 'test-token',
+    token: '22222222-2222-4222-8222-222222222222',
     business_name: 'Acme Plumbing',
     yelp_id: null,
     yelp_data: null,
@@ -85,5 +86,47 @@ describe('EnrollPage (expiration enforcement)', () => {
     const result = await EnrollPage({ params: Promise.resolve({ token: invitation.token }) })
 
     expect(textOf(result)).not.toContain('Link expired')
+    expect((result as ReactElement<{ previewTrialDays: number }>).props.previewTrialDays).toBe(
+      enrollPreviewTrialDays()
+    )
+  })
+
+  it('does not send the contact email to the client, only a masked hint', async () => {
+    const invitation = makeInvitation({ contact_email: 'owner@acme.example' })
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+
+    const result = await EnrollPage({ params: Promise.resolve({ token: invitation.token }) })
+    const props = result as ReactElement<{ contactEmailHint?: string | null }>
+    const serialized = JSON.stringify(props)
+
+    expect(props.props.contactEmailHint).toBe('o***@acme.example')
+    expect(serialized).not.toContain('owner@acme.example')
+    expect(textOf(result)).not.toContain('owner@acme.example')
+  })
+
+  it('passes the configured preview length to the client', async () => {
+    const previous = process.env.ENROLL_PREVIEW_TRIAL_DAYS
+    process.env.ENROLL_PREVIEW_TRIAL_DAYS = '14'
+    try {
+      const invitation = makeInvitation()
+      getInvitationByTokenMock.mockResolvedValue(invitation)
+      const result = await EnrollPage({ params: Promise.resolve({ token: invitation.token }) })
+      expect((result as ReactElement<{ previewTrialDays: number }>).props.previewTrialDays).toBe(14)
+    } finally {
+      if (previous === undefined) delete process.env.ENROLL_PREVIEW_TRIAL_DAYS
+      else process.env.ENROLL_PREVIEW_TRIAL_DAYS = previous
+    }
+  })
+
+  it('passes subscribe and success from the URL so the client does not read window', async () => {
+    const invitation = makeInvitation()
+    getInvitationByTokenMock.mockResolvedValue(invitation)
+    const result = await EnrollPage({
+      params: Promise.resolve({ token: invitation.token }),
+      searchParams: Promise.resolve({ subscribe: '1', success: '1' }),
+    })
+    const props = result as ReactElement<{ subscribe?: boolean; checkoutSuccess?: boolean }>
+    expect(props.props.subscribe).toBe(true)
+    expect(props.props.checkoutSuccess).toBe(true)
   })
 })

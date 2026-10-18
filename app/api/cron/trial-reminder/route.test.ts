@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
 const { sendTrialRemindersMock } = vi.hoisted(() => ({
@@ -33,5 +34,17 @@ describe('GET /api/cron/trial-reminder', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.sent).toBe(1)
+  })
+})
+
+describe('trial reminder production schedule', () => {
+  it('is declared in vercel.json, which is the cron config shipped with a deployment', () => {
+    const config = JSON.parse(readFileSync(new URL('../../../../vercel.json', import.meta.url), 'utf8')) as {
+      crons: Array<{ path: string; schedule: string }>
+    }
+    expect(config.crons).toContainEqual({
+      path: '/api/cron/trial-reminder',
+      schedule: '0 15 * * *',
+    })
   })
 })

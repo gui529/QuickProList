@@ -8,6 +8,7 @@
 // IMPORTANT: this is a test double only. Never import it from `app/` or
 // from non-test files under `lib/` — see BACKLOG.md QPL-001.
 import type { EnrollmentInvitation, CreateInvitationInput, CreateTrialInvitationInput } from './invitations'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from './subscription-terms'
 
 // Inlined copy of lib/invitations.ts's isInvitationExpired. This used to be
 // `export { isInvitationExpired } from './invitations'`, but under
@@ -58,6 +59,11 @@ export function __seed(overrides: Partial<EnrollmentInvitation> = {}): Enrollmen
     canceled_at: overrides.canceled_at ?? null,
     trial_ends_at: overrides.trial_ends_at ?? null,
     contact_email: overrides.contact_email ?? null,
+    subscription_consent_at: overrides.subscription_consent_at ?? null,
+    subscription_consent_text: overrides.subscription_consent_text ?? null,
+    renewal_notice_period_end: overrides.renewal_notice_period_end ?? null,
+    subscription_confirmation_sent_at: overrides.subscription_confirmation_sent_at ?? null,
+    renewal_confirmation_invoice_id: overrides.renewal_confirmation_invoice_id ?? null,
   }
   invitations.push(full)
   return full
@@ -107,6 +113,49 @@ export async function markInvitationTrial(
   inv.status = 'trial'
   inv.curated_business_id = curatedBusinessId
   inv.trial_ends_at = trialEndsAt
+}
+
+export async function recordSubscriptionConsent(
+  token: string,
+  consentText: string,
+  consentedAt: string
+): Promise<void> {
+  const inv = invitations.find((i) => i.token === token)
+  if (!inv) throw new Error('Invitation not found')
+  inv.subscription_consent_at = consentedAt
+  inv.subscription_consent_text = consentText
+}
+
+export async function markSubscriptionConfirmationSent(id: string): Promise<void> {
+  const inv = invitations.find((i) => i.id === id)
+  if (!inv) throw new Error('Invitation not found')
+  inv.subscription_confirmation_sent_at = new Date().toISOString()
+}
+
+export async function markRenewalNoticeSent(id: string, periodEnd: string): Promise<void> {
+  const inv = invitations.find((i) => i.id === id)
+  if (!inv) throw new Error('Invitation not found')
+  inv.renewal_notice_period_end = periodEnd
+}
+
+export async function markRenewalConfirmationSent(id: string, invoiceId: string): Promise<void> {
+  const inv = invitations.find((i) => i.id === id)
+  if (!inv) throw new Error('Invitation not found')
+  inv.renewal_confirmation_invoice_id = invoiceId
+}
+
+export async function listingProgramBusinessIds(ids: string[]): Promise<Set<string>> {
+  const wanted = new Set(ids)
+  return new Set(
+    invitations
+      .filter(
+        (inv) =>
+          inv.curated_business_id &&
+          wanted.has(inv.curated_business_id) &&
+          (inv.status === 'trial' || inv.status === 'paid')
+      )
+      .map((inv) => inv.curated_business_id as string)
+  )
 }
 
 export async function markInvitationPaid(
@@ -164,7 +213,7 @@ export async function createTrialInvitation(input: CreateTrialInvitationInput): 
     yelp_data: (input.yelpData as Record<string, unknown>) ?? null,
     category: input.category,
     cities: input.cities,
-    monthly_price: 0,
+    monthly_price: SUBSCRIPTION_MONTHLY_PRICE_USD,
     status: 'trial',
     stripe_session_id: null,
     stripe_subscription_id: null,

@@ -3,7 +3,19 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import EnrollListingPreview from '@/components/EnrollListingPreview'
-import { CATEGORIES } from '@/lib/categories'
+import { CATEGORIES, normalizeCategory } from '@/lib/categories'
+import { formatCityLabel } from '@/lib/display'
+import { reminderEmailError } from '@/lib/reminder-email'
+import { DEFAULT_ENROLL_PREVIEW_TRIAL_DAYS } from '@/lib/enroll-preview-days'
+import {
+  cancelSubscriptionMailto,
+  formatSubscriptionPrice,
+  isConfiguredSubscriptionPrice,
+  SUBSCRIPTION_CONSENT_REQUIRED_ERROR,
+  SUBSCRIPTION_PRICE_MISMATCH_ERROR,
+  subscriptionDisclosureText,
+  subscriptionSuccessLine,
+} from '@/lib/subscription-terms'
 import { buildEnrollHomeUrl } from '@/lib/enroll-home-url'
 import { saveMyListingId } from '@/lib/my-listing-storage'
 import type { EnrollmentInvitation } from '@/lib/invitations'
@@ -20,7 +32,14 @@ interface Props {
    */
   dashboardToken?: string | null
   proDashboardEnabled?: boolean
-  initialContactEmail?: string | null
+  /** Masked hint only. The field itself stays blank so the link does not reveal the inbox. */
+  contactEmailHint?: string | null
+  /** Preview length from ENROLL_PREVIEW_TRIAL_DAYS. The server passes the live value. */
+  previewTrialDays?: number
+  /** From `?subscribe=1`. Passed by the server so the first render matches. */
+  subscribe?: boolean
+  /** From `?success=1` after Stripe returns. Passed by the server. */
+  checkoutSuccess?: boolean
 }
 
 export default function EnrollClient({
@@ -28,32 +47,27 @@ export default function EnrollClient({
   token,
   dashboardToken,
   proDashboardEnabled = false,
-  initialContactEmail = null,
+  contactEmailHint = null,
+  previewTrialDays = DEFAULT_ENROLL_PREVIEW_TRIAL_DAYS,
+  subscribe = false,
+  checkoutSuccess = false,
 }: Props) {
-  const [wantSubscribe] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return new URLSearchParams(window.location.search).get('subscribe') === '1'
-  })
+  const priceLabel = formatSubscriptionPrice()
+  const priceMatches = isConfiguredSubscriptionPrice(invitation.monthly_price)
+  const wantSubscribe = subscribe
+  const success = checkoutSuccess
   const [step, setStep] = useState<'preview' | 'checkout'>(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('subscribe') === '1') {
-      return 'checkout'
-    }
+    if (subscribe) return 'checkout'
     if (invitation.curated_business_id && invitation.status === 'pending') return 'checkout'
     return 'preview'
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [contactEmail, setContactEmail] = useState(initialContactEmail ?? '')
-  const [localDashboardToken, setLocalDashboardToken] = useState<string | null>(dashboardToken ?? null)
-
-  const [success] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return new URLSearchParams(window.location.search).get('success') === '1'
-  })
+  const [contactEmail, setContactEmail] = useState('')
+  const [subscriptionConsent, setSubscriptionConsent] = useState(false)
 
   const categoryLabel = CATEGORIES.find((c) => c.value === invitation.category)?.label || invitation.category
-  const effectiveDashboardToken =
-    proDashboardEnabled ? (localDashboardToken ?? dashboardToken ?? null) : null
+  const effectiveDashboardToken = proDashboardEnabled ? (dashboardToken ?? null) : null
   useEffect(() => {
     if (wantSubscribe || invitation.status !== 'trial' || success) return
     window.location.replace(
@@ -62,6 +76,12 @@ export default function EnrollClient({
   }, [invitation, success, wantSubscribe])
 
   async function handleStartPreview() {
+    const emailError = reminderEmailError(contactEmail)
+    if (emailError) {
+      setError(emailError)
+      return
+    }
+    const email = contactEmail.trim()
     setLoading(true)
     setError('')
     try {
@@ -70,7 +90,7 @@ export default function EnrollClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
-          email: contactEmail.trim() || undefined,
+          email,
         }),
       })
       const data = await res.json()
@@ -89,6 +109,11 @@ export default function EnrollClient({
   }
 
   async function handleSubscribe() {
+    if (!priceMatches) return
+    if (!subscriptionConsent) {
+      setError(SUBSCRIPTION_CONSENT_REQUIRED_ERROR)
+      return
+    }
     setLoading(true)
     setError('')
 
@@ -96,7 +121,7 @@ export default function EnrollClient({
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, consent: true }),
       })
 
       const data = await res.json()
@@ -122,11 +147,11 @@ export default function EnrollClient({
           <div className="text-6xl mb-4">✓</div>
           <h1 className="text-4xl font-bold text-emerald-900 mb-2">Payment successful!</h1>
           <p className="text-emerald-700 mb-6">
-            {invitation.business_name} is now featured on QuickProList. Customers searching for {categoryLabel} in{' '}
-            {invitation.cities.join(', ')} will see your business first.
-          </p>
-          <p className="text-sm text-emerald-600">
-            Your monthly subscription of ${invitation.monthly_price.toFixed(2)}/month is now active.
+            {subscriptionSuccessLine(
+              invitation.business_name,
+              categoryLabel,
+              invitation.cities.map((city) => formatCityLabel(city)).join(', ')
+            )}
           </p>
           {effectiveDashboardToken && (
             <Link
@@ -150,10 +175,9 @@ export default function EnrollClient({
   }
 
   const searchCity = invitation.cities[0]
-  const searchHref =
-    searchCity
-      ? `/search?location=${encodeURIComponent(searchCity)}&category=${encodeURIComponent(invitation.category)}`
-      : null
+  const searchHref = searchCity
+    ? `/?location=${encodeURIComponent(searchCity)}&category=${encodeURIComponent(normalizeCategory(invitation.category))}`
+    : null
 
   if (step === 'preview' && invitation.status !== 'paid') {
     return (
@@ -163,7 +187,7 @@ export default function EnrollClient({
             <div className="text-center mb-6">
               <h1 className="text-3xl font-bold text-slate-900 mb-2">Your listing preview</h1>
               <p className="text-slate-600 text-sm">
-                Not live yet — this is how your pinned profile can look on QuickProList.
+                Not live yet — this is how your listing can look on QuickProList.
               </p>
             </div>
 
@@ -182,18 +206,25 @@ export default function EnrollClient({
             )}
 
             <div className="mt-6 flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-                Email for listing updates
+              <label htmlFor="preview-reminder-email" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                Email for preview reminders
               </label>
               <input
+                id="preview-reminder-email"
                 type="email"
+                required
                 autoComplete="email"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="you@yourbusiness.com"
+                aria-invalid={error.toLowerCase().includes('email') ? true : undefined}
                 className="rounded-xl ring-1 ring-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
-              <p className="text-xs text-slate-500">Used for preview reminders and win-back — not shown on your listing.</p>
+              <p className="text-xs text-slate-500">
+                {contactEmailHint
+                  ? `On file: ${contactEmailHint}. Type the address for preview reminders and win-back — it is not shown on your listing.`
+                  : 'Used for preview reminders and win-back — not shown on your listing.'}
+              </p>
             </div>
 
             {error && (
@@ -208,20 +239,27 @@ export default function EnrollClient({
               disabled={loading}
               className="w-full mt-8 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
             >
-              {loading ? 'Starting preview…' : 'Yes — start my 30-day preview'}
+              {loading ? 'Starting preview…' : `Yes — start my ${previewTrialDays}-day preview`}
             </button>
 
             <button
               type="button"
-              onClick={() => setStep('checkout')}
-              className="w-full mt-3 text-sm text-slate-600 hover:text-slate-900 underline"
+              onClick={() => {
+                if (!priceMatches) return
+                setStep('checkout')
+              }}
+              disabled={!priceMatches}
+              className="w-full mt-3 text-sm text-slate-600 hover:text-slate-900 underline disabled:opacity-50 disabled:no-underline"
             >
-              I&apos;d rather subscribe now (${invitation.monthly_price.toFixed(2)}/mo)
+              I&apos;d rather subscribe now ({priceLabel}/mo)
             </button>
+            {!priceMatches && (
+              <p className="text-center text-xs text-rose-700 mt-2">{SUBSCRIPTION_PRICE_MISMATCH_ERROR}</p>
+            )}
 
             <p className="text-center text-xs text-slate-500 mt-4">
-              No card required for the preview. Your listing goes live in search for 30 days; subscribe anytime to
-              stay on after that.
+              No card required for the preview. Your listing goes live in search for {previewTrialDays} days; subscribe
+              anytime to stay on after that.
             </p>
           </div>
         </div>
@@ -252,12 +290,29 @@ export default function EnrollClient({
             <div className="border-t border-slate-200 pt-6">
               <div className="flex items-baseline justify-between mb-2">
                 <span className="text-slate-600 font-medium">Monthly price</span>
-                <span className="text-4xl font-bold text-slate-900">
-                  ${invitation.monthly_price.toFixed(2)}
-                </span>
+                <span className="text-4xl font-bold text-slate-900">{priceLabel}</span>
               </div>
-              <p className="text-xs text-slate-500">Billed monthly, cancel anytime</p>
             </div>
+          </div>
+
+          <div className="mb-6 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4 text-sm text-slate-700">
+            <p>{subscriptionDisclosureText()}</p>
+            <a
+              href={cancelSubscriptionMailto(invitation.business_name, contactEmail)}
+              className="inline-block mt-2 underline hover:text-slate-900"
+            >
+              Email to cancel
+            </a>
+            <label htmlFor="subscription-consent" className="mt-4 flex items-start gap-2 text-sm text-slate-800">
+              <input
+                id="subscription-consent"
+                type="checkbox"
+                className="mt-1"
+                checked={subscriptionConsent}
+                onChange={(e) => setSubscriptionConsent(e.target.checked)}
+              />
+              <span>I agree to these subscription terms.</span>
+            </label>
           </div>
 
           {invitation.status === 'paid' && (
@@ -273,16 +328,20 @@ export default function EnrollClient({
             </div>
           )}
 
+          {!priceMatches && (
+            <p className="text-center text-sm text-rose-700 mb-4">{SUBSCRIPTION_PRICE_MISMATCH_ERROR}</p>
+          )}
+
           <button
             onClick={handleSubscribe}
-            disabled={loading || invitation.status === 'paid'}
+            disabled={loading || invitation.status === 'paid' || !subscriptionConsent || !priceMatches}
             className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
           >
             {loading ? 'Processing…' : invitation.status === 'paid' ? 'Already Enrolled' : 'Go to secure checkout'}
           </button>
 
           <p className="text-center text-xs text-slate-500 mt-6">
-            By subscribing, you agree to be featured in QuickProList search results for the selected cities,
+            By subscribing, you agree to be listed in QuickProList search results for the selected cities,
             and to our{' '}
             <Link href="/terms" className="underline hover:text-slate-700">
               Terms of Service

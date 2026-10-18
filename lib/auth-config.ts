@@ -2,13 +2,14 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import Google from 'next-auth/providers/google'
 import { headers } from 'next/headers'
-import { QA_ADMIN_EMAIL, qaLoginAllowed } from './qa-login'
+import { checkRateLimit } from './rate-limit'
+import { QA_ADMIN_EMAIL, QA_LOGIN_MAX_ATTEMPTS, constantTimeEqual, qaLoginAllowed } from './qa-login'
 
-async function requestHost(): Promise<string> {
+async function requestHeaders(): Promise<Headers | null> {
   try {
-    return (await headers()).get('host') ?? ''
+    return await headers()
   } catch {
-    return ''
+    return null
   }
 }
 
@@ -20,10 +21,14 @@ export const { handlers, auth } = NextAuth({
       name: 'QA',
       credentials: { secret: { label: 'QA secret', type: 'password' } },
       authorize: async (credentials) => {
-        const secret = process.env.QA_ADMIN_SECRET
+        const hdrs = await requestHeaders()
+        const host = hdrs?.get('host') ?? ''
+        const ip = hdrs?.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+        if (!checkRateLimit(`qa-login:${ip}`, QA_LOGIN_MAX_ATTEMPTS)) return null
+        if (!qaLoginAllowed(host)) return null
+        const secret = process.env.QA_ADMIN_SECRET ?? ''
         const given = typeof credentials?.secret === 'string' ? credentials.secret : ''
-        if (!secret || !given || given !== secret) return null
-        if (!qaLoginAllowed(await requestHost())) return null
+        if (!constantTimeEqual(given, secret)) return null
         return { id: 'qa-admin', email: QA_ADMIN_EMAIL, name: 'QA' }
       },
     }),
@@ -32,7 +37,7 @@ export const { handlers, auth } = NextAuth({
   pages: { signIn: '/login', error: '/login' },
   callbacks: {
     async signIn({ profile, account }) {
-      if (account?.provider === 'qa') return qaLoginAllowed(await requestHost())
+      if (account?.provider === 'qa') return qaLoginAllowed((await requestHeaders())?.get('host') ?? '')
       return profile?.email_verified === true
     },
     session({ session, token }) {

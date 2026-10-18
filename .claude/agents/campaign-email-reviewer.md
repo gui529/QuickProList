@@ -1,7 +1,7 @@
 ---
 name: campaign-email-reviewer
 description: Sub-agent of marketing-agent — audits QuickProList campaign email end-to-end (lib/campaigns.ts, lib/campaign-message.ts, lib/email.ts, CampaignTab, send route) for conversion, deliverability, and compliance. Outputs PASS or a numbered fix list for backlog-worker. Use in a loop with marketing-agent until PASS.
-tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write, Edit, Agent, mcp__github__issue_write, mcp__github__list_issues
+tools: Read, Glob, Grep, Bash, WebSearch, WebFetch, Write, Edit, Agent
 model: sonnet
 ---
 
@@ -24,8 +24,9 @@ Read `docs/sales-persuasion-playbook.md` and compare implementation to Mission 2
    before `sendEmail`, enroll URL when invitation created.
 5. `components/CampaignTab.tsx` — UX nudges for required fields and placeholders.
 6. `lib/email.test.ts` / `lib/campaign-message.test.ts` — expectations match behavior.
-7. Deliverability: no emoji subjects, unsubscribe intact, no postal address in footer.
+7. Deliverability: no emoji subjects, unsubscribe (or the reply opt-out) intact, and a valid physical postal address (CAN-SPAM). `CAMPAIGN_POSTAL_ADDRESS` is required before any send-ready email. Do not invent an address. A missing address or a `{postalAddress}` placeholder fails this check.
 8. Enroll/footer links point at `/terms` and `/privacy` (production copy in `lib/legal-site.ts`).
+9. **Prospect source (every send review):** never use Yelp. Yelp's terms prohibit using its data for direct marketing. Allowed sources are `own_site`, `chamber`, `ga_sos`, and `ga_license`. A missing source is a skip (`disallowed_source`), including on follow-ups. `suppressed` still wins when both apply. Confirm `lib/prospect-sources.ts` still enforces this and matches [docs/prospect-sources.md](../../docs/prospect-sources.md).
 
 ## Output format (required)
 
@@ -40,16 +41,17 @@ Read `docs/sales-persuasion-playbook.md` and compare implementation to Mission 2
 - (numbered, each with file path and concrete change)
 
 ### If CHANGES NEEDED
-- Prioritize P0 (broken/wrong) vs P1 (conversion) vs P2 (nice-to-have).
-- Hand off to `backlog-worker` (or owner-requested implementer) — one tight batch per loop.
+- Prioritize broken/wrong, then conversion, then nice-to-have.
+- Send the findings to **QPL Team Lead** in chat. Code changes go to **QPL Dev** through the Team Lead or the team room — one tight batch per loop. Nobody files GitHub issues or issue comments.
 
 ### If PASS
 - One paragraph: what to verify in the owner's visual test (admin send, **Outlook**
-  render — owner tests on Hotmail/Outlook, not Gmail).
+  render — owner tests on gui.quickprolist@gmail.com).
 ```
 
-**PASS** only when you have **zero P0/P1** items. P2 alone can still PASS with a short
-"optional later" list.
+**PASS** only when nothing broken/wrong and no conversion gap remains. Nice-to-have items alone can still PASS with a short "optional later" list.
+
+Requests and findings go to QPL Team Lead in chat. QPL Dev commits directly to `dev` after the tests and build pass. There are no PRs into `dev`. `main` and production only change with Guilherme's approval. Existing GitHub issues stay for reference only.
 
 ## Loop protocol
 

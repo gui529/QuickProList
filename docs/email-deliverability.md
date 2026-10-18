@@ -1,10 +1,12 @@
 # Email deliverability — QuickProList
 
-Last updated: 2026-10-09.
+Last updated: 2026-10-16.
 
 ## Inbound (replies & contact@)
 
-All mail to `*@quickprolist.com` is forwarded via **ImprovMX** to `gui529@hotmail.com` (catch-all alias). Apex MX/SPF point at ImprovMX; Resend outbound records on `send` / DKIM are separate.
+All mail to `*@quickprolist.com` is forwarded via **ImprovMX** to **`gui.quickprolist@gmail.com`** (catch-all alias). Apex MX/SPF point at ImprovMX; Resend outbound records on `send` / DKIM are separate.
+
+**Outbound campaign BCC** (hidden copy of sends to pros) defaults to the same inbox: **`gui.quickprolist@gmail.com`** (`lib/campaign-owner-bcc.ts`, or `CAMPAIGN_BCC_EMAIL`).
 
 Full setup, API checks, and troubleshooting: [inbox-improvmx-namecheap.md](./inbox-improvmx-namecheap.md).
 
@@ -39,6 +41,6 @@ Then click **Verify** in Resend. Until apex is verified, keep sending from `@con
 
 ## After DNS + env
 
-1. Send a test campaign to your own **Outlook** inbox (e.g. Hotmail).
+1. Send a test campaign and confirm BCC + replies arrive at **gui.quickprolist@gmail.com**.
 2. Use [mail-tester.com](https://www.mail-tester.com) once if you want a second opinion.
 3. Keep volume low; cold B2B mail may still land in Junk/Other until reputation builds.

@@ -1,6 +1,16 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-const sendMock = vi.fn(async () => ({ data: { id: 'email_123' }, error: null }))
+const sendMock = vi.fn<
+  (message: {
+    from: string
+    to?: string | string[]
+    subject: string
+    html: string
+    text: string
+    headers?: Record<string, string>
+    bcc?: string[]
+  }) => Promise<{ data: { id: string }; error: null }>
+>(async () => ({ data: { id: 'email_123' }, error: null }))
 
 vi.mock('resend', () => ({
   Resend: class {
@@ -18,13 +28,16 @@ vi.mock('./suppressions', async (orig) => ({
 import {
   buildMarketingCtaLabel,
   buildMarketingEmailSubject,
+  COMMERCIAL_AD_DISCLOSURE,
   formatFromAddress,
   formatMarketingFromAddress,
+  sendCommercialNotice,
   sendEmail,
   sendDigestEmail,
 } from './email'
 import { SuppressedError } from './suppressions'
 import { verifyUnsubscribeToken } from './unsubscribe'
+import { subscriptionConfirmationBody } from './subscription-terms'
 
 describe('formatFromAddress', () => {
   it('wraps bare addresses', () => {
@@ -49,6 +62,16 @@ describe('buildMarketingEmailSubject', () => {
       'Okay to add Biz to our Marietta list?'
     )
   })
+
+  it('uses listed-pro subject for wave listed', () => {
+    expect(
+      buildMarketingEmailSubject('TE Certified', {
+        city: 'marietta',
+        category: 'electricians',
+        campaignWave: 'listed',
+      })
+    ).toBe('TE Certified is on our Marietta list — 30-day preview?')
+  })
 })
 
 describe('buildMarketingCtaLabel', () => {
@@ -72,6 +95,7 @@ describe('sendEmail (lib/email.ts)', () => {
     process.env.RESEND_FROM_EMAIL = 'noreply@example.com'
     process.env.UNSUBSCRIBE_SECRET = 'test-unsub-secret'
     process.env.SITE_URL = 'https://example.test'
+    delete process.env.CAMPAIGN_POSTAL_ADDRESS
     isSuppressedMock.mockReset()
     isSuppressedMock.mockResolvedValue(false)
   })
@@ -93,17 +117,46 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(call.text).not.toContain('Hi Acme Plumbing,')
     expect(call.text).toContain('Preview what we would publish')
     expect(call.text).toContain('https://example.test/enroll/abc')
-    expect(call.text).toContain('We are going to launch soon')
+    expect(call.text).toContain('$29.99/month')
+    expect(call.text.indexOf('$29.99/month')).toBeGreaterThan(call.text.indexOf('https://example.test/enroll/abc'))
+    expect(call.text).not.toContain('We are going to launch soon')
+    expect(call.text).not.toContain('one-time')
     expect(call.text).not.toContain('cancel anytime')
     expect(call.subject).not.toMatch(/🏠|\$29/)
+    expect(call.bcc).toEqual(['gui.quickprolist@gmail.com'])
     delete process.env.CAMPAIGN_SENDER_NAME
+  })
+
+  it('omits the price and does not invent a launch line when there is no enroll link', async () => {
+    await sendEmail('owner@example.com', 'Acme Plumbing', 'Quick note.', {
+      city: 'marietta',
+      category: 'plumbing',
+    })
+    const call = sendMock.mock.calls[0][0]
+    expect(call.text).not.toContain('$29.99')
+    expect(call.text).not.toContain('We are going to launch soon')
+    expect(call.text).not.toContain('one-time')
+    expect(call.text).toContain('one short follow-up')
+  })
+
+  it('describes a follow-up as a follow-up', async () => {
+    await sendEmail('owner@example.com', 'Acme', 'Checking back.', {
+      campaignWave: 'follow-up',
+      enrollUrl: 'https://example.test/enroll/abc',
+    })
+    const call = sendMock.mock.calls[0][0]
+    expect(call.text).toContain('You received this follow-up')
+    expect(call.text).not.toContain('one-time')
+    expect(call.text).not.toContain('one short follow-up')
   })
 
   it('uses a transactional subject for payment notices', async () => {
     await sendEmail('owner@example.com', 'Acme', "We weren't able to process your payment.", {
       kind: 'transactional',
     })
-    expect(sendMock.mock.calls[0][0].subject).toBe('QuickProList payment issue — action needed')
+    const txCall = sendMock.mock.calls[0][0]
+    expect(txCall.subject).toBe('QuickProList payment issue — action needed')
+    expect(txCall.bcc).toBeUndefined()
   })
 
   it('escapes HTML-unsafe characters in marketing HTML', async () => {
@@ -124,7 +177,7 @@ describe('sendEmail (lib/email.ts)', () => {
   })
 
   describe('marketing compliance', () => {
-    it('adds a working one-click unsubscribe link and headers without a postal address', async () => {
+    it('adds a working one-click unsubscribe link and does not invent a postal address', async () => {
       await sendEmail('Owner@Example.com', 'Biz', 'Hello')
 
       const call = sendMock.mock.calls[0][0] as {
@@ -172,6 +225,92 @@ describe('sendEmail (lib/email.ts)', () => {
       expect(sendMock).toHaveBeenCalledTimes(1)
       const call = sendMock.mock.calls[0][0] as { headers?: unknown }
       expect(call.headers).toBeUndefined()
+    })
+
+    it('sends a commercial notice with an accurate From, the given subject, and the full footer', async () => {
+      process.env.CAMPAIGN_POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
+      const body = [
+        'Your QuickProList preview for Biz ends on November 17, 2026.',
+        'If you do nothing, it comes down on November 17, 2026. Nothing is charged.',
+        'https://example.test/enroll/tok?subscribe=1',
+      ].join('\n')
+
+      await sendCommercialNotice('Owner@Example.com', 'Your QuickProList preview ends November 17, 2026', body)
+
+      const call = sendMock.mock.calls[0][0] as {
+        from: string
+        subject: string
+        html: string
+        text: string
+        headers: Record<string, string>
+        bcc?: string[]
+      }
+      expect(call.from).toBe('QuickProList <noreply@example.com>')
+      expect(call.subject).toBe('Your QuickProList preview ends November 17, 2026')
+      expect(call.text.startsWith('Your QuickProList preview for Biz ends on November 17, 2026.')).toBe(true)
+      expect(call.text).toContain(COMMERCIAL_AD_DISCLOSURE)
+      expect(call.text).toContain('1 Market St, Atlanta, GA 30303')
+      expect(call.html).toContain('Unsubscribe')
+      expect(call.html).toContain(COMMERCIAL_AD_DISCLOSURE)
+      const listUnsub = call.headers['List-Unsubscribe']
+      const url = listUnsub.slice(1, -1)
+      expect(call.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
+      expect(verifyUnsubscribeToken(decodeURIComponent(url.split('token=')[1]))).toBe('owner@example.com')
+      expect(call.text).toContain(url)
+      const productLinks = body.match(/https?:\/\/\S+/g) ?? []
+      expect(productLinks).toEqual(['https://example.test/enroll/tok?subscribe=1'])
+      expect(call.bcc).toBeUndefined()
+      expect(call.text).not.toContain('We are going to launch soon')
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+    })
+
+    it('refuses a commercial notice without a postal address or to a suppressed address', async () => {
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+      await expect(sendCommercialNotice('owner@example.com', 'Subject', 'Body')).rejects.toThrow(/CAMPAIGN_POSTAL_ADDRESS/)
+      expect(sendMock).not.toHaveBeenCalled()
+
+      process.env.CAMPAIGN_POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
+      isSuppressedMock.mockResolvedValue(true)
+      await expect(sendCommercialNotice('owner@example.com', 'Subject', 'Ends soon')).rejects.toBeInstanceOf(
+        SuppressedError
+      )
+      expect(sendMock).not.toHaveBeenCalled()
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+    })
+
+    it('sends billing mail as transactional with no ad line or unsubscribe header', async () => {
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+      delete process.env.UNSUBSCRIBE_SECRET
+      isSuppressedMock.mockResolvedValue(true)
+      const body = subscriptionConfirmationBody({
+        businessName: 'Acme Plumbing',
+        accountEmail: 'owner@acme.example',
+        nextChargeDate: 'November 17, 2026',
+      })
+
+      await sendEmail('owner@acme.example', 'Acme Plumbing', body, {
+        kind: 'transactional',
+        subject: 'Your QuickProList subscription is active',
+      })
+
+      const call = sendMock.mock.calls[0][0] as {
+        subject: string
+        html: string
+        text: string
+        headers?: Record<string, string>
+      }
+      expect(call.subject).toBe('Your QuickProList subscription is active')
+      expect(call.text).toContain('Plan: QuickProList listing, $29.99/month.')
+      expect(call.text).toContain(
+        'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
+      )
+      expect(call.text).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
+      expect(call.text).toContain('Questions: contact@quickprolist.com')
+      expect(call.text).not.toContain(COMMERCIAL_AD_DISCLOSURE)
+      expect(call.html).not.toContain('Unsubscribe')
+      expect(call.html).not.toContain(COMMERCIAL_AD_DISCLOSURE)
+      expect(call.headers).toBeUndefined()
+      expect(isSuppressedMock).not.toHaveBeenCalled()
     })
 
     it('applies the same suppression and footer to the performance digest', async () => {

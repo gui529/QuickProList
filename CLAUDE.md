@@ -7,19 +7,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Owner preferences
 
 - **`PRO_DASHBOARD_ENABLED` stays off** on production (and do not recommend enabling it). `/dashboard/[token]` and performance digests remain disabled by design.
+- **Cold outreach does not go through Resend** (owner 2026-10-17). Board Status is **`PAUSED`** — do not send. Planned test is ~20 manual emails over a few days from Gmail `gui.quickprolist@gmail.com`, daily cap **5** on `docs/campaigns/board.md`. **Resend is transactional/opted-in mail only.** Do not use `campaign-manager-send.ts --prepare` / Resend MCP / `--finalize` for prospects. **Production DB on cloud ticks:** Neon MCP (`docs/campaigns/skills/neon-mcp.md`), not `DATABASE_URL` on the automation. **Move fast** under `STANDALONE` on the campaign board; **BCC owner** on every marketing send (`gui.quickprolist@gmail.com` or `CAMPAIGN_BCC_EMAIL`). Read/update **`docs/campaigns/lessons.json`** each session — only entries with a clear **`subscriberImpact`** (paying subs), not general notes. **Self-unblock:** missing emails → search/fetch site (`docs/campaigns/skills/unblock-yourself.md`); don’t stop and ask the owner under **STANDALONE**. **Cloud schedule:** Cursor Automations on `dev` — `docs/campaigns/skills/automation-setup.md` (not Vercel cron). **Continuous:** keep going past Wave 1 — `docs/campaigns/skills/continuous-campaign.md`.
 
 ## Git branches
 
 - Do all repo work on **`dev`** (`git checkout dev`, pull before you start).
-- **`main`** auto-deploys production — **never** merge or push to `main` unless the owner explicitly asks to promote `dev` → `main`.
+- QPL Dev commits directly to `dev` after the tests and build pass. There are no PRs into `dev`.
+- **`main`** auto-deploys production. `main` and production only change with Guilherme's approval. Never merge or push to `main` otherwise.
 
-## Backlog
+## How work moves
 
-Open work for cloud agents lives in [GitHub Issues](https://github.com/gui529/QuickProList/issues),
-not a file in this repo. Priority labels (`P0`/`P1`/`P2`), `needs-owner`,
-and `in-progress` drive what gets picked up — see `.claude/agents/*.md`
-(`backlog-worker`, `qa-validator`, `product-owner`, `marketing-agent`) for the exact workflow
-before starting any task in this repo when no other instruction is given.
+Requests and findings go to **QPL Team Lead** in chat. Nobody files GitHub issues or issue comments.
+
+Code changes go to **QPL Dev**, through the Team Lead or the team room.
+
+Existing GitHub issues stay for reference only. Do not file, comment, label, or close them.
+
+See `.claude/agents/*.md` (`backlog-worker`, `qa-validator`, `product-owner`, `marketing-agent`, `campaign-manager`) and `BACKLOG.md` for each role before starting any task in this repo when no other instruction is given.
 
 ## Commands
 

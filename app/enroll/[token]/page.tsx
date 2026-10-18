@@ -1,6 +1,10 @@
+import { notFound } from 'next/navigation'
 import { isProDashboardEnabled } from '@/lib/feature-flags'
 import { getInvitationByToken, isInvitationExpired, type EnrollmentInvitation } from '@/lib/invitations'
+import { isUuid } from '@/lib/is-uuid'
 import { getCuratedById } from '@/lib/kv'
+import { enrollPreviewTrialDays } from '@/lib/enroll-preview-days'
+import { maskEmailHint } from '@/lib/reminder-email'
 import EnrollClient from './EnrollClient'
 
 const PRIVATE_YELP_DATA_KEYS = [
@@ -14,26 +18,32 @@ const PRIVATE_YELP_DATA_KEYS = [
 ]
 
 function invitationForClient(invitation: EnrollmentInvitation): EnrollmentInvitation {
-  if (!invitation.yelp_data) return invitation
-  const yelpData = { ...invitation.yelp_data }
-  for (const key of PRIVATE_YELP_DATA_KEYS) delete yelpData[key]
-  return { ...invitation, yelp_data: yelpData }
+  const yelpData = invitation.yelp_data ? { ...invitation.yelp_data } : null
+  if (yelpData) {
+    for (const key of PRIVATE_YELP_DATA_KEYS) delete yelpData[key]
+  }
+  return { ...invitation, contact_email: null, yelp_data: yelpData }
 }
 
-export default async function EnrollPage({ params }: { params: Promise<{ token: string }> }) {
+function firstQueryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value
+}
+
+export default async function EnrollPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>
+  searchParams?: Promise<{ subscribe?: string | string[]; success?: string | string[] }>
+}) {
   const { token } = await params
+  const query = searchParams ? await searchParams : {}
+  const subscribe = firstQueryValue(query.subscribe) === '1'
+  const checkoutSuccess = firstQueryValue(query.success) === '1'
+  if (!isUuid(token)) notFound()
   const invitation = await getInvitationByToken(token)
 
-  if (!invitation) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-slate-50 px-4">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Link not found</h1>
-          <p className="text-slate-600">This enrollment link is invalid or has expired.</p>
-        </div>
-      </div>
-    )
-  }
+  if (!invitation) notFound()
 
   if (isInvitationExpired(invitation)) {
     return (
@@ -62,7 +72,10 @@ export default async function EnrollPage({ params }: { params: Promise<{ token: 
       token={token}
       dashboardToken={dashboardToken}
       proDashboardEnabled={proDashboardEnabled}
-      initialContactEmail={invitation.contact_email}
+      contactEmailHint={maskEmailHint(invitation.contact_email)}
+      previewTrialDays={enrollPreviewTrialDays()}
+      subscribe={subscribe}
+      checkoutSuccess={checkoutSuccess}
     />
   )
 }

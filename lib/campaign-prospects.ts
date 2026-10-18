@@ -1,4 +1,5 @@
 import { isDatabaseConfigured, query } from './db'
+import { listLatestPreviewByProspect, type PreviewProspectSummary } from './preview-tokens'
 import { fetchLogoFromWebsite } from './website-logo'
 
 export type CampaignProspectStatus =
@@ -39,7 +40,7 @@ export interface AddCampaignProspectInput {
 
 function rowToClient(
   row: CampaignProspect,
-  extras?: { proResponse?: 'yes' | 'no' | null }
+  extras?: { proResponse?: 'yes' | 'no' | null; preview?: PreviewProspectSummary | null }
 ) {
   return {
     id: row.id,
@@ -58,6 +59,7 @@ function rowToClient(
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     proResponse: extras?.proResponse ?? null,
+    preview: extras?.preview ?? null,
   }
 }
 
@@ -95,8 +97,17 @@ export async function listCampaignProspects(
          ORDER BY created_at DESC`
       )
   const proByEmail = await latestProResponseByEmail(rows.map((r) => r.email))
+  let previews = new Map<string, PreviewProspectSummary>()
+  try {
+    previews = await listLatestPreviewByProspect(rows.map((r) => r.id))
+  } catch (err) {
+    console.error('preview stats unavailable:', err)
+  }
   return rows.map((row) =>
-    rowToClient(row, { proResponse: proByEmail.get(row.email.trim().toLowerCase()) ?? null })
+    rowToClient(row, {
+      proResponse: proByEmail.get(row.email.trim().toLowerCase()) ?? null,
+      preview: previews.get(row.id) ?? null,
+    })
   )
 }
 
@@ -104,6 +115,21 @@ export async function getCampaignProspect(id: string): Promise<CampaignProspectC
   if (!isDatabaseConfigured()) return null
   const rows = await query<CampaignProspect>(`SELECT * FROM campaign_prospects WHERE id = $1`, [id])
   return rows[0] ? rowToClient(rows[0]) : null
+}
+
+/** Newest campaign prospect for this address, if one was discovered. */
+export async function findCampaignProspectIdByEmail(email: string): Promise<string | null> {
+  if (!isDatabaseConfigured()) return null
+  const normalized = email.trim().toLowerCase()
+  if (!normalized.includes('@')) return null
+  const rows = await query<{ id: string }>(
+    `SELECT id FROM campaign_prospects
+     WHERE lower(trim(email)) = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [normalized]
+  )
+  return rows[0]?.id ?? null
 }
 
 /** Insert from discovery worker; skips duplicate active emails. */

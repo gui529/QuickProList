@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { activateEnrollmentTrial, EnrollmentTrialError } from '@/lib/enrollment-trial'
 import { isProDashboardEnabled } from '@/lib/feature-flags'
+import { isUuid } from '@/lib/is-uuid'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
+import { reminderEmailError } from '@/lib/reminder-email'
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
@@ -19,8 +21,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'token is required' }, { status: 400 })
   }
 
+  const email = body.email?.trim() ?? ''
+  const emailError = reminderEmailError(email)
+  if (emailError) {
+    return NextResponse.json({ error: emailError }, { status: 400 })
+  }
+
+  if (!isUuid(token)) {
+    return NextResponse.json({ error: 'Invitation not found', code: 'not_found' }, { status: 404 })
+  }
+
   try {
-    const result = await activateEnrollmentTrial(token, body.email?.trim() || null)
+    const result = await activateEnrollmentTrial(token, email)
     return NextResponse.json({
       ok: true,
       trialEndsAt: result.trialEndsAt,

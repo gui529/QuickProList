@@ -59,11 +59,10 @@ export default function ListBusinessSection() {
               <span className="text-amber-300">Get listed on QuickProList.</span>
             </h2>
             <p className="mt-3 text-sm sm:text-base text-slate-300 max-w-md">
-              Reach neighbors actively looking for help with home projects. Free to apply — we&apos;ll review and reach out.
+              Get listed on QuickProList: free for 30 days, then $29.99/month if you choose to stay. Paid listings are labeled &quot;Sponsored&quot; in search.
             </p>
             <ul className="mt-5 space-y-2 text-sm text-slate-200">
               {[
-                'Featured placement in search results',
                 'No long-term contracts',
               ].map((b) => (
                 <li key={b} className="flex items-start gap-2">
@@ -211,7 +210,11 @@ export default function ListBusinessSection() {
               <div className="hidden md:flex flex-col gap-3">
                 {[
                   { icon: '📈', title: 'More qualified leads', body: 'Reach customers ready to book.' },
-                  { icon: '⭐', title: 'Stand out in search', body: 'Featured listings are marked as featured.' },
+                  {
+                    icon: '⭐',
+                    title: 'Stand out in search',
+                    body: 'Get listed on QuickProList: free for 30 days, then $29.99/month if you choose to stay. Paid listings are labeled "Sponsored" in search.',
+                  },
                 ].map((c) => (
                   <div key={c.title} className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-4">
                     <div className="text-xl">{c.icon}</div>

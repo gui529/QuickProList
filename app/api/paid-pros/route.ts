@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { requireAdmin, AuthError } from '@/lib/auth'
 import { listPaidInvitations } from '@/lib/invitations'
 import { getStripe } from '@/lib/stripe'
@@ -17,7 +17,7 @@ export interface PaidPro {
   cancel_at_period_end: boolean | null
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     await requireAdmin()
   } catch (err) {

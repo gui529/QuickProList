@@ -35,6 +35,7 @@ yarn-error.log*
 
 # Live Stripe keys for scripts/push-stripe-env-production.ps1 (never commit)
 secrets/stripe-vercel-production.txt
+secrets/campaign-automation-paste.env
 
 # vercel
 .vercel

@@ -3,13 +3,14 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { CATEGORIES } from '@/lib/categories'
+import { CATEGORIES, normalizeCategory } from '@/lib/categories'
 import BusinessCard from '@/components/BusinessCard'
 import OpenTownInput from '@/components/OpenTownInput'
 import ListBusinessSection from '@/components/ListBusinessSection'
 import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
 import type { Business } from '@/lib/business'
 import { loadMyListingId } from '@/lib/my-listing-storage'
+import { SPONSORED_DISCLOSURE } from '@/lib/sponsored'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
 
@@ -78,7 +79,8 @@ function HomePageInner() {
 
   // Initial mount: auto-run the search if the URL already specified a city + category
   useEffect(() => {
-    const cat = CATEGORIES.find((c) => c.value === urlCategory)
+    const categoryKey = urlCategory ? normalizeCategory(urlCategory) : ''
+    const cat = CATEGORIES.find((c) => c.value === categoryKey)
     if (urlLocation && cat && !autoFiredRef.current) {
       autoFiredRef.current = true
       void runSearch(cat.value, urlLocation, urlHighlight || undefined)
@@ -282,6 +284,9 @@ function HomePageInner() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
+                {results.some((b) => b.sponsored) ? (
+                  <p className="text-[15px] leading-snug text-slate-900">{SPONSORED_DISCLOSURE}</p>
+                ) : null}
                 {results.map((b) => {
                   const highlighted = isHighlighted(b, highlightId)
                   return highlighted ? (

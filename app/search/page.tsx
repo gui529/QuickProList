@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { normalizeCategory } from '@/lib/categories'
 
 export default async function SearchPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function SearchPage({
 
   const params = new URLSearchParams()
   if (location) params.set('location', location)
-  if (category) params.set('category', category)
+  if (category) params.set('category', normalizeCategory(category))
   if (lat) params.set('lat', lat)
   if (lng) params.set('lng', lng)
   if (highlight) params.set('highlight', highlight)

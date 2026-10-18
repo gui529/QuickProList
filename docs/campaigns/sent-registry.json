@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "sent": [
+    {
+      "email": "gui529@hotmail.com",
+      "businessName": "Gui's Quality Plumbing",
+      "city": "marietta",
+      "category": "plumbing",
+      "batch": "owner-inbox-test-2026-10-15",
+      "resendId": "01a14170-19ca-75ba-bd59-893a5c6c2c82",
+      "subject": "Okay to add Gui's Quality Plumbing to our Marietta list?",
+      "sentAt": "2026-10-15T21:20:00.000Z",
+      "wave": "test",
+      "notes": "Owner inbox test before category slug fix",
+      "deliveryStatus": "delivered"
+    },
+    {
+      "email": "info@emailte.com",
+      "businessName": "TE Certified Electricians",
+      "city": "marietta",
+      "category": "electricians",
+      "batch": "wave1-2026-10-15-atl",
+      "resendId": "01a14184-b0d2-798c-98d4-651077c168c7",
+      "subject": "TE Certified Electricians is on our Marietta list — 30-day preview?",
+      "sentAt": "2026-10-15T21:42:57.547Z",
+      "wave": "listed",
+      "deliveryStatus": "delivered"
+    },
+    {
+      "email": "info@peppersheatingandair.com",
+      "businessName": "Peppers Heating & Air Conditioning",
+      "city": "atlanta",
+      "category": "airconditioningheating",
+      "batch": "wave1-2026-10-15-atl",
+      "resendId": "01a14186-343d-7275-8f97-fa591f0fa626",
+      "subject": "Peppers Heating & Air Conditioning is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-15T21:44:36.715Z",
+      "wave": "listed",
+      "deliveryStatus": "bounced"
+    },
+    {
+      "email": "mjones@patriotpowerelectrical.com",
+      "businessName": "Patriot Power Electrical LLC",
+      "city": "atlanta",
+      "category": "electricians",
+      "batch": "wave1-2026-10-15-atl",
+      "resendId": "01a14187-4cd2-7ad2-8b01-d2fa21c81868",
+      "subject": "Patriot Power Electrical LLC is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-15T21:45:48.555Z",
+      "wave": "listed",
+      "deliveryStatus": "delivered"
+    },
+    {
+      "email": "info@powerhousepestcontrol.com",
+      "businessName": "Power House Pest Control",
+      "city": "atlanta",
+      "category": "pestcontrol",
+      "batch": "wave1-2026-10-15-atl",
+      "resendId": "01a14188-51ed-7f0c-a250-1163a8bcf38a",
+      "subject": "Power House Pest Control is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-15T21:46:55.388Z",
+      "wave": "listed",
+      "deliveryStatus": "delivered"
+    },
+    {
+      "email": "customerservice@highgrove.net",
+      "businessName": "HighGrove Partners",
+      "city": "atlanta",
+      "category": "landscaping",
+      "batch": "wave-atl-2026-10",
+      "resendId": "01a14193-cb9c-7356-bcff-d11dd95ca475",
+      "subject": "HighGrove Partners is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-15T21:59:27.422Z",
+      "wave": "listed",
+      "deliveryStatus": "delivered"
+    },
+    {
+      "email": "info@pacesconstruction.com",
+      "businessName": "Paces Construction",
+      "city": "atlanta",
+      "category": "generalcontractors",
+      "batch": "wave-atl-2026-10",
+      "resendId": "01a146c9-f213-7b70-9d68-d47ba47184df",
+      "subject": "Paces Construction is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-16T22:16:48.017Z",
+      "wave": "listed",
+      "deliveryStatus": "delivered"
+    },
+    {
+      "email": "info@atlantisplumbing.com",
+      "businessName": "Atlantis Plumbing",
+      "city": "atlanta",
+      "category": "plumbing",
+      "batch": "wave-atl-2026-10",
+      "resendId": "01a14bbd-f0e1-7b18-b9c9-6b725a9ab98a",
+      "subject": "Atlantis Plumbing is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-17T21:21:45.221Z",
+      "wave": "listed",
+      "deliveryStatus": "bounced"
+    },
+    {
+      "email": "help@colonyroofers.com",
+      "businessName": "Colony Roofers",
+      "city": "atlanta",
+      "category": "roofing",
+      "batch": "wave-atl-2026-10",
+      "resendId": "01a14bbf-13f2-7dd2-929b-9b47d5d92cfe",
+      "subject": "Colony Roofers is on our Atlanta list — 30-day preview?",
+      "sentAt": "2026-10-17T21:23:03.752Z",
+      "wave": "listed",
+      "deliveryStatus": "suppressed"
+    }
+  ]
+}

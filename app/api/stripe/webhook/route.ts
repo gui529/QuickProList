@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe, handleSubscriptionCanceled } from '@/lib/stripe'
-import { getInvitationByToken, getInvitationBySubscriptionId, markInvitationPaid } from '@/lib/invitations'
+import {
+  getInvitationByToken,
+  getInvitationBySubscriptionId,
+  markInvitationPaid,
+  markSubscriptionConfirmationSent,
+} from '@/lib/invitations'
+import { sendRenewalConfirmation, sendSubscriptionConfirmation, sendUpcomingRenewalNotice } from '@/lib/subscription-notice'
+import { formatPreviewEndDate } from '@/lib/preview-date'
+import { listingFieldsFromInvitation } from '@/lib/invitation-listing'
 import {
   addCuratedFromYelp,
   addCuratedManual,
@@ -14,7 +22,7 @@ import {
   updateCuratedManual,
 } from '@/lib/kv'
 import { sendEmail } from '@/lib/email'
-import { isProDashboardEnabled } from '@/lib/feature-flags'
+import type { EnrollmentInvitation } from '@/lib/invitations'
 import type { Business } from '@/lib/business'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -25,6 +33,41 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 // that retry window is the grace period a business gets to fix a declined
 // card before losing its listing. Only the terminal failure states delist.
 const DELISTING_SUBSCRIPTION_STATUSES = new Set(['canceled', 'unpaid'])
+
+function periodEndSeconds(subscription: {
+  current_period_end?: number
+  items?: { data?: Array<{ current_period_end?: number } | null> | null } | null
+}): number | null {
+  const fromItem = subscription.items?.data?.[0]?.current_period_end
+  if (typeof fromItem === 'number') return fromItem
+  return typeof subscription.current_period_end === 'number' ? subscription.current_period_end : null
+}
+
+async function nextChargeDateFor(subscriptionId: string): Promise<string | null> {
+  if (!subscriptionId) return null
+  const stripe = getStripe()
+  const retrieve = stripe.subscriptions?.retrieve
+  if (!retrieve) return null
+  const subscription = await retrieve(subscriptionId)
+  const seconds = periodEndSeconds(subscription)
+  if (seconds === null) return null
+  return formatPreviewEndDate(new Date(seconds * 1000).toISOString())
+}
+
+async function sendPaidConfirmation(
+  invitation: EnrollmentInvitation,
+  contactEmail: string,
+  subscriptionId: string
+): Promise<void> {
+  if (invitation.subscription_confirmation_sent_at) return
+  const nextChargeDate = (await nextChargeDateFor(subscriptionId)) ?? ''
+  await sendSubscriptionConfirmation({
+    businessName: invitation.business_name,
+    accountEmail: contactEmail,
+    nextChargeDate,
+  })
+  await markSubscriptionConfirmationSent(invitation.id)
+}
 
 export async function POST(req: NextRequest) {
   if (!webhookSecret) {
@@ -66,7 +109,13 @@ export async function POST(req: NextRequest) {
       if (invitation.status === 'paid') {
         // Already processed — Stripe retries the same event on any non-2xx
         // response or timeout, so this must be a safe no-op rather than
-        // re-inserting the curated business.
+        // re-inserting the curated business. A missed confirmation is retried.
+        const contactEmail = session.customer_details?.email
+        const existingSubscriptionId =
+          typeof session.subscription === 'string'
+            ? session.subscription
+            : (session.subscription?.id ?? '')
+        if (contactEmail) await sendPaidConfirmation(invitation, contactEmail, existingSubscriptionId)
         return NextResponse.json({ ok: true })
       }
 
@@ -107,10 +156,15 @@ export async function POST(req: NextRequest) {
         })
         curatedBusinessId = invitation.curated_business_id
       } else {
+        const details = listingFieldsFromInvitation(invitation)
         await addCuratedManual({
           name: invitation.business_name,
           category: invitation.category,
           cities: invitation.cities,
+          ...(details.phone ? { phone: details.phone } : {}),
+          ...(details.address ? { address: details.address } : {}),
+          ...(details.websiteUrl ? { websiteUrl: details.websiteUrl } : {}),
+          ...(details.imageUrl ? { imageUrl: details.imageUrl } : {}),
         })
 
         curatedBusinessId = (await findLatestManualCuratedId(invitation.business_name)) || ''
@@ -138,23 +192,15 @@ export async function POST(req: NextRequest) {
       const contactEmail = session.customer_details?.email
       if (curatedBusinessId && contactEmail) {
         await setCuratedContactEmail(curatedBusinessId, contactEmail)
-
-        // Immediately welcome the newly-paying business with a link to its
-        // stats dashboard (`/dashboard/[dashboard_token]`) — otherwise the
-        // only way it learns the dashboard exists is an admin manually
-        // copying the link from `/admin` and sending it by hand. See #37.
-        const business = await getCuratedById(curatedBusinessId)
-        if (isProDashboardEnabled() && business?.dashboardToken) {
-          const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
-          const dashboardUrl = `${siteUrl}/dashboard/${business.dashboardToken}`
-          await sendEmail(
-            contactEmail,
-            invitation.business_name,
-            `You're live on QuickProList! Track your profile views and clicks anytime from your dashboard: ${dashboardUrl}`,
-            { kind: 'transactional' }
-          )
-        }
+        const paid = await getInvitationByToken(token)
+        if (paid) await sendPaidConfirmation(paid, contactEmail, subscriptionId)
       }
+    } else if (event.type === 'invoice.upcoming') {
+      const invoice = event.data.object as Stripe.Invoice
+      await sendUpcomingRenewalNotice(invoice)
+    } else if (event.type === 'invoice.paid') {
+      const invoice = event.data.object as Stripe.Invoice
+      await sendRenewalConfirmation(invoice)
     } else if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription
       await handleSubscriptionCanceled(subscription.id)

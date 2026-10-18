@@ -1,6 +1,7 @@
 import { getBusinessReports, type BusinessReport } from './reports'
-import { sendEmail } from './email'
+import { sendCommercialNotice } from './email'
 import { setTrialReminderSent } from './kv'
+import { formatPreviewEndDate } from './preview-date'
 import { SuppressedError, isSuppressed, normalizeEmail } from './suppressions'
 
 export interface TrialReminderSendResult {
@@ -9,7 +10,8 @@ export interface TrialReminderSendResult {
   emailId: string
 }
 
-const DEFAULT_REMINDER_HOURS = 72
+/** About 5 days before `trial_ends_at`. Override with `TRIAL_REMINDER_HOURS`. */
+const DEFAULT_REMINDER_HOURS = 120
 
 export function trialReminderHorizonMs(): number {
   const raw = process.env.TRIAL_REMINDER_HOURS?.trim()
@@ -42,23 +44,27 @@ function activeTrialInvitationToken(report: BusinessReport): string | null {
   return trialInv?.token ?? null
 }
 
-function composeReminderBody(report: BusinessReport, subscribeUrl: string): string {
-  const end = report.trial_ends_at
-    ? new Date(report.trial_ends_at).toLocaleDateString(undefined, {
-        month: 'long',
-        day: 'numeric',
-      })
-    : 'soon'
+export function trialReminderSubject(endDate: string): string {
+  return `Your QuickProList preview ends ${endDate}`
+}
+
+/**
+ * End-date notice is the first line. One product link (subscribe). The exact
+ * "if you do nothing" sentence is required. The commercial footer is added
+ * by `sendCommercialNotice`, not here.
+ */
+export function composeTrialReminderBody(name: string, endDate: string, subscribeUrl: string): string {
   return [
-    `Your QuickProList preview for ${report.name} ends on ${end}.`,
-    `So far you've had ${report.search_impressions.toLocaleString()} search appearances and ${report.profile_views.toLocaleString()} profile views.`,
-    `Stay listed for $29.99/mo — cancel anytime:`,
+    `Your QuickProList preview for ${name} ends on ${endDate}.`,
+    'Your listing stays in search until then. Subscribe to keep it listed after that date.',
+    `If you do nothing, it comes down on ${endDate}. Nothing is charged.`,
     subscribeUrl,
   ].join('\n')
 }
 
 /**
- * One-time email ~72h before `trial_ends_at` for active preview listings.
+ * One-time commercial email before `trial_ends_at` for active preview listings.
+ * Default horizon is 120 hours (`TRIAL_REMINDER_HOURS`).
  * Invoked by `app/api/cron/trial-reminder/route.ts`.
  */
 export async function sendTrialReminders(): Promise<TrialReminderSendResult[]> {
@@ -72,9 +78,10 @@ export async function sendTrialReminders(): Promise<TrialReminderSendResult[]> {
   for (const report of candidates) {
     const contactEmail = report.contact_email as string
     const token = activeTrialInvitationToken(report)
-    const subscribeUrl = token
-      ? `${siteUrl}/enroll/${token}?subscribe=1`
-      : siteUrl
+    const subscribeUrl = token ? `${siteUrl}/enroll/${token}?subscribe=1` : siteUrl
+    const endDate = formatPreviewEndDate(report.trial_ends_at as string)
+    const subject = trialReminderSubject(endDate)
+    const body = composeTrialReminderBody(report.name, endDate, subscribeUrl)
 
     if (await isSuppressed('email', normalizeEmail(contactEmail))) {
       await setTrialReminderSent(report.id)
@@ -83,12 +90,7 @@ export async function sendTrialReminders(): Promise<TrialReminderSendResult[]> {
 
     let emailId: string
     try {
-      emailId = await sendEmail(
-        contactEmail,
-        report.name,
-        composeReminderBody(report, subscribeUrl),
-        { kind: 'transactional' }
-      )
+      emailId = await sendCommercialNotice(contactEmail, subject, body)
     } catch (err) {
       if (err instanceof SuppressedError) {
         await setTrialReminderSent(report.id)

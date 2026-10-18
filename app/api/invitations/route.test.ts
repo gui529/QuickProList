@@ -26,11 +26,12 @@ vi.mock('@/lib/kv', async () => import('@/lib/kv.test-double'))
 // this route's full import graph (lib/kv + lib/auth + next/server together)
 // reproduces the module-resolution hang tracked by #22/#29. A plain
 // vi.fn()-based mock avoids it while still letting us assert on the call.
-const { createTrialInvitationMock } = vi.hoisted(() => ({
+const { createTrialInvitationMock, createInvitationMock } = vi.hoisted(() => ({
   createTrialInvitationMock: vi.fn().mockResolvedValue(undefined),
+  createInvitationMock: vi.fn().mockResolvedValue('invite-token'),
 }))
 vi.mock('@/lib/invitations', () => ({
-  createInvitation: vi.fn(),
+  createInvitation: createInvitationMock,
   createTrialInvitation: createTrialInvitationMock,
   listInvitations: vi.fn(),
   deleteInvitation: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock('@/lib/invitations', () => ({
 
 import { POST } from './route'
 import { __reset as resetCurated, __all as allCurated } from '@/lib/kv.test-double'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from '@/lib/subscription-terms'
 
 function makeRequest(body: unknown): Request {
   return new Request('https://example.test/api/invitations', {
@@ -51,6 +53,7 @@ describe('POST /api/invitations (trial path, multi-city)', () => {
   beforeEach(() => {
     resetCurated()
     createTrialInvitationMock.mockClear()
+    createInvitationMock.mockClear()
   })
 
   it('stores every submitted city on the curated business, not just the first', async () => {
@@ -86,5 +89,45 @@ describe('POST /api/invitations (trial path, multi-city)', () => {
       'dallas',
       'houston',
     ])
+  })
+
+  it('stores the prospect email on an enrollment link', async () => {
+    const res = await POST(
+      makeRequest({
+        businessName: 'Acme Plumbing',
+        category: 'plumbing',
+        cities: ['Marietta'],
+        monthlyPrice: 29.99,
+        contactEmail: 'owner@acme.example',
+        existingCuratedId: 'cur-1',
+      }) as never
+    )
+
+    expect(res.status).toBe(200)
+    expect(createInvitationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contactEmail: 'owner@acme.example',
+        businessName: 'Acme Plumbing',
+        monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD,
+      })
+    )
+  })
+
+  it('stores the subscription price even when the request price is 0 or omitted', async () => {
+    for (const monthlyPrice of [0, undefined, '']) {
+      createInvitationMock.mockClear()
+      const res = await POST(
+        makeRequest({
+          businessName: 'Acme Plumbing',
+          category: 'plumbing',
+          cities: ['Marietta'],
+          monthlyPrice,
+        }) as never
+      )
+      expect(res.status).toBe(200)
+      expect(createInvitationMock).toHaveBeenCalledWith(
+        expect.objectContaining({ monthlyPrice: SUBSCRIPTION_MONTHLY_PRICE_USD })
+      )
+    }
   })
 })

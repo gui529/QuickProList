@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     await requireAdmin()
   } catch (err) {

@@ -16,7 +16,7 @@ Builds `URLSearchParams` and **`redirect`s to `/?{params}`** — same keys prese
 
 ## Who generates `/search` links
 
-- **Enroll preview step** builds `` `/search?where=...` `` in `EnrollClient.tsx` (parameter name `where` is **not** read by `app/search/page.tsx`, which only forwards `location`, `category`, `lat`, `lng`, `highlight`). Documented as implemented.
+- **Enroll preview step** links straight to `/?location=&category=` (the homepage search), not `/search`.
 - **Share link modal** builds `/?location=&category=&highlight=` directly (`components/ShareLinkModal.tsx`), not `/search`.
 
 ---

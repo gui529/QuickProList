@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ContactClickType } from './kv'
 
 const { sendMock } = vi.hoisted(() => ({
-  sendMock: vi.fn(async () => ({ data: { id: 'email_123' }, error: null })),
+  sendMock: vi.fn<
+    (message: { to: string; subject: string; html: string; text: string }) => Promise<{
+      data: { id: string }
+      error: null
+    }>
+  >(async () => ({
+    data: { id: 'email_123' },
+    error: null,
+  })),
 }))
 
 vi.mock('resend', () => ({

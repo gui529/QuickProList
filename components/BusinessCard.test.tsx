@@ -133,4 +133,25 @@ describe('BusinessCard contact-click tracking in search results', () => {
     expect(document.querySelector('a[href^="javascript:"]')).toBeNull()
     expect(screen.getByRole('link', { name: '(843) 657-8901' }).getAttribute('href')).toBe('tel:+18436578901')
   })
+
+  it('shows a Sponsored tag above the name for a listing-program pro and no featured label', () => {
+    const business = makeBusiness({
+      id: '77777777-7777-4777-8777-777777777777',
+      name: 'Paid Plumbing',
+      sponsored: true,
+    })
+
+    render(<BusinessCard business={business} />)
+
+    const badge = screen.getByText('Sponsored')
+    const heading = screen.getByRole('heading', { name: 'Paid Plumbing' })
+    expect(badge.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(document.body.textContent).not.toMatch(/featured/i)
+  })
+
+  it('does not label a manually added pro as Sponsored', () => {
+    render(<BusinessCard business={makeBusiness({ id: '88888888-8888-4888-8888-888888888888', name: 'Manual Co' })} />)
+    expect(screen.queryByText('Sponsored')).toBeNull()
+    expect(document.body.textContent).not.toMatch(/featured/i)
+  })
 })

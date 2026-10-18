@@ -3,7 +3,9 @@ import type { Business } from './business'
 
 const { queryMock, selectState } = vi.hoisted(() => {
   const selectState: { rows: Record<string, unknown>[] } = { rows: [] }
-  const queryMock = vi.fn(async () => selectState.rows)
+  const queryMock = vi.fn<(...args: unknown[]) => Promise<Record<string, unknown>[]>>(
+    async () => selectState.rows
+  )
   return { queryMock, selectState }
 })
 
@@ -18,6 +20,7 @@ import {
   incrementContactClick,
   getCuratedByDashboardToken,
   getCuratedById,
+  getCuratedInArea,
   updateCuratedByDashboardToken,
 } from './kv'
 
@@ -209,7 +212,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       is_trial: false,
     }]
 
-    const result = await getCuratedById('curated-1')
+    const result = await getCuratedById('11111111-1111-4111-8111-111111111111')
 
     expect(result?.reviewUrl).toBeUndefined()
     expect(result?.url).toBe('')
@@ -228,7 +231,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       is_trial: false,
     }]
 
-    const result = await getCuratedById('curated-2')
+    const result = await getCuratedById('22222222-2222-4222-8222-222222222222')
 
     expect(result?.reviewUrl).toBe('https://g.page/r/example/review')
   })
@@ -246,9 +249,32 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       is_trial: false,
     }]
 
-    const result = await getCuratedById('curated-3')
+    const result = await getCuratedById('33333333-3333-4333-8333-333333333333')
 
     expect(result?.reviewUrl).toBeUndefined()
+  })
+
+  it('orders the live area query by created_at, then id', async () => {
+    process.env.DATABASE_URL = 'postgres://test'
+    await getCuratedInArea('plumbing', ['marietta'])
+    const sql = String(queryMock.mock.calls[0][0])
+    expect(sql).toContain('ORDER BY created_at ASC, id ASC')
+  })
+
+  it('applies live conditions when a highlight lookup asks for them', async () => {
+    process.env.DATABASE_URL = 'postgres://test'
+    await getCuratedById('11111111-1111-4111-8111-111111111111', { live: true })
+    const [sql, params] = queryMock.mock.calls.at(-1) as [string, unknown[]]
+    expect(sql).toContain('delisted_at IS NULL')
+    expect(sql).toContain('COALESCE(is_draft, FALSE) = FALSE')
+    expect(sql).toContain('trial_ends_at IS NULL OR trial_ends_at > $2')
+    expect(params[0]).toBe('11111111-1111-4111-8111-111111111111')
+  })
+
+  it('returns null for a non-UUID id without querying', async () => {
+    queryMock.mockClear()
+    await expect(getCuratedById('not-a-uuid')).resolves.toBeNull()
+    expect(queryMock).not.toHaveBeenCalled()
   })
 })
 

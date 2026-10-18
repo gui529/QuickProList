@@ -3,13 +3,21 @@ import { isDatabaseConfigured, query } from './db'
 export { expandCampaignMessage, type CampaignMessageContext } from './campaign-message'
 
 /** Placeholders expanded on send: {senderIntro}, {businessName}, {city}, {category}, {areas}, {siteUrl}, {signature} */
-export const DEFAULT_MESSAGE = `{senderIntro} — a simple local list website where homeowners search for pros around {areas}. I'm reaching out to you directly because I'd love to add {businessName} to that list.
+/** Cold outreach — business not yet on the site (Wave 2 / third slot). One preview link, added below the body. */
+export const DEFAULT_MESSAGE = `Homeowners around {areas} look for a local pro when a job comes up, and {businessName} is not on that list yet.
 
-If you have not seen us yet, check us out at {siteUrl} — pick a town and trade to browse the way a homeowner would.
+{senderIntro}. Would it be okay if I added {businessName} for 30 days so people searching there can find you?
 
-Would it be okay if I added your company there for 30 days? A little extra visibility can help you get more jobs.
+The link below is the preview for {businessName}.
 
-A quick "yes" or "no" by reply is totally fine. There is also a preview link below for what we would publish for {businessName}.
+{signature}`
+
+/** Listed pros already visible in search (Wave 1). One preview link, added below the body. */
+export const LISTED_MESSAGE = `{businessName} already shows up when homeowners around {areas} look for {category} pros.
+
+{senderIntro}. There is no charge for being listed today. Claim the spot with a 30-day preview and see what we would publish before you decide whether to stay.
+
+The link below is the preview for {businessName}.
 
 {signature}`
 

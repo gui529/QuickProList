@@ -14,11 +14,16 @@ import {
   getCuratedById,
   publishCurated,
   setCuratedContactEmail,
-  setCuratedTrial,
 } from './kv'
+import { listingFieldsFromInvitation } from './invitation-listing'
 import { deriveStatus } from './reports'
 import { sendEmail } from './email'
+import { enrollPreviewTrialDays } from './enroll-preview-days'
 import { isProDashboardEnabled } from './feature-flags'
+import { formatPreviewEndDate } from './preview-date'
+import { reminderEmailError, REMINDER_EMAIL_REQUIRED_ERROR } from './reminder-email'
+
+export { enrollPreviewTrialDays }
 
 export class EnrollmentTrialError extends Error {
   constructor(
@@ -28,20 +33,13 @@ export class EnrollmentTrialError extends Error {
       | 'expired'
       | 'already_paid'
       | 'invalid_state'
-      | 'preview_not_available',
+      | 'preview_not_available'
+      | 'email_required',
     readonly status: number
   ) {
     super(message)
     this.name = 'EnrollmentTrialError'
   }
-}
-
-/** Days for campaign / enroll self-serve preview (matches marketing copy). */
-export function enrollPreviewTrialDays(): number {
-  const raw = process.env.ENROLL_PREVIEW_TRIAL_DAYS?.trim()
-  if (!raw) return 30
-  const n = parseInt(raw, 10)
-  return Number.isFinite(n) && n > 0 ? n : 30
 }
 
 export function previewTrialEndsAt(fromMs = Date.now()): string {
@@ -79,11 +77,16 @@ async function provisionCuratedForInvitation(
     return id
   }
 
+  const details = listingFieldsFromInvitation(invitation)
   await addCuratedManual({
     name: invitation.business_name,
     category: invitation.category,
     cities: invitation.cities,
     trialEndsAt,
+    phone: details.phone ?? undefined,
+    address: details.address ?? undefined,
+    websiteUrl: details.websiteUrl ?? undefined,
+    imageUrl: details.imageUrl ?? undefined,
   })
   const id = (await findLatestManualCuratedId(invitation.business_name)) || ''
   if (!id) throw new Error('Failed to resolve curated business after manual add')
@@ -176,43 +179,46 @@ export async function activateEnrollmentTrial(
 
   await assertPreviewAllowed(invitation)
 
+  const email = resolveContactEmail(invitation, contactEmail)
+  const emailError = reminderEmailError(email)
+  if (!email || emailError) {
+    throw new EnrollmentTrialError(emailError ?? REMINDER_EMAIL_REQUIRED_ERROR, 'email_required', 400)
+  }
+
   const trialEndsAt = previewTrialEndsAt()
   const curatedBusinessId = await provisionCuratedForInvitation(invitation, trialEndsAt)
 
   await publishCurated(curatedBusinessId)
   await markInvitationTrial(token, curatedBusinessId, trialEndsAt)
 
-  const email = resolveContactEmail(invitation, contactEmail)
-  if (email) {
-    await setCuratedContactEmail(curatedBusinessId, email)
-  }
+  await setCuratedContactEmail(curatedBusinessId, email)
 
   const business = await getCuratedById(curatedBusinessId)
   const dashboardToken = business?.dashboardToken ?? null
   const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
   const subscribeUrl = `${siteUrl}/enroll/${token}?subscribe=1`
+  const endLabel = formatPreviewEndDate(trialEndsAt)
+  const chargeLine = 'Nothing is charged automatically.'
 
-  if (email) {
-    try {
-      if (isProDashboardEnabled() && dashboardToken) {
-        const dashboardUrl = `${siteUrl}/dashboard/${dashboardToken}`
-        await sendEmail(
-          email,
-          invitation.business_name,
-          `You're on QuickProList for the next ${enrollPreviewTrialDays()} days — your listing is live. Track views and clicks: ${dashboardUrl}`,
-          { kind: 'transactional' }
-        )
-      } else {
-        await sendEmail(
-          email,
-          invitation.business_name,
-          `You're on QuickProList for the next ${enrollPreviewTrialDays()} days — your listing is live in search. Subscribe anytime to stay on after the preview: ${subscribeUrl}`,
-          { kind: 'transactional' }
-        )
-      }
-    } catch (err) {
-      console.error('trial welcome email failed:', err)
+  try {
+    if (isProDashboardEnabled() && dashboardToken) {
+      const dashboardUrl = `${siteUrl}/dashboard/${dashboardToken}`
+      await sendEmail(
+        email,
+        invitation.business_name,
+        `You're on QuickProList through ${endLabel} — your listing is live. ${chargeLine} Track views and clicks: ${dashboardUrl}`,
+        { kind: 'transactional' }
+      )
+    } else {
+      await sendEmail(
+        email,
+        invitation.business_name,
+        `You're on QuickProList through ${endLabel} — your listing is live in search. ${chargeLine} Subscribe anytime to stay on after the preview: ${subscribeUrl}`,
+        { kind: 'transactional' }
+      )
     }
+  } catch (err) {
+    console.error('trial welcome email failed:', err)
   }
 
   return { curatedBusinessId, dashboardToken, trialEndsAt }

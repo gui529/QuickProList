@@ -1,5 +1,7 @@
 import type { Business } from './business'
 import { isDatabaseConfigured, query } from './db'
+import { isUuid } from './is-uuid'
+import { SUBSCRIPTION_MONTHLY_PRICE_USD } from './subscription-terms'
 
 export interface EnrollmentInvitation {
   id: string
@@ -19,6 +21,11 @@ export interface EnrollmentInvitation {
   canceled_at: string | null
   trial_ends_at: string | null
   contact_email?: string | null
+  subscription_consent_at?: string | null
+  subscription_consent_text?: string | null
+  renewal_notice_period_end?: string | null
+  subscription_confirmation_sent_at?: string | null
+  renewal_confirmation_invoice_id?: string | null
 }
 
 function asInvitation(row: EnrollmentInvitation): EnrollmentInvitation {
@@ -80,13 +87,32 @@ export function isInvitationExpired(invitation: EnrollmentInvitation): boolean {
   return new Date(invitation.expires_at).getTime() < Date.now()
 }
 
+// `enrollment_invitations.token` is a uuid column (migrations/001). Postgres
+// rejects any other string with `invalid input syntax for type uuid` (22P02).
+
+/** Postgres `invalid_text_representation` — raised when a non-UUID is compared to a uuid column. */
+function isInvalidUuidInput(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  if ('code' in err && (err as { code?: unknown }).code === '22P02') return true
+  const message = 'message' in err ? String((err as { message?: unknown }).message ?? '') : ''
+  return message.includes('invalid input syntax for type uuid')
+}
+
 export async function getInvitationByToken(token: string): Promise<EnrollmentInvitation | null> {
+  // Never send a non-UUID to the uuid column. The cast throws, and an uncaught
+  // throw on /enroll/[token] becomes the generic 500 error page.
+  if (!isUuid(token)) return null
   if (!isDatabaseConfigured()) return null
-  const rows = await query<EnrollmentInvitation>(
-    'SELECT * FROM enrollment_invitations WHERE token = $1',
-    [token]
-  )
-  return rows[0] ? asInvitation(rows[0]) : null
+  try {
+    const rows = await query<EnrollmentInvitation>(
+      'SELECT * FROM enrollment_invitations WHERE token = $1',
+      [token]
+    )
+    return rows[0] ? asInvitation(rows[0]) : null
+  } catch (err) {
+    if (isInvalidUuidInput(err)) return null
+    throw err
+  }
 }
 
 export async function markInvitationTrial(
@@ -94,6 +120,7 @@ export async function markInvitationTrial(
   curatedBusinessId: string,
   trialEndsAt: string
 ): Promise<void> {
+  if (!isUuid(token)) throw new Error('invalid invitation token')
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   await query(
     `UPDATE enrollment_invitations
@@ -103,12 +130,72 @@ export async function markInvitationTrial(
   )
 }
 
+export async function recordSubscriptionConsent(
+  token: string,
+  consentText: string,
+  consentedAt: string
+): Promise<void> {
+  if (!isUuid(token)) throw new Error('invalid invitation token')
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET subscription_consent_at = $2, subscription_consent_text = $3
+     WHERE token = $1`,
+    [token, consentedAt, consentText]
+  )
+}
+
+export async function markSubscriptionConfirmationSent(id: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET subscription_confirmation_sent_at = $2
+     WHERE id = $1`,
+    [id, new Date().toISOString()]
+  )
+}
+
+export async function markRenewalNoticeSent(id: string, periodEnd: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET renewal_notice_period_end = $2
+     WHERE id = $1`,
+    [id, periodEnd]
+  )
+}
+
+export async function markRenewalConfirmationSent(id: string, invoiceId: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET renewal_confirmation_invoice_id = $2
+     WHERE id = $1`,
+    [id, invoiceId]
+  )
+}
+
+/** Curated ids with a live trial or paid listing-program enrollment. */
+export async function listingProgramBusinessIds(ids: string[]): Promise<Set<string>> {
+  const uuids = [...new Set(ids.filter((id) => isUuid(id)))]
+  if (uuids.length === 0 || !isDatabaseConfigured()) return new Set()
+  const rows = await query<{ curated_business_id: string }>(
+    `SELECT DISTINCT curated_business_id
+     FROM enrollment_invitations
+     WHERE curated_business_id = ANY($1::uuid[])
+       AND status IN ('trial', 'paid')`,
+    [uuids]
+  )
+  return new Set(rows.map((row) => row.curated_business_id).filter(Boolean))
+}
+
 export async function markInvitationPaid(
   token: string,
   sessionId: string,
   subscriptionId: string,
   curatedBusinessId: string
 ): Promise<void> {
+  if (!isUuid(token)) throw new Error('invalid invitation token')
   if (!isDatabaseConfigured()) throw new Error('Database not configured')
   await query(
     `UPDATE enrollment_invitations
@@ -193,13 +280,14 @@ export async function createTrialInvitation(input: CreateTrialInvitationInput): 
     `INSERT INTO enrollment_invitations (
        business_name, yelp_id, yelp_data, category, cities, monthly_price, status,
        curated_business_id, trial_ends_at
-     ) VALUES ($1,$2,$3::jsonb,$4,$5,0,'trial',$6,$7)`,
+     ) VALUES ($1,$2,$3::jsonb,$4,$5,$6,'trial',$7,$8)`,
     [
       input.businessName,
       input.yelpId || null,
       input.yelpData ? JSON.stringify(input.yelpData) : null,
       input.category,
       input.cities,
+      SUBSCRIPTION_MONTHLY_PRICE_USD,
       input.curatedBusinessId,
       input.trialEndsAt,
     ]
