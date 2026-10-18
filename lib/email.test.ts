@@ -37,7 +37,7 @@ import {
 } from './email'
 import { SuppressedError } from './suppressions'
 import { verifyUnsubscribeToken } from './unsubscribe'
-import { subscriptionConfirmationBody, subscriptionRenewalBody } from './subscription-terms'
+import { subscriptionConfirmationBody } from './subscription-terms'
 
 describe('formatFromAddress', () => {
   it('wraps bare addresses', () => {
@@ -278,43 +278,39 @@ describe('sendEmail (lib/email.ts)', () => {
       delete process.env.CAMPAIGN_POSTAL_ADDRESS
     })
 
-    it('keeps the compliant footer on subscription mail even when suppression is not enforced', async () => {
-      process.env.CAMPAIGN_POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
+    it('sends billing mail as transactional with no ad line or unsubscribe header', async () => {
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+      delete process.env.UNSUBSCRIBE_SECRET
       isSuppressedMock.mockResolvedValue(true)
       const body = subscriptionConfirmationBody({
         businessName: 'Acme Plumbing',
         accountEmail: 'owner@acme.example',
+        nextChargeDate: 'November 17, 2026',
       })
 
-      await sendCommercialNotice('owner@acme.example', 'Your QuickProList subscription', body, {
-        enforceSuppression: false,
+      await sendEmail('owner@acme.example', 'Acme Plumbing', body, {
+        kind: 'transactional',
+        subject: 'Your QuickProList subscription is active',
       })
 
-      const call = sendMock.mock.calls[0][0] as { html: string; text: string; headers: Record<string, string> }
-      expect(call.text).toContain('$29.99/month. The plan renews automatically every month until you cancel.')
-      expect(call.text).toContain('Billing starts the day you subscribe.')
-      expect(call.html).toContain('href="mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
-      expect(call.text).toContain(COMMERCIAL_AD_DISCLOSURE)
-      expect(call.text).toContain('1 Market St, Atlanta, GA 30303')
-      expect(call.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
-      expect(call.html).toContain('Unsubscribe')
-
-      sendMock.mockClear()
-      await sendCommercialNotice(
-        'owner@acme.example',
-        'Your QuickProList subscription renews on November 17, 2026',
-        subscriptionRenewalBody({
-          businessName: 'Acme Plumbing',
-          accountEmail: 'owner@acme.example',
-          renewalDate: 'November 17, 2026',
-        }),
-        { enforceSuppression: false }
+      const call = sendMock.mock.calls[0][0] as {
+        subject: string
+        html: string
+        text: string
+        headers?: Record<string, string>
+      }
+      expect(call.subject).toBe('Your QuickProList subscription is active')
+      expect(call.text).toContain('Plan: QuickProList listing, $29.99/month.')
+      expect(call.text).toContain(
+        'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
       )
-      const renewal = sendMock.mock.calls[0][0] as { text: string; html: string }
-      expect(renewal.text).toContain('renews on November 17, 2026')
-      expect(renewal.text).toContain(COMMERCIAL_AD_DISCLOSURE)
-      expect(renewal.html).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
-      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+      expect(call.text).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+      expect(call.text).toContain('Questions: contact@quickprolist.com')
+      expect(call.text).not.toContain(COMMERCIAL_AD_DISCLOSURE)
+      expect(call.html).not.toContain('Unsubscribe')
+      expect(call.html).not.toContain(COMMERCIAL_AD_DISCLOSURE)
+      expect(call.headers).toBeUndefined()
+      expect(isSuppressedMock).not.toHaveBeenCalled()
     })
 
     it('applies the same suppression and footer to the performance digest', async () => {

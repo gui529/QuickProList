@@ -1,17 +1,24 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import ProSiteView from '@/components/ProSiteView'
+import { listingProgramBusinessIds } from '@/lib/invitations'
 import { getCuratedById, incrementProfileView } from '@/lib/kv'
 import { isUuid } from '@/lib/is-uuid'
 import type { Business } from '@/lib/business'
 import { toPublicBusiness } from '@/lib/public-business'
+import { withSponsoredFlag } from '@/lib/sponsored'
 
 export const dynamic = 'force-dynamic'
 
 async function loadBusiness(id: string): Promise<Business | null> {
   if (!isUuid(id)) return null
   const business = await getCuratedById(id)
-  return business ? toPublicBusiness(business) : null
+  if (!business) return null
+  const programIds = business.isTrial
+    ? new Set<string>()
+    : await listingProgramBusinessIds([business.id])
+  const [annotated] = withSponsoredFlag([business], programIds)
+  return toPublicBusiness(annotated)
 }
 
 export async function generateMetadata({

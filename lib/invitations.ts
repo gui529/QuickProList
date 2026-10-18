@@ -25,6 +25,7 @@ export interface EnrollmentInvitation {
   subscription_consent_text?: string | null
   renewal_notice_period_end?: string | null
   subscription_confirmation_sent_at?: string | null
+  renewal_confirmation_invoice_id?: string | null
 }
 
 function asInvitation(row: EnrollmentInvitation): EnrollmentInvitation {
@@ -162,6 +163,30 @@ export async function markRenewalNoticeSent(id: string, periodEnd: string): Prom
      WHERE id = $1`,
     [id, periodEnd]
   )
+}
+
+export async function markRenewalConfirmationSent(id: string, invoiceId: string): Promise<void> {
+  if (!isDatabaseConfigured()) throw new Error('Database not configured')
+  await query(
+    `UPDATE enrollment_invitations
+     SET renewal_confirmation_invoice_id = $2
+     WHERE id = $1`,
+    [id, invoiceId]
+  )
+}
+
+/** Curated ids with a live trial or paid listing-program enrollment. */
+export async function listingProgramBusinessIds(ids: string[]): Promise<Set<string>> {
+  const uuids = [...new Set(ids.filter((id) => isUuid(id)))]
+  if (uuids.length === 0 || !isDatabaseConfigured()) return new Set()
+  const rows = await query<{ curated_business_id: string }>(
+    `SELECT DISTINCT curated_business_id
+     FROM enrollment_invitations
+     WHERE curated_business_id = ANY($1::uuid[])
+       AND status IN ('trial', 'paid')`,
+    [uuids]
+  )
+  return new Set(rows.map((row) => row.curated_business_id).filter(Boolean))
 }
 
 export async function markInvitationPaid(

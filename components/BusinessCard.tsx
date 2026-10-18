@@ -2,21 +2,18 @@ import Image from 'next/image'
 import type { Business } from '@/lib/business'
 import { httpUrlHref } from '@/lib/http-url'
 import { formatPhoneDisplay, phoneTelHref } from '@/lib/phone'
+import SponsoredBadge from '@/components/SponsoredBadge'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 interface Props {
   business: Business
-  isFeatured?: boolean
   highlighted?: boolean
 }
 
-export default function BusinessCard({ business, isFeatured, highlighted = false }: Props) {
-  const highlight = isFeatured ?? true
+export default function BusinessCard({ business, highlighted = false }: Props) {
   const reviewHref = httpUrlHref(business.reviewUrl)
   const ringClass = highlighted
     ? 'ring-2 ring-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.35),0_10px_36px_rgba(245,158,11,0.28)]'
-    : highlight
-    ? 'ring-2 ring-amber-300 shadow-[0_0_0_1px_rgba(245,158,11,0.25),0_8px_28px_rgba(245,158,11,0.18)]'
     : 'ring-1 ring-gray-200/80'
   return (
     <article
@@ -36,19 +33,12 @@ export default function BusinessCard({ business, isFeatured, highlighted = false
             <span className="text-4xl">🏠</span>
           </div>
         )}
-        {highlight && (
-          <span className="absolute top-2 left-2 inline-flex items-center gap-1 bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full shadow">
-            <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor">
-              <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.58L12 17.6l-5.9 3.08 1.13-6.58L2.45 9.44l6.6-.96L12 2.5z" />
-            </svg>
-            Featured
-          </span>
-        )}
       </div>
 
       <div className="p-4 sm:p-5 flex flex-col gap-2 flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
+            {business.sponsored ? <SponsoredBadge className="mb-1" /> : null}
             <h3 className="font-semibold text-slate-900 text-[15px] leading-tight truncate">
               {business.name}
             </h3>

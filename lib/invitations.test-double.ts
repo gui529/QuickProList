@@ -63,6 +63,7 @@ export function __seed(overrides: Partial<EnrollmentInvitation> = {}): Enrollmen
     subscription_consent_text: overrides.subscription_consent_text ?? null,
     renewal_notice_period_end: overrides.renewal_notice_period_end ?? null,
     subscription_confirmation_sent_at: overrides.subscription_confirmation_sent_at ?? null,
+    renewal_confirmation_invoice_id: overrides.renewal_confirmation_invoice_id ?? null,
   }
   invitations.push(full)
   return full
@@ -135,6 +136,26 @@ export async function markRenewalNoticeSent(id: string, periodEnd: string): Prom
   const inv = invitations.find((i) => i.id === id)
   if (!inv) throw new Error('Invitation not found')
   inv.renewal_notice_period_end = periodEnd
+}
+
+export async function markRenewalConfirmationSent(id: string, invoiceId: string): Promise<void> {
+  const inv = invitations.find((i) => i.id === id)
+  if (!inv) throw new Error('Invitation not found')
+  inv.renewal_confirmation_invoice_id = invoiceId
+}
+
+export async function listingProgramBusinessIds(ids: string[]): Promise<Set<string>> {
+  const wanted = new Set(ids)
+  return new Set(
+    invitations
+      .filter(
+        (inv) =>
+          inv.curated_business_id &&
+          wanted.has(inv.curated_business_id) &&
+          (inv.status === 'trial' || inv.status === 'paid')
+      )
+      .map((inv) => inv.curated_business_id as string)
+  )
 }
 
 export async function markInvitationPaid(

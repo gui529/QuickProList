@@ -10,6 +10,7 @@ import ListBusinessSection from '@/components/ListBusinessSection'
 import { NOT_OPEN_MESSAGE, resolveOpenTown } from '@/lib/open-towns'
 import type { Business } from '@/lib/business'
 import { loadMyListingId } from '@/lib/my-listing-storage'
+import { SPONSORED_DISCLOSURE } from '@/lib/sponsored'
 
 const LOCATION_KEY = 'quickprolist:lastLocation'
 
@@ -283,6 +284,9 @@ function HomePageInner() {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
+                {results.some((b) => b.sponsored) ? (
+                  <p className="text-[15px] leading-snug text-slate-900">{SPONSORED_DISCLOSURE}</p>
+                ) : null}
                 {results.map((b) => {
                   const highlighted = isHighlighted(b, highlightId)
                   return highlighted ? (

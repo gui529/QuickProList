@@ -1,7 +1,9 @@
 import type { Business, SearchLocation } from './business'
+import { listingProgramBusinessIds } from './invitations'
 import { isUuid } from './is-uuid'
 import { getCuratedById, getCuratedInArea, incrementSearchImpression } from './kv'
 import { openTownSlugs, resolveOpenTown } from './open-towns'
+import { withSponsoredFlag } from './sponsored'
 
 export const MAX_RESULTS = 3
 
@@ -29,7 +31,9 @@ export async function getMergedResults(
   const curated = await getCuratedInArea(category, openTownSlugs())
 
   const rest = highlight ? curated.filter((b) => b.id !== highlight.id) : curated
-  const results = (highlight ? [highlight, ...rest] : rest).slice(0, MAX_RESULTS)
+  const merged = (highlight ? [highlight, ...rest] : rest).slice(0, MAX_RESULTS)
+  const programIds = await listingProgramBusinessIds(merged.filter((b) => !b.isTrial).map((b) => b.id))
+  const results = withSponsoredFlag(merged, programIds)
 
   // Fire-and-forget: record a search-result impression for every pro surfaced
   // here, regardless of whether its ProSite is enabled.

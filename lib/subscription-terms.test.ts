@@ -8,8 +8,11 @@ import {
   renewalNoticeLeadMs,
   shouldSendRenewalNotice,
   subscriptionConfirmationBody,
+  subscriptionConfirmationSubject,
   subscriptionDisclosureText,
   subscriptionRenewalBody,
+  subscriptionRenewalConfirmationBody,
+  subscriptionRenewalConfirmationSubject,
   subscriptionSuccessLine,
 } from './subscription-terms'
 
@@ -66,24 +69,56 @@ describe('subscription terms', () => {
     )
   })
 
-  it('puts the terms and the mailto in the confirmation and renewal emails', () => {
+  it('puts the plan, auto-renewal, next charge, and cancel mailto in billing emails', () => {
+    const cancel = cancelSubscriptionMailto('Acme Plumbing', 'owner@acme.example')
     const confirmation = subscriptionConfirmationBody({
       businessName: 'Acme Plumbing',
       accountEmail: 'owner@acme.example',
+      nextChargeDate: 'November 17, 2026',
     })
-    expect(confirmation).toContain(subscriptionDisclosureText())
-    expect(confirmation).toContain(cancelSubscriptionMailto('Acme Plumbing', 'owner@acme.example'))
+    expect(subscriptionConfirmationSubject()).toBe('Your QuickProList subscription is active')
+    expect(confirmation).toContain('Your QuickProList listing for Acme Plumbing is active.')
+    expect(confirmation).toContain('Plan: QuickProList listing, $29.99/month.')
+    expect(confirmation).toContain(
+      'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
+    )
+    expect(confirmation).toContain(`Cancel anytime: ${cancel}`)
+    expect(confirmation).toContain('Questions: contact@quickprolist.com')
+    expect(confirmation).not.toContain('/dashboard/')
+    expect(confirmation).not.toMatch(/unsubscribe/i)
+    expect(confirmation).not.toContain('This is an advertisement')
 
     const renewal = subscriptionRenewalBody({
       businessName: 'Acme Plumbing',
       accountEmail: 'owner@acme.example',
       renewalDate: 'November 17, 2026',
     })
-    expect(renewal).toContain('renews on November 17, 2026')
-    expect(renewal).toContain('$29.99/month. The plan renews automatically every month until you cancel.')
-    expect(renewal).toContain(SUBSCRIPTION_CANCEL_SENTENCE)
-    expect(renewal).toContain(cancelSubscriptionMailto('Acme Plumbing', 'owner@acme.example'))
+    expect(renewal).toContain('Plan: QuickProList listing, $29.99/month.')
+    expect(renewal).toContain(
+      'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
+    )
+    expect(renewal).toContain(`Cancel anytime: ${cancel}`)
+    expect(renewal).toContain('Questions: contact@quickprolist.com')
     expect(renewal).not.toContain(SUBSCRIPTION_BILLING_STARTS_SENTENCE)
+    expect(renewal).not.toMatch(/unsubscribe/i)
+
+    const receipt = subscriptionRenewalConfirmationBody({
+      businessName: 'Acme Plumbing',
+      accountEmail: 'owner@acme.example',
+      amount: '$29.99',
+      chargeDate: 'November 17, 2026',
+      nextChargeDate: 'December 17, 2026',
+    })
+    expect(subscriptionRenewalConfirmationSubject()).toBe('Your QuickProList subscription renewed')
+    expect(receipt).toContain(
+      'We charged $29.99 for your QuickProList listing for Acme Plumbing on November 17, 2026.'
+    )
+    expect(receipt).toContain(
+      'Your subscription renews automatically every month until you cancel. Next charge: December 17, 2026.'
+    )
+    expect(receipt).toContain(`Cancel anytime: ${cancel}`)
+    expect(receipt).toContain('Questions: contact@quickprolist.com')
+    expect(receipt).not.toMatch(/unsubscribe/i)
   })
 
   it('sends a renewal notice only inside the configured lead time', () => {

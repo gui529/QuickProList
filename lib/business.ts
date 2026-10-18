@@ -17,6 +17,8 @@ export interface Business {
   category?: string
   isTrial?: boolean
   trialEndsAt?: string | null
+  /** Public label: this pro is in the paid listing program, including a free preview. */
+  sponsored?: boolean
   /** Hidden from search until the pro is enrolled or put on a trial. */
   isDraft?: boolean
   proSiteEnabled?: boolean

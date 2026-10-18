@@ -4,7 +4,7 @@ import { PUBLIC_CONTACT_EMAIL } from '@/lib/site-contact'
 
 export const metadata: Metadata = {
   title: 'Terms of Service — QuickProList',
-  description: 'Terms governing use of QuickProList and featured business listings.',
+  description: 'Terms governing use of QuickProList and paid business listings.',
 }
 
 export default function TermsPage() {
@@ -18,22 +18,23 @@ export default function TermsPage() {
         These Terms of Service (&quot;Terms&quot;) govern your use of quickprolist.com and related
         pages (the &quot;Site&quot;), operated by <strong>{LEGAL_OPERATOR}</strong>{' '}
         (&quot;QuickProList,&quot; &quot;we,&quot; &quot;us&quot;). By using the Site — whether as
-        a visitor or as a business enrolling in a featured listing — you agree to these Terms. If
+        a visitor or as a business enrolling in a paid listing — you agree to these Terms. If
         you do not agree, do not use the Site.
       </p>
 
       <h2>2. What QuickProList is</h2>
       <p>
         QuickProList is a search directory for local home-service businesses. Results include
-        businesses we have agreed to list (&quot;curated&quot; listings), including businesses that
-        pay for a featured listing. QuickProList is not a contractor, does not perform home
+        businesses we have added to our directory, including businesses in our paid listing
+        program. QuickProList is not a contractor, does not perform home
         services, and does not employ, endorse, certify, or guarantee any listed business. Listing
         details may be incomplete or out of date; you are responsible for verifying licensing,
         insurance, and suitability before hiring anyone.
       </p>
       <p>
-        Paid and curated listings may be ordered or emphasized in search results compared to other
-        businesses we list. We do not perform background checks or license verification.
+        Listings in our paid listing program, including free previews, are labeled &quot;Sponsored&quot; and
+        may be shown ahead of other results. Payment affects whether and where a listing appears;
+        it is not a recommendation. We do not perform background checks or license verification.
       </p>
 
       <h2>3. Visitors</h2>
@@ -42,7 +43,7 @@ export default function TermsPage() {
         by scraping at scale, attempting to disrupt the Site, or using it for unlawful purposes.
       </p>
 
-      <h2>4. Featured listings for businesses</h2>
+      <h2>4. Paid listings for businesses</h2>
       <h3>4.1 Enrollment</h3>
       <p>
         A business may enroll via an invitation link (email, SMS, or direct URL) or through a trial
@@ -51,22 +52,25 @@ export default function TermsPage() {
       </p>
       <h3>4.2 Billing and cancellation</h3>
       <p>
-        Featured listings are billed on a <strong>recurring monthly subscription</strong> at the
+        Paid listings are billed on a <strong>recurring monthly subscription</strong> at the
         price shown when you enroll (unless a different price is clearly displayed).{' '}
         <strong>
           Your subscription renews automatically each month until you cancel.
         </strong>{' '}
-        You may cancel at any time through the Stripe billing portal (when linked from your
-        dashboard) or by contacting{' '}
-        <a href={legalContactMailto}>{PUBLIC_CONTACT_EMAIL}</a>. Cancellation takes effect at the
-        end of the current billing period. We do not provide prorated refunds for partial periods
-        except where required by law. By subscribing, you authorize us and Stripe to charge your
-        payment method on each renewal date.
+        You may cancel at any time online using the cancellation link in your subscription
+        confirmation email, or by emailing{' '}
+        <a href={legalContactMailto}>{PUBLIC_CONTACT_EMAIL}</a>. Cancellation stops future charges
+        and takes effect at the end of the current billing period. If you subscribe during a free
+        preview, billing starts on the day you subscribe and any remaining preview days are not
+        added on. We do not provide prorated refunds for partial periods except where required by
+        law. By subscribing, you authorize us and Stripe to charge your payment method on each
+        renewal date.
       </p>
       <h3>4.3 Trials</h3>
       <p>
-        We may offer a free trial before payment is required. If the trial ends without a paid
-        subscription, the listing may be removed from search results.
+        We may offer a free 30-day preview. No payment information is collected during the preview,
+        and you will not be charged. If the preview ends without a paid subscription, the listing
+        is removed from search results automatically. One free preview per business.
       </p>
       <h3>4.4 Delisting</h3>
       <p>
@@ -77,7 +81,7 @@ export default function TermsPage() {
 
       <h2>5. Communications</h2>
       <p>
-        We may contact businesses by email or SMS about featured listings. Reply <strong>STOP</strong>{' '}
+        We may contact businesses by email or SMS about paid listings. Reply <strong>STOP</strong>{' '}
         to opt out of SMS. Use <strong>Unsubscribe</strong> in marketing emails. We honor opt-outs
         recorded in our systems.
       </p>

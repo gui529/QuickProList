@@ -1,16 +1,20 @@
-import { sendCommercialNotice } from './email'
+import { campaignPostalAddress, sendEmail, usableCampaignPostalAddress } from './email'
 import { getCuratedById } from './kv'
 import {
   getInvitationBySubscriptionId,
+  markRenewalConfirmationSent,
   markRenewalNoticeSent,
   type EnrollmentInvitation,
 } from './invitations'
 import { formatPreviewEndDate } from './preview-date'
 import {
+  formatChargedAmount,
   shouldSendRenewalNotice,
   subscriptionConfirmationBody,
   subscriptionConfirmationSubject,
   subscriptionRenewalBody,
+  subscriptionRenewalConfirmationBody,
+  subscriptionRenewalConfirmationSubject,
   subscriptionRenewalSubject,
 } from './subscription-terms'
 
@@ -26,6 +30,14 @@ export interface UpcomingInvoiceShape {
   lines?: {
     data?: Array<{ period?: { start?: number | null; end?: number | null } | null } | null> | null
   } | null
+}
+
+export interface PaidInvoiceShape extends UpcomingInvoiceShape {
+  id?: string | null
+  billing_reason?: string | null
+  amount_paid?: number | null
+  created?: number | null
+  status_transitions?: { paid_at?: number | null } | null
 }
 
 function subscriptionIdFrom(value: string | { id?: string | null } | null | undefined): string | null {
@@ -51,17 +63,34 @@ export function upcomingRenewalMs(invoice: UpcomingInvoiceShape): number | null 
   return seconds * 1000
 }
 
-async function deliverNotice(to: string, businessName: string, subject: string, body: string): Promise<void> {
-  await sendCommercialNotice(to, subject, body, { enforceSuppression: false })
+/**
+ * Transactional billing send. No ad line, no unsubscribe link, and no
+ * List-Unsubscribe headers — those stay on `sendCommercialNotice` for
+ * campaign and cold email. A postal line is added only when one is configured.
+ */
+async function deliverBillingNotice(
+  to: string,
+  businessName: string,
+  subject: string,
+  body: string
+): Promise<void> {
+  const postal = usableCampaignPostalAddress(campaignPostalAddress())
+  const text = postal ? `${body}\n${postal}` : body
+  await sendEmail(to, businessName, text, { kind: 'transactional', subject })
 }
 
 export async function sendSubscriptionConfirmation(input: {
   businessName: string
   accountEmail: string
-  dashboardUrl?: string | null
+  nextChargeDate: string
 }): Promise<void> {
   const body = subscriptionConfirmationBody(input)
-  await deliverNotice(input.accountEmail, input.businessName, subscriptionConfirmationSubject(), body)
+  await deliverBillingNotice(
+    input.accountEmail,
+    input.businessName,
+    subscriptionConfirmationSubject(),
+    body
+  )
 }
 
 export async function sendUpcomingRenewalNotice(
@@ -89,8 +118,49 @@ export async function sendUpcomingRenewalNotice(
     accountEmail: email,
     renewalDate,
   })
-  await deliverNotice(email, invitation.business_name, subscriptionRenewalSubject(renewalDate), body)
+  await deliverBillingNotice(email, invitation.business_name, subscriptionRenewalSubject(renewalDate), body)
   await markRenewalNoticeSent(invitation.id, periodEnd)
+  return 'sent'
+}
+
+/**
+ * Renewal receipt. `subscription_create` is the first invoice and already
+ * gets the subscription confirmation, so only `subscription_cycle` is sent.
+ */
+export async function sendRenewalConfirmation(
+  invoice: PaidInvoiceShape
+): Promise<'sent' | 'skipped'> {
+  if (invoice.billing_reason !== 'subscription_cycle') return 'skipped'
+  const invoiceId = invoice.id?.trim()
+  const subscriptionId = upcomingSubscriptionId(invoice)
+  if (!invoiceId || !subscriptionId) return 'skipped'
+  if (typeof invoice.amount_paid !== 'number' || !Number.isFinite(invoice.amount_paid)) return 'skipped'
+
+  const chargeSec = invoice.status_transitions?.paid_at ?? invoice.created
+  const nextSec = invoice.lines?.data?.[0]?.period?.end
+  if (typeof chargeSec !== 'number' || typeof nextSec !== 'number') return 'skipped'
+
+  const invitation = await getInvitationBySubscriptionId(subscriptionId)
+  if (!invitation) return 'skipped'
+  if (invitation.renewal_confirmation_invoice_id === invoiceId) return 'skipped'
+
+  const email = await renewalRecipient(invitation, invoice.customer_email)
+  if (!email) return 'skipped'
+
+  const body = subscriptionRenewalConfirmationBody({
+    businessName: invitation.business_name,
+    accountEmail: email,
+    amount: formatChargedAmount(invoice.amount_paid),
+    chargeDate: formatPreviewEndDate(new Date(chargeSec * 1000).toISOString()),
+    nextChargeDate: formatPreviewEndDate(new Date(nextSec * 1000).toISOString()),
+  })
+  await deliverBillingNotice(
+    email,
+    invitation.business_name,
+    subscriptionRenewalConfirmationSubject(),
+    body
+  )
+  await markRenewalConfirmationSent(invitation.id, invoiceId)
   return 'sent'
 }
 

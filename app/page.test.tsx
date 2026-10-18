@@ -88,7 +88,62 @@ describe('HomePage copy', () => {
     expect(document.body.textContent).not.toMatch(/yelp/i)
     expect(document.body.textContent).not.toMatch(/4\.5/)
     expect(document.body.textContent).not.toMatch(/12 reviews/)
+    expect(screen.queryByText('Sponsored')).toBeNull()
+    expect(document.body.textContent).not.toMatch(/featured/i)
     expectNoBannedClaims()
+  })
+
+  it('shows the Sponsored badge and disclosure for a listing-program pro', async () => {
+    searchParams = new URLSearchParams({ category: 'plumbing', location: 'Marietta' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          businesses: [
+            {
+              id: 'paid-1',
+              source: 'manual',
+              name: 'Paid Plumbing',
+              rating: null,
+              reviewCount: null,
+              phone: '555-0100',
+              address: '1 Main St',
+              imageUrl: '',
+              url: '',
+              categories: ['Plumbing'],
+              sponsored: true,
+            },
+            {
+              id: 'manual-1',
+              source: 'manual',
+              name: 'Directory Plumbing',
+              rating: null,
+              reviewCount: null,
+              phone: '555-0101',
+              address: '2 Main St',
+              imageUrl: '',
+              url: '',
+              categories: ['Plumbing'],
+              sponsored: false,
+            },
+          ],
+        }),
+      })
+    )
+    render(<HomePage />)
+
+    await waitFor(() => expect(screen.getByText('Paid Plumbing')).toBeDefined())
+    expect(screen.getAllByText('Sponsored')).toHaveLength(1)
+    expect(
+      screen.getByText('Sponsored listings are businesses in our paid listing program, including free previews.')
+    ).toBeDefined()
+    expect(
+      screen.getAllByText(
+        'Get listed on QuickProList: free for 30 days, then $29.99/month if you choose to stay. Paid listings are labeled "Sponsored" in search.'
+      ).length
+    ).toBeGreaterThan(0)
+    expect(document.body.textContent).not.toMatch(/featured/i)
   })
 })
 

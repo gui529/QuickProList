@@ -15,6 +15,7 @@ const {
   clearCuratedTrialMock,
   sendEmailMock,
   sendCommercialNoticeMock,
+  subscriptionsRetrieveMock,
 } = vi.hoisted(() => {
   // route.ts reads STRIPE_WEBHOOK_SECRET as a module-level constant, so it
   // must be set before the module graph is imported below.
@@ -32,6 +33,9 @@ const {
   const clearCuratedTrialMock = vi.fn().mockResolvedValue(undefined)
   const sendEmailMock = vi.fn().mockResolvedValue('email-id')
   const sendCommercialNoticeMock = vi.fn().mockResolvedValue('email-id')
+  const subscriptionsRetrieveMock = vi.fn(async () => ({
+    items: { data: [{ current_period_end: Math.floor(Date.UTC(2026, 10, 17, 16) / 1000) }] },
+  }))
   return {
     constructEventMock,
     handleSubscriptionCanceledMock,
@@ -45,11 +49,15 @@ const {
     clearCuratedTrialMock,
     sendEmailMock,
     sendCommercialNoticeMock,
+    subscriptionsRetrieveMock,
   }
 })
 
 vi.mock('@/lib/stripe', () => ({
-  getStripe: () => ({ webhooks: { constructEvent: constructEventMock } }),
+  getStripe: () => ({
+    webhooks: { constructEvent: constructEventMock },
+    subscriptions: { retrieve: subscriptionsRetrieveMock },
+  }),
   handleSubscriptionCanceled: handleSubscriptionCanceledMock,
 }))
 
@@ -68,6 +76,12 @@ vi.mock('@/lib/kv', () => ({
 vi.mock('@/lib/email', () => ({
   sendEmail: sendEmailMock,
   sendCommercialNotice: sendCommercialNoticeMock,
+  campaignPostalAddress: () => process.env.CAMPAIGN_POSTAL_ADDRESS?.trim() || null,
+  usableCampaignPostalAddress: (value?: string | null) => {
+    const postal = value?.trim() ?? ''
+    if (!postal || postal.includes('{postalAddress}')) return null
+    return postal
+  },
 }))
 
 vi.mock('@/lib/invitations', async () => import('@/lib/invitations.test-double'))
@@ -78,7 +92,6 @@ import {
   __seed as seedInvitation,
   getInvitationByToken,
 } from '@/lib/invitations.test-double'
-import { subscriptionDisclosureText } from '@/lib/subscription-terms'
 
 function makeRequest(): Request {
   return new Request('https://example.test/api/stripe/webhook', {
@@ -261,7 +274,7 @@ describe('POST /api/stripe/webhook (subscription confirmation on checkout.sessio
     }
   }
 
-  it('sends the terms, cancel link, and dashboard link when payment succeeds', async () => {
+  it('sends a transactional confirmation with price, auto-renew, next charge, and cancel mailto', async () => {
     process.env.PRO_DASHBOARD_ENABLED = 'true'
     process.env.SITE_URL = 'https://www.quickprolist.com'
     const invitation = seedInvitation({
@@ -270,61 +283,59 @@ describe('POST /api/stripe/webhook (subscription confirmation on checkout.sessio
       category: 'plumbing',
       cities: ['austin'],
     })
-    getCuratedByIdMock.mockResolvedValue({
-      id: 'curated-1',
-      name: 'Acme Plumbing',
-      dashboardToken: 'dash-token-123',
-    })
     constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
 
-    expect(getCuratedByIdMock).toHaveBeenCalledWith('curated-1')
     expect(clearCuratedTrialMock).toHaveBeenCalledWith('curated-1')
-    expect(sendEmailMock).not.toHaveBeenCalled()
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
-    const [to, subject, body, options] = sendCommercialNoticeMock.mock.calls[0]
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    const [to, name, body, options] = sendEmailMock.mock.calls[0]
     expect(to).toBe('owner@acmeplumbing.test')
-    expect(subject).toBe('Your QuickProList subscription')
-    expect(body).toContain(subscriptionDisclosureText())
-    expect(body).toContain('mailto:contact@quickprolist.com')
-    expect(body).toContain('Acme Plumbing')
+    expect(name).toBe('Acme Plumbing')
+    expect(options).toEqual({
+      kind: 'transactional',
+      subject: 'Your QuickProList subscription is active',
+    })
+    expect(body).toContain('Plan: QuickProList listing, $29.99/month.')
+    expect(body).toContain(
+      'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
+    )
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).toContain('Questions: contact@quickprolist.com')
     expect(decodeURIComponent(body)).toContain('owner@acmeplumbing.test')
-    expect(body).toContain('https://www.quickprolist.com/dashboard/dash-token-123')
-    expect(options).toEqual({ enforceSuppression: false })
+    expect(body).not.toContain('/dashboard/')
+    expect(body).not.toContain('This is an advertisement')
+    expect(body).not.toMatch(/unsubscribe/i)
 
     const paid = await getInvitationByToken(invitation.token)
     expect(paid?.subscription_confirmation_sent_at).toBeTruthy()
 
     const retry = await POST(makeRequest() as never)
     expect(retry.status).toBe(200)
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
     expect(addCuratedManualMock).toHaveBeenCalledTimes(1)
   })
 
-  it('still sends the terms when the pro dashboard flag is off, without a dashboard link', async () => {
+  it('still sends the confirmation when the pro dashboard flag is off, without a dashboard link', async () => {
     const invitation = seedInvitation({
       status: 'pending',
       business_name: 'Acme Plumbing',
       category: 'plumbing',
       cities: ['austin'],
     })
-    getCuratedByIdMock.mockResolvedValue({
-      id: 'curated-1',
-      name: 'Acme Plumbing',
-      dashboardToken: 'dash-token-123',
-    })
     constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
-    expect(sendCommercialNoticeMock.mock.calls[0][2]).toContain(subscriptionDisclosureText())
-    expect(sendCommercialNoticeMock.mock.calls[0][2]).not.toContain('/dashboard/')
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock.mock.calls[0][2]).toContain('Plan: QuickProList listing, $29.99/month.')
+    expect(sendEmailMock.mock.calls[0][2]).not.toContain('/dashboard/')
   })
 
-  it('still sends the terms when the curated business has no dashboard token', async () => {
+  it('does not add a dashboard link when the curated business has no dashboard token', async () => {
     process.env.PRO_DASHBOARD_ENABLED = 'true'
     const invitation = seedInvitation({
       status: 'pending',
@@ -332,17 +343,13 @@ describe('POST /api/stripe/webhook (subscription confirmation on checkout.sessio
       category: 'plumbing',
       cities: ['austin'],
     })
-    getCuratedByIdMock.mockResolvedValue({
-      id: 'curated-1',
-      name: 'Acme Plumbing',
-      dashboardToken: undefined,
-    })
     constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
-    expect(sendCommercialNoticeMock.mock.calls[0][2]).not.toContain('/dashboard/')
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock.mock.calls[0][2]).not.toContain('/dashboard/')
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
   })
 
   it('does not send a confirmation when there is no contact email', async () => {
@@ -368,14 +375,15 @@ describe('POST /api/stripe/webhook (subscription confirmation on checkout.sessio
       curated_business_id: 'curated-1',
       subscription_confirmation_sent_at: null,
     })
-    getCuratedByIdMock.mockResolvedValue({ id: 'curated-1', name: 'Acme Plumbing' })
     constructEventMock.mockReturnValue(paidEvent(invitation.token, 'owner@acmeplumbing.test'))
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
     expect(addCuratedManualMock).not.toHaveBeenCalled()
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
-    expect(sendCommercialNoticeMock.mock.calls[0][2]).toContain('mailto:contact@quickprolist.com')
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock.mock.calls[0][2]).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(sendEmailMock.mock.calls[0][2]).toContain('Next charge: November 17, 2026.')
   })
 })
 
@@ -384,6 +392,7 @@ describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => 
     resetInvitations()
     constructEventMock.mockClear()
     sendCommercialNoticeMock.mockClear()
+    sendEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
     delete process.env.RENEWAL_NOTICE_LEAD_HOURS
   })
@@ -421,20 +430,24 @@ describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => 
 
     const first = await POST(makeRequest() as never)
     expect(first.status).toBe(200)
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
-    const [to, subject, body, options] = sendCommercialNoticeMock.mock.calls[0]
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    const [to, , body, options] = sendEmailMock.mock.calls[0]
     expect(to).toBe('owner@acmeplumbing.test')
-    expect(subject).toMatch(/^Your QuickProList subscription renews on /)
-    expect(body).toContain('$29.99/month. The plan renews automatically every month until you cancel.')
-    expect(body).toContain('mailto:contact@quickprolist.com')
+    expect(options.subject).toMatch(/^Your QuickProList subscription renews on /)
+    expect(options.kind).toBe('transactional')
+    expect(body).toContain('Plan: QuickProList listing, $29.99/month.')
+    expect(body).toContain('Your subscription renews automatically every month until you cancel. Next charge:')
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).not.toContain('This is an advertisement')
+    expect(body).not.toMatch(/unsubscribe/i)
     expect(decodeURIComponent(body)).toContain('Acme Plumbing')
     expect(decodeURIComponent(body)).toContain('owner@acmeplumbing.test')
     expect(body).not.toContain('Billing starts the day you subscribe.')
-    expect(options).toEqual({ enforceSuppression: false })
 
     const second = await POST(makeRequest() as never)
     expect(second.status).toBe(200)
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
   })
 
   it('skips an upcoming invoice outside the lead window', async () => {
@@ -449,6 +462,7 @@ describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => 
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
+    expect(sendEmailMock).not.toHaveBeenCalled()
     expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
   })
 
@@ -473,7 +487,90 @@ describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => 
 
     const res = await POST(makeRequest() as never)
     expect(res.status).toBe(200)
-    expect(sendCommercialNoticeMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/stripe/webhook (renewal receipt on invoice.paid)', () => {
+  beforeEach(() => {
+    resetInvitations()
+    constructEventMock.mockClear()
+    sendEmailMock.mockClear()
+    sendCommercialNoticeMock.mockClear()
+    getCuratedByIdMock.mockReset()
+  })
+
+  function paidInvoice(billingReason: string, id: string) {
+    return {
+      type: 'invoice.paid',
+      data: {
+        object: {
+          id,
+          billing_reason: billingReason,
+          amount_paid: 2999,
+          status_transitions: { paid_at: Math.floor(Date.UTC(2026, 10, 17, 16) / 1000) },
+          customer_email: 'billing@acmeplumbing.test',
+          parent: { subscription_details: { subscription: 'sub_paid_1' } },
+          lines: {
+            data: [{ period: { end: Math.floor(Date.UTC(2026, 11, 17, 16) / 1000) } }],
+          },
+        },
+      },
+    }
+  }
+
+  it('does not send a renewal receipt for the first invoice', async () => {
+    seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_paid_1',
+      contact_email: 'owner@acmeplumbing.test',
+    })
+    constructEventMock.mockReturnValue(paidInvoice('subscription_create', 'in_first'))
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+  })
+
+  it('sends one transactional renewal receipt for a renewal invoice', async () => {
+    seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_paid_1',
+      curated_business_id: 'curated-paid-1',
+      contact_email: 'owner@acmeplumbing.test',
+    })
+    getCuratedByIdMock.mockResolvedValue({
+      id: 'curated-paid-1',
+      contactEmail: 'owner@acmeplumbing.test',
+    })
+    constructEventMock.mockReturnValue(paidInvoice('subscription_cycle', 'in_renew'))
+
+    const first = await POST(makeRequest() as never)
+    expect(first.status).toBe(200)
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    const [to, , body, options] = sendEmailMock.mock.calls[0]
+    expect(to).toBe('owner@acmeplumbing.test')
+    expect(options).toEqual({
+      kind: 'transactional',
+      subject: 'Your QuickProList subscription renewed',
+    })
+    expect(body).toContain('We charged $29.99 for your QuickProList listing for Acme Plumbing on November 17, 2026.')
+    expect(body).toContain(
+      'Your subscription renews automatically every month until you cancel. Next charge: December 17, 2026.'
+    )
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).toContain('Questions: contact@quickprolist.com')
+    expect(body).not.toContain('This is an advertisement')
+    expect(body).not.toMatch(/unsubscribe/i)
+
+    const second = await POST(makeRequest() as never)
+    expect(second.status).toBe(200)
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -82,30 +82,39 @@ export function shouldSendRenewalNotice(renewsAtMs: number, nowMs = Date.now()):
 }
 
 export function subscriptionConfirmationSubject(): string {
-  return 'Your QuickProList subscription'
+  return 'Your QuickProList subscription is active'
 }
 
+/** Advance notice on `invoice.upcoming`. The charge receipt uses a different subject. */
 export function subscriptionRenewalSubject(renewalDate: string): string {
   return `Your QuickProList subscription renews on ${renewalDate}`
+}
+
+export function subscriptionRenewalConfirmationSubject(): string {
+  return 'Your QuickProList subscription renewed'
+}
+
+export function formatChargedAmount(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`
 }
 
 export function subscriptionConfirmationBody(input: {
   businessName: string
   accountEmail: string
-  dashboardUrl?: string | null
+  nextChargeDate: string
 }): string {
-  const lines = [
-    `Your QuickProList subscription for ${input.businessName} is active.`,
-    subscriptionDisclosureText(),
-    'Cancel:',
-    cancelSubscriptionMailto(input.businessName, input.accountEmail),
-  ]
-  if (input.dashboardUrl) {
-    lines.push(`Track views and clicks: ${input.dashboardUrl}`)
-  }
-  return lines.join('\n')
+  const price = formatSubscriptionPrice()
+  return [
+    `Your QuickProList listing for ${input.businessName} is active.`,
+    `Plan: QuickProList listing, ${price}/month.`,
+    `Your subscription renews automatically every month until you cancel. Next charge: ${input.nextChargeDate}.`,
+    `Cancel anytime: ${cancelSubscriptionMailto(input.businessName, input.accountEmail)}`,
+    "Canceling stops future charges. Your listing stays up until the end of the month you've paid for.",
+    `Questions: ${PUBLIC_CONTACT_EMAIL}`,
+  ].join('\n')
 }
 
+/** Advance renewal notice. Not the receipt sent after `invoice.paid`. */
 export function subscriptionRenewalBody(input: {
   businessName: string
   accountEmail: string
@@ -113,10 +122,26 @@ export function subscriptionRenewalBody(input: {
 }): string {
   const price = formatSubscriptionPrice()
   return [
-    `Your QuickProList subscription for ${input.businessName} renews on ${input.renewalDate}.`,
-    `${price}/month. The plan renews automatically every month until you cancel.`,
-    SUBSCRIPTION_CANCEL_SENTENCE,
-    'Cancel:',
-    cancelSubscriptionMailto(input.businessName, input.accountEmail),
+    `Your QuickProList listing for ${input.businessName} renews on ${input.renewalDate}.`,
+    `Plan: QuickProList listing, ${price}/month.`,
+    `Your subscription renews automatically every month until you cancel. Next charge: ${input.renewalDate}.`,
+    `Cancel anytime: ${cancelSubscriptionMailto(input.businessName, input.accountEmail)}`,
+    `Questions: ${PUBLIC_CONTACT_EMAIL}`,
+  ].join('\n')
+}
+
+/** Receipt for a renewal charge. The first invoice is the subscription confirmation. */
+export function subscriptionRenewalConfirmationBody(input: {
+  businessName: string
+  accountEmail: string
+  amount: string
+  chargeDate: string
+  nextChargeDate: string
+}): string {
+  return [
+    `We charged ${input.amount} for your QuickProList listing for ${input.businessName} on ${input.chargeDate}.`,
+    `Your subscription renews automatically every month until you cancel. Next charge: ${input.nextChargeDate}.`,
+    `Cancel anytime: ${cancelSubscriptionMailto(input.businessName, input.accountEmail)}`,
+    `Questions: ${PUBLIC_CONTACT_EMAIL}`,
   ].join('\n')
 }

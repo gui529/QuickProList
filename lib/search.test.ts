@@ -141,6 +141,26 @@ describe('getMergedResults', () => {
     expect(results.map((b) => b.id)).toEqual([pro.id])
   })
 
+  it('labels a free preview as sponsored and leaves a manual directory row unlabeled', async () => {
+    const preview = __seed({
+      category: 'plumbing',
+      cities: ['marietta'],
+      name: 'Preview Plumbing',
+      is_trial: true,
+    })
+    const manual = __seed({
+      category: 'plumbing',
+      cities: ['marietta'],
+      name: 'Manual Plumbing',
+      is_trial: false,
+    })
+
+    const results = await getMergedResults({ location: 'Marietta' }, 'plumbing')
+    const byId = new Map(results.map((b) => [b.id, b.sponsored]))
+    expect(byId.get(preview.id)).toBe(true)
+    expect(byId.get(manual.id)).toBe(false)
+  })
+
   it('returns nothing for an unopened location', async () => {
     __seed({ category: 'plumbing', cities: ['marietta'] })
     await expect(getMergedResults({ location: 'Marietta, OH' }, 'plumbing')).resolves.toEqual([])

@@ -6,6 +6,7 @@ import type { ContactClickType } from '@/lib/kv'
 import { httpUrlHref } from '@/lib/http-url'
 import { formatPhoneDisplay, phoneTelHref } from '@/lib/phone'
 import { storedReviewLabel } from '@/lib/review-label'
+import SponsoredBadge from '@/components/SponsoredBadge'
 import TrackedContactLink from '@/components/TrackedContactLink'
 
 function deriveCity(address?: string): string | null {
@@ -143,6 +144,7 @@ export default function ProSiteView({
             </div>
           )}
 
+          {biz.sponsored ? <SponsoredBadge className="mb-3" /> : null}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-5 max-w-2xl">
             {biz.name}
           </h1>

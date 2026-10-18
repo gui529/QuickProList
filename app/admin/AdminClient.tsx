@@ -205,7 +205,7 @@ export default function AdminClient({
               className={`bg-white rounded-2xl ring-1 ring-slate-200 ${openMoreId === b.id ? 'relative z-30' : ''}`}
             >
               <div className="p-0.5">
-                <BusinessCard business={b} isFeatured={false} highlighted={false} />
+                <BusinessCard business={b} highlighted={false} />
               </div>
 
               {/* Metadata row */}
