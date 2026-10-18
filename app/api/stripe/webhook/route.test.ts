@@ -302,7 +302,7 @@ describe('POST /api/stripe/webhook (subscription confirmation on checkout.sessio
     expect(body).toContain(
       'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
     )
-    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
     expect(body).toContain('Questions: contact@quickprolist.com')
     expect(decodeURIComponent(body)).toContain('owner@acmeplumbing.test')
     expect(body).not.toContain('/dashboard/')
@@ -382,7 +382,7 @@ describe('POST /api/stripe/webhook (subscription confirmation on checkout.sessio
     expect(addCuratedManualMock).not.toHaveBeenCalled()
     expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
     expect(sendEmailMock).toHaveBeenCalledTimes(1)
-    expect(sendEmailMock.mock.calls[0][2]).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(sendEmailMock.mock.calls[0][2]).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
     expect(sendEmailMock.mock.calls[0][2]).toContain('Next charge: November 17, 2026.')
   })
 })
@@ -394,6 +394,7 @@ describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => 
     sendCommercialNoticeMock.mockClear()
     sendEmailMock.mockClear()
     getCuratedByIdMock.mockReset()
+    subscriptionsRetrieveMock.mockClear()
     delete process.env.RENEWAL_NOTICE_LEAD_HOURS
   })
 
@@ -436,9 +437,11 @@ describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => 
     expect(to).toBe('owner@acmeplumbing.test')
     expect(options.subject).toMatch(/^Your QuickProList subscription renews on /)
     expect(options.kind).toBe('transactional')
-    expect(body).toContain('Plan: QuickProList listing, $29.99/month.')
-    expect(body).toContain('Your subscription renews automatically every month until you cancel. Next charge:')
-    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).toContain('renews automatically on ')
+    expect(body).toContain(' for $29.99. It renews every month until you cancel.')
+    expect(body).toContain('To stop the renewal, cancel before ')
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
+    expect(body).toContain('Questions: contact@quickprolist.com')
     expect(body).not.toContain('This is an advertisement')
     expect(body).not.toMatch(/unsubscribe/i)
     expect(decodeURIComponent(body)).toContain('Acme Plumbing')
@@ -464,6 +467,56 @@ describe('POST /api/stripe/webhook (renewal notice on invoice.upcoming)', () => 
     expect(res.status).toBe(200)
     expect(sendEmailMock).not.toHaveBeenCalled()
     expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+  })
+
+  it('skips the notice when the subscription is set to cancel at period end', async () => {
+    seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_canceling',
+      contact_email: 'owner@acmeplumbing.test',
+    })
+    subscriptionsRetrieveMock.mockResolvedValueOnce({
+      cancel_at_period_end: true,
+      items: { data: [{ current_period_end: Math.floor(Date.UTC(2026, 10, 17, 16) / 1000) }] },
+    })
+    const periodEnd = Math.floor((Date.now() + 2 * 24 * 60 * 60 * 1000) / 1000)
+    constructEventMock.mockReturnValue(upcomingEvent('sub_canceling', periodEnd))
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(sendCommercialNoticeMock).not.toHaveBeenCalled()
+    expect(subscriptionsRetrieveMock).toHaveBeenCalledWith('sub_canceling')
+  })
+
+  it('skips the notice when the event subscription already has cancel_at_period_end', async () => {
+    seedInvitation({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_canceling_event',
+      contact_email: 'owner@acmeplumbing.test',
+    })
+    const periodEnd = Math.floor((Date.now() + 2 * 24 * 60 * 60 * 1000) / 1000)
+    constructEventMock.mockReturnValue({
+      type: 'invoice.upcoming',
+      data: {
+        object: {
+          customer_email: 'owner@acmeplumbing.test',
+          period_end: periodEnd,
+          parent: {
+            subscription_details: {
+              subscription: { id: 'sub_canceling_event', cancel_at_period_end: true },
+            },
+          },
+        },
+      },
+    })
+
+    const res = await POST(makeRequest() as never)
+    expect(res.status).toBe(200)
+    expect(sendEmailMock).not.toHaveBeenCalled()
+    expect(subscriptionsRetrieveMock).not.toHaveBeenCalled()
   })
 
   it('reads the subscription id from invoice.subscription when parent details are absent', async () => {
@@ -563,7 +616,7 @@ describe('POST /api/stripe/webhook (renewal receipt on invoice.paid)', () => {
     expect(body).toContain(
       'Your subscription renews automatically every month until you cancel. Next charge: December 17, 2026.'
     )
-    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
     expect(body).toContain('Questions: contact@quickprolist.com')
     expect(body).not.toContain('This is an advertisement')
     expect(body).not.toMatch(/unsubscribe/i)

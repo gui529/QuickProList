@@ -1,5 +1,6 @@
 import { campaignPostalAddress, sendEmail, usableCampaignPostalAddress } from './email'
 import { getCuratedById } from './kv'
+import { getStripe } from './stripe'
 import {
   getInvitationBySubscriptionId,
   markRenewalConfirmationSent,
@@ -21,10 +22,10 @@ import {
 export interface UpcomingInvoiceShape {
   period_end?: number | null
   customer_email?: string | null
-  subscription?: string | { id?: string | null } | null
+  subscription?: string | { id?: string | null; cancel_at_period_end?: boolean | null } | null
   parent?: {
     subscription_details?: {
-      subscription?: string | { id?: string | null } | null
+      subscription?: string | { id?: string | null; cancel_at_period_end?: boolean | null } | null
     } | null
   } | null
   lines?: {
@@ -40,10 +41,32 @@ export interface PaidInvoiceShape extends UpcomingInvoiceShape {
   status_transitions?: { paid_at?: number | null } | null
 }
 
-function subscriptionIdFrom(value: string | { id?: string | null } | null | undefined): string | null {
+function subscriptionIdFrom(
+  value: string | { id?: string | null; cancel_at_period_end?: boolean | null } | null | undefined
+): string | null {
   if (!value) return null
   if (typeof value === 'string') return value
   return value.id ?? null
+}
+
+function cancelAtPeriodEndOn(
+  value: string | { id?: string | null; cancel_at_period_end?: boolean | null } | null | undefined
+): boolean | null {
+  if (!value || typeof value !== 'object') return null
+  return typeof value.cancel_at_period_end === 'boolean' ? value.cancel_at_period_end : null
+}
+
+/** True when the subscription is already set to end, so no renewal notice should go out. */
+async function subscriptionCancelsAtPeriodEnd(
+  invoice: UpcomingInvoiceShape,
+  subscriptionId: string
+): Promise<boolean> {
+  const onEvent =
+    cancelAtPeriodEndOn(invoice.parent?.subscription_details?.subscription) ??
+    cancelAtPeriodEndOn(invoice.subscription)
+  if (onEvent !== null) return onEvent
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId)
+  return subscription.cancel_at_period_end === true
 }
 
 export function upcomingSubscriptionId(invoice: UpcomingInvoiceShape): string | null {
@@ -105,6 +128,7 @@ export async function sendUpcomingRenewalNotice(
 
   const invitation = await getInvitationBySubscriptionId(subscriptionId)
   if (!invitation) return 'skipped'
+  if (await subscriptionCancelsAtPeriodEnd(invoice, subscriptionId)) return 'skipped'
 
   const periodEnd = new Date(renewalMs).toISOString()
   if (invitation.renewal_notice_period_end === periodEnd) return 'skipped'

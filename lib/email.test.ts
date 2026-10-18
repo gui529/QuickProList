@@ -304,7 +304,7 @@ describe('sendEmail (lib/email.ts)', () => {
       expect(call.text).toContain(
         'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
       )
-      expect(call.text).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+      expect(call.text).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
       expect(call.text).toContain('Questions: contact@quickprolist.com')
       expect(call.text).not.toContain(COMMERCIAL_AD_DISCLOSURE)
       expect(call.html).not.toContain('Unsubscribe')

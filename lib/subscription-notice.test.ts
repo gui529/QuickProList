@@ -12,6 +12,12 @@ const sendEmail = vi.hoisted(() =>
 )
 const getCuratedById = vi.hoisted(() => vi.fn())
 
+const subscriptionsRetrieve = vi.hoisted(() => vi.fn(async () => ({ cancel_at_period_end: false })))
+
+vi.mock('./stripe', () => ({
+  getStripe: () => ({ subscriptions: { retrieve: subscriptionsRetrieve } }),
+}))
+
 vi.mock('./email', () => ({
   sendEmail,
   campaignPostalAddress: () => process.env.CAMPAIGN_POSTAL_ADDRESS?.trim() || null,
@@ -36,6 +42,8 @@ describe('subscription notices', () => {
     __reset()
     sendEmail.mockClear()
     getCuratedById.mockReset()
+    subscriptionsRetrieve.mockReset()
+    subscriptionsRetrieve.mockResolvedValue({ cancel_at_period_end: false })
     delete process.env.RENEWAL_NOTICE_LEAD_HOURS
     delete process.env.CAMPAIGN_POSTAL_ADDRESS
   })
@@ -59,7 +67,7 @@ describe('subscription notices', () => {
     expect(body).toContain(
       'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
     )
-    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
     expect(body).toContain('Questions: contact@quickprolist.com')
     expect(body).not.toMatch(/unsubscribe/i)
     expect(body).not.toContain('This is an advertisement')
@@ -103,9 +111,18 @@ describe('subscription notices', () => {
       kind: 'transactional',
       subject: 'Your QuickProList subscription renews on November 4, 2026',
     })
-    expect(sendEmail.mock.calls[0][2]).toContain('Next charge: November 4, 2026.')
-    expect(sendEmail.mock.calls[0][2]).toContain('Plan: QuickProList listing, $29.99/month.')
+    expect(sendEmail.mock.calls[0][2]).toBe(
+      'Your QuickProList listing for Acme Plumbing renews automatically on November 4, 2026 for $29.99. ' +
+        'It renews every month until you cancel. To stop the renewal, cancel before November 4, 2026: ' +
+        'mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription&body=' +
+        encodeURIComponent(
+          'Please cancel the QuickProList subscription for Acme Plumbing.\nAccount email: owner@acme.example'
+        ) +
+        '. Questions: contact@quickprolist.com'
+    )
     expect(sendEmail.mock.calls[0][2]).not.toMatch(/unsubscribe/i)
+    expect(sendEmail.mock.calls[0][2]).not.toContain('This is an advertisement')
+    expect(subscriptionsRetrieve).toHaveBeenCalledWith('sub_1')
 
     const again = await sendUpcomingRenewalNotice(
       {
@@ -117,6 +134,47 @@ describe('subscription notices', () => {
     )
     expect(again).toBe('skipped')
     expect(sendEmail).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips the advance notice when the subscription cancels at period end', async () => {
+    __seed({
+      status: 'paid',
+      business_name: 'Acme Plumbing',
+      stripe_subscription_id: 'sub_cancel',
+      contact_email: 'owner@acme.example',
+    })
+    const now = Date.UTC(2026, 10, 1, 12)
+    const renewsAt = now + 3 * 24 * 60 * 60 * 1000
+    subscriptionsRetrieve.mockResolvedValueOnce({ cancel_at_period_end: true })
+
+    const fetched = await sendUpcomingRenewalNotice(
+      {
+        period_end: renewsAt / 1000,
+        customer_email: 'owner@acme.example',
+        subscription: 'sub_cancel',
+      },
+      now
+    )
+    expect(fetched).toBe('skipped')
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(subscriptionsRetrieve).toHaveBeenCalledWith('sub_cancel')
+
+    subscriptionsRetrieve.mockClear()
+    const onEvent = await sendUpcomingRenewalNotice(
+      {
+        period_end: renewsAt / 1000,
+        customer_email: 'owner@acme.example',
+        parent: {
+          subscription_details: {
+            subscription: { id: 'sub_cancel', cancel_at_period_end: true },
+          },
+        },
+      },
+      now
+    )
+    expect(onEvent).toBe('skipped')
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(subscriptionsRetrieve).not.toHaveBeenCalled()
   })
 
   it('does not treat a far line-item period end as the renewal date', async () => {
@@ -175,7 +233,7 @@ describe('subscription notices', () => {
     })
     expect(body).toContain('We charged $29.99 for your QuickProList listing for Acme Plumbing on November 17, 2026.')
     expect(body).toContain('Next charge: December 17, 2026.')
-    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription')
+    expect(body).toContain('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription')
     expect(body).not.toMatch(/unsubscribe/i)
     expect(body).not.toContain('This is an advertisement')
 

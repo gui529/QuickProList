@@ -60,7 +60,7 @@ describe('subscription terms', () => {
 
   it('builds a prefilled cancel mailto with the business name and account email', () => {
     const href = cancelSubscriptionMailto('Acme Plumbing', 'owner@acme.example')
-    expect(href.startsWith('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription&body=')).toBe(
+    expect(href.startsWith('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription&body=')).toBe(
       true
     )
     const body = decodeURIComponent(href.split('body=')[1])
@@ -93,14 +93,14 @@ describe('subscription terms', () => {
       accountEmail: 'owner@acme.example',
       renewalDate: 'November 17, 2026',
     })
-    expect(renewal).toContain('Plan: QuickProList listing, $29.99/month.')
-    expect(renewal).toContain(
-      'Your subscription renews automatically every month until you cancel. Next charge: November 17, 2026.'
+    expect(renewal).toBe(
+      'Your QuickProList listing for Acme Plumbing renews automatically on November 17, 2026 for $29.99. ' +
+        'It renews every month until you cancel. To stop the renewal, cancel before November 17, 2026: ' +
+        `${cancel}. Questions: contact@quickprolist.com`
     )
-    expect(renewal).toContain(`Cancel anytime: ${cancel}`)
-    expect(renewal).toContain('Questions: contact@quickprolist.com')
     expect(renewal).not.toContain(SUBSCRIPTION_BILLING_STARTS_SENTENCE)
     expect(renewal).not.toMatch(/unsubscribe/i)
+    expect(renewal).not.toContain('This is an advertisement')
 
     const receipt = subscriptionRenewalConfirmationBody({
       businessName: 'Acme Plumbing',

@@ -141,7 +141,7 @@ describe('EnrollClient (success view dashboard link)', () => {
 
     const cancel = screen.getByRole('link', { name: /email to cancel/i })
     const href = cancel.getAttribute('href') ?? ''
-    expect(href.startsWith('mailto:contact@quickprolist.com?subject=Cancel%20QuickProList%20subscription&body=')).toBe(true)
+    expect(href.startsWith('mailto:contact@quickprolist.com?subject=Cancel%20my%20QuickProList%20subscription&body=')).toBe(true)
     expect(decodeURIComponent(href)).toContain('Acme Plumbing')
     expect(decodeURIComponent(href)).toContain('Account email: (the email on this subscription)')
     expect(decodeURIComponent(href)).not.toContain('owner@acme.example')
