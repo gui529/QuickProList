@@ -132,7 +132,7 @@ redirects to `/login` and the header hides the Dashboard link.
 - `ENROLL_PREVIEW_TRIAL_DAYS` (optional) — days for self-serve enroll preview from campaign links (default `30`).
 - `PRO_DASHBOARD_ENABLED` (optional) — set to `true` to expose `/dashboard/[token]` to pros, admin dashboard links, and performance digests. Default **off**; production stays off (do not recommend enabling).
 - `TRIAL_REMINDER_HOURS` (optional) — how far before `trial_ends_at` to send the trial-ending email (default `120`, about 5 days).
-- `POSTAL_ADDRESS` — mailing address required before the commercial trial-reminder email can send. Not stored in the repo.
+- `CAMPAIGN_POSTAL_ADDRESS` — mailing address required before a commercial trial-reminder (and send-ready campaign mail) can go out. Not stored in the repo. Do not invent one.
 - `UNSUBSCRIBE_SECRET` — signs one-click unsubscribe links in marketing email (or set `CRON_SECRET` to the same value). Required before campaign or win-back sends.
 - `RESEND_WEBHOOK_SECRET` (optional) — verifies `POST /api/resend/webhook` for bounces/complaints → suppression list.
 

@@ -111,7 +111,7 @@ describe('activateEnrollmentTrial', () => {
       },
     })
 
-    await activateEnrollmentTrial(inv.token)
+    await activateEnrollmentTrial(inv.token, 'owner@acme.test')
 
     const created = allCurated().find((row) => row.name === 'Acme Plumbing')
     expect(created?.phone).toBe('770-555-0142')
@@ -132,7 +132,7 @@ describe('activateEnrollmentTrial', () => {
       yelp_data: { name: 'No Phone Co', phone: '   ', address: '' },
     })
 
-    await activateEnrollmentTrial(inv.token)
+    await activateEnrollmentTrial(inv.token, 'nophone@acme.test')
 
     const created = allCurated().find((row) => row.name === 'No Phone Co')
     expect(created?.phone).toBeNull()
@@ -157,7 +157,7 @@ describe('activateEnrollmentTrial', () => {
       yelp_data: { phone: '678-555-0199' },
     })
 
-    await activateEnrollmentTrial(inv.token)
+    await activateEnrollmentTrial(inv.token, 'new@acme.test')
 
     const kept = allCurated().find((row) => row.id === existing.id)
     expect(kept?.phone).toBe('404-555-0100')

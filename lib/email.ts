@@ -208,14 +208,14 @@ function marketingCompliance(to: string, reason: string): ComplianceFooter {
 export const COMMERCIAL_AD_DISCLOSURE = 'This is an advertisement from QuickProList.'
 
 /**
- * Postal line for commercial email. There is no address checked into the repo
- * (public pages omit one; issue #18). Set `POSTAL_ADDRESS` to the business's
- * real mailing address. Never invent one.
+ * Postal line for commercial email. Uses `CAMPAIGN_POSTAL_ADDRESS`, the same
+ * owner-supplied value as campaign mail. Empty and the `{postalAddress}`
+ * placeholder are refused. Never invent an address.
  */
 export function requirePostalAddress(): string {
-  const postal = process.env.POSTAL_ADDRESS?.trim()
+  const postal = usableCampaignPostalAddress(campaignPostalAddress())
   if (!postal) {
-    throw new Error('POSTAL_ADDRESS not configured (required for commercial email)')
+    throw new Error('CAMPAIGN_POSTAL_ADDRESS not configured (required for commercial email)')
   }
   return postal
 }

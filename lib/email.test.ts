@@ -84,6 +84,7 @@ describe('sendEmail (lib/email.ts)', () => {
     process.env.RESEND_FROM_EMAIL = 'noreply@example.com'
     process.env.UNSUBSCRIBE_SECRET = 'test-unsub-secret'
     process.env.SITE_URL = 'https://example.test'
+    delete process.env.CAMPAIGN_POSTAL_ADDRESS
     isSuppressedMock.mockReset()
     isSuppressedMock.mockResolvedValue(false)
   })
@@ -216,7 +217,7 @@ describe('sendEmail (lib/email.ts)', () => {
     })
 
     it('sends a commercial notice with an accurate From, the given subject, and the full footer', async () => {
-      process.env.POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
+      process.env.CAMPAIGN_POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
       const body = [
         'Your QuickProList preview for Biz ends on November 17, 2026.',
         'If you do nothing, it comes down on November 17, 2026. Nothing is charged.',
@@ -249,21 +250,21 @@ describe('sendEmail (lib/email.ts)', () => {
       expect(productLinks).toEqual(['https://example.test/enroll/tok?subscribe=1'])
       expect(call.bcc).toBeUndefined()
       expect(call.text).not.toContain('We are going to launch soon')
-      delete process.env.POSTAL_ADDRESS
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
     })
 
     it('refuses a commercial notice without a postal address or to a suppressed address', async () => {
-      delete process.env.POSTAL_ADDRESS
-      await expect(sendCommercialNotice('owner@example.com', 'Subject', 'Body')).rejects.toThrow(/POSTAL_ADDRESS/)
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+      await expect(sendCommercialNotice('owner@example.com', 'Subject', 'Body')).rejects.toThrow(/CAMPAIGN_POSTAL_ADDRESS/)
       expect(sendMock).not.toHaveBeenCalled()
 
-      process.env.POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
+      process.env.CAMPAIGN_POSTAL_ADDRESS = '1 Market St, Atlanta, GA 30303'
       isSuppressedMock.mockResolvedValue(true)
       await expect(sendCommercialNotice('owner@example.com', 'Subject', 'Ends soon')).rejects.toBeInstanceOf(
         SuppressedError
       )
       expect(sendMock).not.toHaveBeenCalled()
-      delete process.env.POSTAL_ADDRESS
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
     })
 
     it('applies the same suppression and footer to the performance digest', async () => {
