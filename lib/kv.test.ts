@@ -209,7 +209,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       is_trial: false,
     }]
 
-    const result = await getCuratedById('curated-1')
+    const result = await getCuratedById('11111111-1111-4111-8111-111111111111')
 
     expect(result?.reviewUrl).toBeUndefined()
     expect(result?.url).toBe('')
@@ -228,7 +228,7 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       is_trial: false,
     }]
 
-    const result = await getCuratedById('curated-2')
+    const result = await getCuratedById('22222222-2222-4222-8222-222222222222')
 
     expect(result?.reviewUrl).toBe('https://g.page/r/example/review')
   })
@@ -246,9 +246,15 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
       is_trial: false,
     }]
 
-    const result = await getCuratedById('curated-3')
+    const result = await getCuratedById('33333333-3333-4333-8333-333333333333')
 
     expect(result?.reviewUrl).toBeUndefined()
+  })
+
+  it('returns null for a non-UUID id without querying', async () => {
+    queryMock.mockClear()
+    await expect(getCuratedById('not-a-uuid')).resolves.toBeNull()
+    expect(queryMock).not.toHaveBeenCalled()
   })
 })
 

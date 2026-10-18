@@ -2,12 +2,14 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import ProSiteView from '@/components/ProSiteView'
 import { getCuratedById, incrementProfileView } from '@/lib/kv'
+import { isUuid } from '@/lib/is-uuid'
 import type { Business } from '@/lib/business'
 import { toPublicBusiness } from '@/lib/public-business'
 
 export const dynamic = 'force-dynamic'
 
 async function loadBusiness(id: string): Promise<Business | null> {
+  if (!isUuid(id)) return null
   const business = await getCuratedById(id)
   return business ? toPublicBusiness(business) : null
 }

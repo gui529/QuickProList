@@ -1,6 +1,7 @@
 import type { Business } from './business'
 import { normalizeCategory } from './categories'
 import { isDatabaseConfigured, query } from './db'
+import { isUuid } from './is-uuid'
 import { sanitizeHttpUrl } from './http-url'
 import { isStorageConfigured, uploadPublicObject } from './storage'
 
@@ -120,6 +121,7 @@ export async function getCuratedInArea(category: string, cities: string[]): Prom
 }
 
 export async function getCuratedById(id: string): Promise<Business | null> {
+  if (!isUuid(id)) return null
   if (!isDatabaseConfigured()) return null
   const rows = await query<CuratedRow>(
     'SELECT * FROM curated_businesses WHERE id = $1',
