@@ -231,7 +231,8 @@
       "status": "pending",
       "websiteUrl": "https://www.pellplumbingcompany.com/",
       "emailSource": "https://www.pellplumbingcompany.com/about-us",
-      "roleAddress": true
+      "roleAddress": true,
+      "roleAddressApproved": true
     },
     {
       "businessName": "Batylin Plumbing",
@@ -301,7 +302,8 @@
       "city": "atlanta",
       "category": "plumbing",
       "source": "own_site",
-      "status": "pending",
+      "status": "skip",
+      "skipReason": "role address: shop size unverified or larger office",
       "websiteUrl": "https://atlantatanklessandwaterheater.com/",
       "emailSource": "https://atlantatanklessandwaterheater.com/",
       "roleAddress": true
@@ -312,7 +314,8 @@
       "city": "acworth",
       "category": "airconditioningheating",
       "source": "own_site",
-      "status": "pending",
+      "status": "skip",
+      "skipReason": "role address: shop size unverified or larger office",
       "websiteUrl": "https://www.edwardsheating.com/",
       "emailSource": "https://www.edwardsheating.com/contact-us",
       "roleAddress": true
@@ -333,7 +336,8 @@
       "city": "atlanta",
       "category": "airconditioningheating",
       "source": "own_site",
-      "status": "pending",
+      "status": "skip",
+      "skipReason": "role address: shop size unverified or larger office",
       "websiteUrl": "https://apcomfort.com/",
       "emailSource": "https://apcomfort.com/",
       "roleAddress": true
@@ -364,7 +368,8 @@
       "city": "woodstock",
       "category": "electricians",
       "source": "own_site",
-      "status": "pending",
+      "status": "skip",
+      "skipReason": "role address: shop size unverified or larger office",
       "websiteUrl": "https://electric-company.com/",
       "emailSource": "https://electric-company.com/about-us/",
       "roleAddress": true
@@ -378,7 +383,8 @@
       "status": "pending",
       "websiteUrl": "https://www.itsbyjay.com/",
       "emailSource": "https://www.itsbyjay.com/contactus/",
-      "roleAddress": true
+      "roleAddress": true,
+      "roleAddressApproved": true
     },
     {
       "businessName": "Belco Electric",
@@ -386,7 +392,8 @@
       "city": "doraville",
       "category": "electricians",
       "source": "own_site",
-      "status": "pending",
+      "status": "skip",
+      "skipReason": "role address: shop size unverified or larger office",
       "websiteUrl": "https://belcoinc.com/",
       "emailSource": "https://belcoinc.com/",
       "roleAddress": true
@@ -397,7 +404,8 @@
       "city": "kennesaw",
       "category": "roofing",
       "source": "own_site",
-      "status": "pending",
+      "status": "skip",
+      "skipReason": "role address: shop size unverified or larger office",
       "websiteUrl": "https://myinfinityroof.com/",
       "emailSource": "https://myinfinityroof.com/about/",
       "roleAddress": true

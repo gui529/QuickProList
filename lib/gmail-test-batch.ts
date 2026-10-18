@@ -122,6 +122,97 @@ function resendStatusFor(email: string, sent: SentRegistryEntry[]): string | nul
   return hit?.deliveryStatus ?? (hit ? 'sent_status_unknown' : null)
 }
 
+/** Consumer inboxes. A company domain is not free mail. */
+const FREE_MAIL_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'ymail.com',
+  'rocketmail.com',
+  'comcast.net',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'aol.com',
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  'proton.me',
+  'protonmail.com',
+  'pm.me',
+  'att.net',
+  'sbcglobal.net',
+  'bellsouth.net',
+  'verizon.net',
+  'cox.net',
+])
+
+const FREE_MAIL_BRANDS = new Set([
+  'gmail',
+  'googlemail',
+  'yahoo',
+  'ymail',
+  'rocketmail',
+  'outlook',
+  'hotmail',
+  'live',
+  'aol',
+])
+
+export type GmailSendReadyGroup = 'own-domain' | 'other-domain' | 'free-mail' | 'approved-role'
+
+const SEND_READY_GROUP_RANK: Record<GmailSendReadyGroup, number> = {
+  'own-domain': 0,
+  'other-domain': 1,
+  'free-mail': 2,
+  'approved-role': 3,
+}
+
+export function isFreeMailDomain(domain: string): boolean {
+  const host = domain.trim().toLowerCase().replace(/^www\./, '')
+  if (!host) return false
+  if (FREE_MAIL_DOMAINS.has(host)) return true
+  return host.split('.').some((label) => FREE_MAIL_BRANDS.has(label))
+}
+
+function websiteHost(websiteUrl: string | null | undefined): string | null {
+  const raw = websiteUrl?.trim()
+  if (!raw) return null
+  try {
+    return new URL(raw.includes('://') ? raw : `https://${raw}`).hostname
+      .toLowerCase()
+      .replace(/^www\./, '')
+  } catch {
+    return null
+  }
+}
+
+/** True when the email domain is the website host, or one is a subdomain of the other. */
+export function emailOnBusinessDomain(email: string, websiteUrl: string | null | undefined): boolean {
+  const domain = emailDomain(email)
+  const host = websiteHost(websiteUrl)
+  if (!domain || !host) return false
+  return domain === host || host.endsWith(`.${domain}`) || domain.endsWith(`.${host}`)
+}
+
+/**
+ * Send-ready order: the business's own domain, then any other company domain,
+ * then free mail, then an approved role address. Role approval wins even when
+ * the address is also on the business domain.
+ */
+export function gmailSendReadyGroup(input: {
+  email: string
+  websiteUrl?: string | null
+  roleAddressApproved?: boolean
+}): GmailSendReadyGroup {
+  if (isRoleAddress(input.email) && input.roleAddressApproved === true) return 'approved-role'
+  const domain = emailDomain(input.email)
+  if (domain && isFreeMailDomain(domain)) return 'free-mail'
+  if (emailOnBusinessDomain(input.email, input.websiteUrl)) return 'own-domain'
+  return 'other-domain'
+}
+
 export function buildGmailTestBatch(input: {
   prospects: ProspectRecord[]
   resend: SentRegistryEntry[]
@@ -147,7 +238,7 @@ export function buildGmailTestBatch(input: {
 }): GmailTestBatch {
   const postal = usableCampaignPostalAddress(input.postalAddress)
   const suppressed = new Set((input.suppressedEmails ?? []).map((email) => normalizeEmail(email)))
-  const sendReady: GmailBatchRow[] = []
+  const ready: Array<{ row: GmailBatchRow; group: GmailSendReadyGroup; index: number }> = []
   const held: GmailBatchRow[] = []
   const flagged: GmailBatchRow[] = []
   const excluded: GmailBatchRow[] = []
@@ -158,6 +249,7 @@ export function buildGmailTestBatch(input: {
     const domain = email ? emailDomain(email) : null
     const mx = domain ? (input.mxByDomain[domain] ?? null) : null
     const roleAddress = email ? isRoleAddress(email) : false
+    const roleHeld = roleAddress && prospect.roleAddressApproved !== true
     const status = email ? resendStatusFor(email, input.resend) : null
     const base: GmailBatchRow = {
       business: prospect.businessName,
@@ -223,7 +315,7 @@ export function buildGmailTestBatch(input: {
     }
     if (!postal) {
       const unrendered = { ...base, reason: GMAIL_MISSING_POSTAL_REASON }
-      if (roleAddress || mx === null) flagged.push(unrendered)
+      if (roleHeld || mx === null) flagged.push(unrendered)
       else held.push(unrendered)
       continue
     }
@@ -250,10 +342,23 @@ export function buildGmailTestBatch(input: {
       wordCount: rendered.wordCount,
       from: rendered.from,
     }
-    if (roleAddress || mx === null) flagged.push(row)
+    if (roleHeld || mx === null) flagged.push(row)
     else if (input.suppressionListLoaded === false) held.push(row)
-    else sendReady.push(row)
+    else {
+      ready.push({
+        row,
+        group: gmailSendReadyGroup({
+          email,
+          websiteUrl: prospect.websiteUrl,
+          roleAddressApproved: prospect.roleAddressApproved,
+        }),
+        index: ready.length,
+      })
+    }
   }
+
+  ready.sort((a, b) => SEND_READY_GROUP_RANK[a.group] - SEND_READY_GROUP_RANK[b.group] || a.index - b.index)
+  const sendReady = ready.map((item) => item.row)
 
   const blockers = [
     'Board stays PAUSED. Do not send until the owner unpauses.',
@@ -271,7 +376,7 @@ export function buildGmailTestBatch(input: {
   }
   blockers.push(
     `Send-ready count is ${sendReady.length} of about ${GMAIL_TEST_TARGET}. Add prospects with scripts/campaign-add-prospect.ts.`,
-    'Catch-all mailboxes were not probed. Role addresses (info@, help@, customerservice@) are flagged and kept out of sendReady.',
+    'Catch-all mailboxes were not probed. Role addresses (info@, help@, customerservice@) are flagged and kept out of sendReady unless roleAddressApproved is true.',
     'Addresses on the email suppression list, including reason reply_opt_out, are excluded with reason suppressed.'
   )
 

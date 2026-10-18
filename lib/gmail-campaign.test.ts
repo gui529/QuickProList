@@ -9,6 +9,7 @@ import {
   GMAIL_OPT_OUT_LINE,
   GMAIL_SUBJECT_B,
   GMAIL_TEST_BODY_TEMPLATE,
+  GMAIL_TEST_DAILY_CAP,
   GMAIL_TEST_FROM,
   isEnrollPlaceholder,
   POSTAL_ADDRESS_PLACEHOLDER,
@@ -18,12 +19,13 @@ import {
   replyIsOptOut,
   withGmailAttributionRef,
 } from './gmail-campaign'
-import { buildGmailTestBatch, claimsByEmailFromInvitations } from './gmail-test-batch'
+import { buildGmailTestBatch, claimsByEmailFromInvitations, gmailSendReadyGroup } from './gmail-test-batch'
 import type { EnrollmentInvitation } from './invitations'
 import { formatSubscriptionPrice } from './subscription-terms'
 import { isEnrollPreviewUrl } from './campaign-prepare'
 import { loadProspectRegistry, type ProspectRecord } from './campaign-prospect-registry'
-import type { SentRegistryEntry } from './campaign-sent-registry'
+import { loadSentRegistry, type SentRegistryEntry } from './campaign-sent-registry'
+import { planGmailDay } from './gmail-follow-ups'
 
 const enroll = 'https://www.quickprolist.com/enroll/11111111-1111-4111-8111-111111111111'
 
@@ -686,5 +688,222 @@ describe('Gmail batch skip for trades outside the first test', () => {
       expect(buckets.map((row) => row.business)).not.toContain(name)
       expect(batch.excluded.find((row) => row.business === name)?.reason).toBe('skipped')
     }
+  })
+})
+
+describe('Gmail batch send order', () => {
+  const postal = '1 Test Street, Atlanta, GA 30301'
+
+  function batchFor(rows: ProspectRecord[], extra: Parameters<typeof buildGmailTestBatch>[0] = {
+    prospects: rows,
+    resend: [],
+    gmail: [],
+    mxByDomain: {},
+    postalAddress: postal,
+    claimsByEmail: claimsFor(rows),
+    suppressedEmails: [],
+    suppressionListLoaded: true,
+    generatedAt: '2026-10-18T00:00:00.000Z',
+  }) {
+    const mxByDomain: Record<string, boolean> = { ...extra.mxByDomain }
+    for (const row of rows) {
+      const domain = row.email?.trim().toLowerCase().split('@')[1]
+      if (domain && mxByDomain[domain] === undefined) mxByDomain[domain] = true
+    }
+    return buildGmailTestBatch({ ...extra, prospects: rows, mxByDomain })
+  }
+
+  it('sorts own-domain, then other company domains, then free mail, then approved roles', () => {
+    const rows = [
+      prospect({ businessName: 'Yahoo Second', email: 'second@yahoo.com', websiteUrl: 'https://yahoo-shop.example' }),
+      prospect({ businessName: 'Own Second', email: 'pat@own-b.example', websiteUrl: 'https://own-b.example' }),
+      prospect({ businessName: 'Role Held', email: 'info@held-role.example', websiteUrl: 'https://held-role.example' }),
+      prospect({
+        businessName: 'Approved Later',
+        email: 'office@later.example',
+        websiteUrl: 'https://later.example',
+        roleAddressApproved: true,
+        roleAddressNote: 'owner confirmed a small shop',
+      }),
+      prospect({ businessName: 'Own First', email: 'sam@own-a.example', websiteUrl: 'https://www.own-a.example' }),
+      prospect({ businessName: 'Gmail First', email: 'first@gmail.com', websiteUrl: 'https://gmail-shop.example' }),
+      prospect({
+        businessName: 'Approved First',
+        email: 'contact@first-role.example',
+        websiteUrl: 'https://first-role.example',
+        roleAddressApproved: true,
+      }),
+      prospect({ businessName: 'Other Domain', email: 'joe@other-mail.example', websiteUrl: 'https://different.example' }),
+      prospect({ businessName: 'Comcast', email: 'shop@comcast.net', websiteUrl: 'https://comcast-shop.example' }),
+      prospect({ businessName: 'Outlook', email: 'shop@outlook.com', websiteUrl: 'https://outlook-shop.example' }),
+    ]
+    const batch = batchFor(rows)
+    expect(batch.sendReady.map((row) => [row.business, row.email])).toEqual([
+      ['Own Second', 'pat@own-b.example'],
+      ['Own First', 'sam@own-a.example'],
+      ['Other Domain', 'joe@other-mail.example'],
+      ['Yahoo Second', 'second@yahoo.com'],
+      ['Gmail First', 'first@gmail.com'],
+      ['Comcast', 'shop@comcast.net'],
+      ['Outlook', 'shop@outlook.com'],
+      ['Approved Later', 'office@later.example'],
+      ['Approved First', 'contact@first-role.example'],
+    ])
+    expect(batch.sendReady.map((row) => row.roleAddress)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+    ])
+    expect(batch.flagged.map((row) => row.email)).toEqual(['info@held-role.example'])
+    expect(batch.sendReady.map((row) => row.email)).not.toContain('info@held-role.example')
+    expect(batch.capPerDay).toBe(GMAIL_TEST_DAILY_CAP)
+    expect(batch.capPerDay).toBe(5)
+  })
+
+  it('keeps suppressed, disallowed, listed, postal, price, and skip holds unchanged', () => {
+    const rows = [
+      prospect({ businessName: 'Ready', email: 'owner@ready-hold.example', websiteUrl: 'https://ready-hold.example' }),
+      prospect({ businessName: 'Suppressed', email: 'owner@suppressed-hold.example' }),
+      prospect({ businessName: 'Yelp Shop', email: 'owner@yelp-hold.example', source: 'yelp' }),
+      prospect({ businessName: 'Listed Shop', email: 'owner@listed-hold.example' }),
+      prospect({ businessName: 'Price Shop', email: 'owner@price-hold.example' }),
+      prospect({ businessName: 'Skipped Shop', email: 'owner@skip-hold.example', status: 'skip' }),
+      prospect({
+        businessName: 'Approved Role',
+        email: 'office@approved-hold.example',
+        websiteUrl: 'https://approved-hold.example',
+        roleAddressApproved: true,
+      }),
+    ]
+    const claims = claimsFor(rows)
+    claims['owner@price-hold.example'] = { monthlyPrice: 0 }
+    const batch = batchFor(rows, {
+      prospects: rows,
+      resend: [],
+      gmail: [],
+      mxByDomain: {},
+      postalAddress: postal,
+      claimsByEmail: claims,
+      suppressedEmails: ['owner@suppressed-hold.example'],
+      suppressionListLoaded: true,
+      listings: [{ name: 'Someone Else', city: 'atlanta', email: 'owner@listed-hold.example' }],
+      generatedAt: '2026-10-18T00:00:00.000Z',
+    })
+    expect(batch.excluded.map((row) => [row.business, row.reason])).toEqual([
+      ['Suppressed', 'suppressed'],
+      ['Yelp Shop', 'disallowed_source'],
+      ['Listed Shop', 'already_listed'],
+      ['Skipped Shop', 'skipped'],
+    ])
+    expect(batch.held.map((row) => [row.business, row.reason])).toEqual([['Price Shop', 'price_mismatch']])
+    expect(batch.sendReady.map((row) => row.business)).toEqual(['Ready', 'Approved Role'])
+
+    const noPostal = batchFor(
+      [
+        prospect({ businessName: 'Needs Postal', email: 'owner@postal-hold.example', websiteUrl: 'https://postal-hold.example' }),
+        prospect({
+          businessName: 'Approved Needs Postal',
+          email: 'office@postal-role.example',
+          websiteUrl: 'https://postal-role.example',
+          roleAddressApproved: true,
+        }),
+        prospect({ businessName: 'Role Needs Postal', email: 'info@postal-role-held.example' }),
+      ],
+      {
+        prospects: [],
+        resend: [],
+        gmail: [],
+        mxByDomain: {},
+        claimsByEmail: claimsFor([
+          { email: 'owner@postal-hold.example' },
+          { email: 'office@postal-role.example' },
+          { email: 'info@postal-role-held.example' },
+        ]),
+        suppressedEmails: [],
+        suppressionListLoaded: true,
+      }
+    )
+    expect(noPostal.sendReady).toEqual([])
+    expect(noPostal.held.map((row) => [row.business, row.reason])).toEqual([
+      ['Needs Postal', 'missing_postal'],
+      ['Approved Needs Postal', 'missing_postal'],
+    ])
+    expect(noPostal.flagged.map((row) => [row.business, row.reason])).toEqual([
+      ['Role Needs Postal', 'missing_postal'],
+    ])
+  })
+
+  it('orders the real registry as own-domain, then free mail, then Pell and ITS', () => {
+    const registry = loadProspectRegistry()
+    const sent = loadSentRegistry()
+    const claims = claimsFor(registry.prospects)
+    const batch = batchFor(registry.prospects, {
+      prospects: registry.prospects,
+      resend: sent.sent,
+      gmail: [],
+      mxByDomain: {},
+      postalAddress: postal,
+      claimsByEmail: claims,
+      suppressedEmails: [],
+      suppressionListLoaded: true,
+      generatedAt: '2026-10-18T00:00:00.000Z',
+    })
+    const ordered = batch.sendReady.map((row) => {
+      const prospect = registry.prospects.find((item) => item.businessName === row.business)
+      return [
+        row.business,
+        row.email,
+        gmailSendReadyGroup({
+          email: row.email ?? '',
+          websiteUrl: prospect?.websiteUrl,
+          roleAddressApproved: prospect?.roleAddressApproved,
+        }),
+      ]
+    })
+    expect(ordered).toEqual([
+      ['Happy HVAC Solutions', 'zach@happyhvacsolutions.com', 'own-domain'],
+      ['Maguire Electric', 'mike@maguireelectric.com', 'own-domain'],
+      ['Elevated Roofing and Remodeling', 'creece@elevatedimprovements.com', 'own-domain'],
+      ['Paramount Plumbing', 'paramount@paraplumbing.com', 'other-domain'],
+      ['Build From Above Roofing', 'shawn@buildfromabove.com', 'other-domain'],
+      ['Batylin Plumbing', 'batylinplumbing@comcast.net', 'free-mail'],
+      ['The Clog Dawg Plumbing & Hydrojetting', 'theclogdawg@gmail.com', 'free-mail'],
+      ['Braves City Plumbing', 'bravescityplumbing@gmail.com', 'free-mail'],
+      ['Specialty Plumbing and Drain', 'specialtydrain@yahoo.com', 'free-mail'],
+      ['Genesis Electric Services', 'genesiselectric2018@gmail.com', 'free-mail'],
+      ['Four Seasons Roofing and Repair', 'fsrrinc@gmail.com', 'free-mail'],
+      ['Pell Plumbing', 'office@pellplumbing.com', 'approved-role'],
+      ['Integrated Trusted Solutions (ITS by Jay)', 'contact@itsbyjay.com', 'approved-role'],
+    ])
+    expect(batch.capPerDay).toBe(5)
+    const day = planGmailDay([], batch.sendReady.map((row) => row.email))
+    expect(day.scheduled).toEqual(batch.sendReady.slice(0, 5).map((row) => row.email))
+    expect(day.deferred).toHaveLength(batch.sendReady.length - 5)
+
+    const skippedRoles = [
+      'Atlanta Tankless and Water Heater',
+      'Electric Company',
+      'AP Comfort',
+      'Infinity Roofing',
+      'Edwards Heating & Air',
+      'Belco Electric',
+    ]
+    for (const name of skippedRoles) {
+      expect(registry.prospects.find((row) => row.businessName === name)).toMatchObject({
+        status: 'skip',
+        skipReason: 'role address: shop size unverified or larger office',
+      })
+      expect(batch.excluded.find((row) => row.business === name)?.reason).toBe('skipped')
+      expect(batch.sendReady.map((row) => row.business)).not.toContain(name)
+      expect(batch.flagged.map((row) => row.business)).not.toContain(name)
+    }
+    expect(registry.prospects.find((row) => row.businessName === 'Pell Plumbing')?.roleAddressApproved).toBe(true)
+    expect(registry.prospects.find((row) => row.email === 'contact@itsbyjay.com')?.roleAddressApproved).toBe(true)
   })
 })

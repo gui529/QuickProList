@@ -23,6 +23,9 @@ export interface ProspectRecord {
   emailSource?: string
   skipReason?: string
   roleAddress?: boolean
+  /** Lets a role mailbox into the Gmail batch. Unset or false stays flagged. */
+  roleAddressApproved?: boolean
+  roleAddressNote?: string
 }
 
 export interface ProspectRegistry {
@@ -105,6 +108,8 @@ export function mergeCuratedProspects(
     if (prior?.emailSource) next.emailSource = prior.emailSource
     if (keepStatus && prior?.skipReason) next.skipReason = prior.skipReason
     if (prior?.roleAddress) next.roleAddress = true
+    if (prior?.roleAddressApproved === true) next.roleAddressApproved = true
+    if (prior?.roleAddressNote) next.roleAddressNote = prior.roleAddressNote
     merged.push(next)
   }
 
