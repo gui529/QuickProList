@@ -32,6 +32,7 @@ interface CuratedRow {
   categories: string[] | null
   trial_ends_at: string | null
   is_trial: boolean
+  is_draft?: boolean
   pro_site_enabled: boolean
   delisted_at: string | null
   created_at: string
@@ -75,6 +76,7 @@ export function __seed(row: Partial<CuratedRow> = {}): CuratedRow {
     categories: row.categories ?? null,
     trial_ends_at: row.trial_ends_at ?? null,
     is_trial: row.is_trial ?? false,
+    is_draft: row.is_draft ?? false,
     pro_site_enabled: row.pro_site_enabled ?? false,
     delisted_at: row.delisted_at ?? null,
     created_at: row.created_at ?? new Date().toISOString(),
@@ -130,6 +132,13 @@ function rowToBusiness(row: CuratedRow): Business {
   }
 }
 
+function isLiveRow(row: CuratedRow, now = Date.now()): boolean {
+  if (row.delisted_at) return false
+  if (row.is_draft) return false
+  if (row.trial_ends_at && new Date(row.trial_ends_at).getTime() <= now) return false
+  return true
+}
+
 function activeRowsFor(category: string, cities: string[]): CuratedRow[] {
   const now = Date.now()
   const categoryKey = normalizeCategory(category)
@@ -139,10 +148,13 @@ function activeRowsFor(category: string, cities: string[]): CuratedRow[] {
       (r) =>
         normalizeCategory(r.category) === categoryKey &&
         r.cities.some((c) => wanted.has(normalizeCity(c))) &&
-        !r.delisted_at &&
-        (!r.trial_ends_at || new Date(r.trial_ends_at).getTime() > now)
+        isLiveRow(r, now)
     )
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .sort((a, b) => {
+      const byTime = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (byTime !== 0) return byTime
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+    })
 }
 
 export async function getCurated(category: string, city: string): Promise<Business[]> {
@@ -153,9 +165,14 @@ export async function getCuratedInArea(category: string, cities: string[]): Prom
   return activeRowsFor(category, cities).map(rowToBusiness)
 }
 
-export async function getCuratedById(id: string): Promise<Business | null> {
+export async function getCuratedById(
+  id: string,
+  options?: { live?: boolean }
+): Promise<Business | null> {
   const row = rows.find((r) => r.id === id)
-  return row ? rowToBusiness(row) : null
+  if (!row) return null
+  if (options?.live && !isLiveRow(row)) return null
+  return rowToBusiness(row)
 }
 
 export async function getCuratedByDashboardToken(

@@ -20,6 +20,7 @@ import {
   incrementContactClick,
   getCuratedByDashboardToken,
   getCuratedById,
+  getCuratedInArea,
   updateCuratedByDashboardToken,
 } from './kv'
 
@@ -251,6 +252,23 @@ describe('reviewUrl derivation (lib/kv.ts)', () => {
     const result = await getCuratedById('33333333-3333-4333-8333-333333333333')
 
     expect(result?.reviewUrl).toBeUndefined()
+  })
+
+  it('orders the live area query by created_at, then id', async () => {
+    process.env.DATABASE_URL = 'postgres://test'
+    await getCuratedInArea('plumbing', ['marietta'])
+    const sql = String(queryMock.mock.calls[0][0])
+    expect(sql).toContain('ORDER BY created_at ASC, id ASC')
+  })
+
+  it('applies live conditions when a highlight lookup asks for them', async () => {
+    process.env.DATABASE_URL = 'postgres://test'
+    await getCuratedById('11111111-1111-4111-8111-111111111111', { live: true })
+    const [sql, params] = queryMock.mock.calls.at(-1) as [string, unknown[]]
+    expect(sql).toContain('delisted_at IS NULL')
+    expect(sql).toContain('COALESCE(is_draft, FALSE) = FALSE')
+    expect(sql).toContain('trial_ends_at IS NULL OR trial_ends_at > $2')
+    expect(params[0]).toBe('11111111-1111-4111-8111-111111111111')
   })
 
   it('returns null for a non-UUID id without querying', async () => {

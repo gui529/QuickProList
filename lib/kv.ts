@@ -97,7 +97,7 @@ async function fetchActiveRows(label: string): Promise<CuratedRow[]> {
        WHERE delisted_at IS NULL
          AND COALESCE(is_draft, FALSE) = FALSE
          AND (trial_ends_at IS NULL OR trial_ends_at > $1)
-       ORDER BY created_at ASC`,
+       ORDER BY created_at ASC, id ASC`,
       [now]
     )
   } catch (error) {
@@ -120,9 +120,23 @@ export async function getCuratedInArea(category: string, cities: string[]): Prom
   return rows.filter((r) => matchesArea(r, categoryKey, cityKeys)).map(rowToBusiness)
 }
 
-export async function getCuratedById(id: string): Promise<Business | null> {
+export async function getCuratedById(
+  id: string,
+  options?: { live?: boolean }
+): Promise<Business | null> {
   if (!isUuid(id)) return null
   if (!isDatabaseConfigured()) return null
+  if (options?.live) {
+    const rows = await query<CuratedRow>(
+      `SELECT * FROM curated_businesses
+       WHERE id = $1
+         AND delisted_at IS NULL
+         AND COALESCE(is_draft, FALSE) = FALSE
+         AND (trial_ends_at IS NULL OR trial_ends_at > $2)`,
+      [id, new Date().toISOString()]
+    )
+    return rows[0] ? rowToBusiness(rows[0]) : null
+  }
   const rows = await query<CuratedRow>(
     'SELECT * FROM curated_businesses WHERE id = $1',
     [id]
