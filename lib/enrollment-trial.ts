@@ -19,7 +19,10 @@ import {
 import { listingFieldsFromInvitation } from './invitation-listing'
 import { deriveStatus } from './reports'
 import { sendEmail } from './email'
+import { enrollPreviewTrialDays } from './enroll-preview-days'
 import { isProDashboardEnabled } from './feature-flags'
+
+export { enrollPreviewTrialDays }
 
 export class EnrollmentTrialError extends Error {
   constructor(
@@ -35,14 +38,6 @@ export class EnrollmentTrialError extends Error {
     super(message)
     this.name = 'EnrollmentTrialError'
   }
-}
-
-/** Days for campaign / enroll self-serve preview (matches marketing copy). */
-export function enrollPreviewTrialDays(): number {
-  const raw = process.env.ENROLL_PREVIEW_TRIAL_DAYS?.trim()
-  if (!raw) return 30
-  const n = parseInt(raw, 10)
-  return Number.isFinite(n) && n > 0 ? n : 30
 }
 
 export function previewTrialEndsAt(fromMs = Date.now()): string {

@@ -21,6 +21,14 @@ import type { SentRegistryEntry } from './campaign-sent-registry'
 
 const enroll = 'https://www.quickprolist.com/enroll/11111111-1111-4111-8111-111111111111'
 
+function claimsFor(rows: Array<Pick<ProspectRecord, 'email'>>): Record<string, { monthlyPrice: number }> {
+  const claims: Record<string, { monthlyPrice: number }> = {}
+  for (const row of rows) {
+    if (row.email) claims[row.email.trim().toLowerCase()] = { monthlyPrice: 29.99 }
+  }
+  return claims
+}
+
 function prospect(partial: Partial<ProspectRecord> & Pick<ProspectRecord, 'businessName'>): ProspectRecord {
   return {
     email: 'owner@acme.example',
@@ -48,7 +56,7 @@ It's not a lead service: homeowners call you directly. No per-lead fees, no bidd
 Your preview is ready to look over (two minutes):
 {enrollUrl}
 
-The 30-day preview is free, no card needed. After that it's a flat $29.99/month if you stay.
+The {trialDays}-day preview is free, no card needed. After that it's a flat $29.99/month if you stay.
 
 Guilherme, QuickProList
 
@@ -71,6 +79,7 @@ This is a promotional email from QuickProList. Reply "no" and I won't email agai
     expect(rendered.text).toContain(`Reply "no" and I won't email again.\n${POSTAL_ADDRESS_PLACEHOLDER}`)
     expect(rendered.text.match(/https?:\/\/\S+/g)).toEqual([enroll])
     expect(rendered.text.indexOf('$29.99/month')).toBeGreaterThan(rendered.text.indexOf(enroll))
+    expect(rendered.text).toContain('The 30-day preview is free, no card needed.')
     expect(rendered.text).toContain('a local directory of plumbers around Marietta')
     expect(rendered.text.trim().endsWith(POSTAL_ADDRESS_PLACEHOLDER)).toBe(true)
   })
@@ -190,6 +199,7 @@ describe('Gmail test batch', () => {
       resend: sent,
       gmail: [],
       mxByDomain,
+      claimsByEmail: claimsFor(prospects),
       generatedAt: '2026-10-17T00:00:00.000Z',
     })
 
@@ -224,6 +234,7 @@ describe('Gmail test batch', () => {
       gmail: [],
       mxByDomain,
       postalAddress: postal,
+      claimsByEmail: claimsFor(prospects),
       generatedAt: '2026-10-17T00:00:00.000Z',
     })
     expect(batch.sendReady.map((row) => row.email)).toEqual(['owner@ready.example'])
@@ -241,6 +252,7 @@ describe('Gmail test batch', () => {
       gmail: [],
       mxByDomain: { 'ready.example': true },
       postalAddress: '{postalAddress}',
+      claimsByEmail: { 'owner@ready.example': { monthlyPrice: 29.99 } },
     })
     expect(batch.sendReady).toEqual([])
     expect(batch.held).toHaveLength(1)
@@ -260,6 +272,55 @@ describe('Gmail test batch', () => {
     expect(batch.excluded.map((row) => [row.email, row.reason])).toEqual([
       ['owner@ready.example', 'suppressed'],
     ])
+  })
+})
+
+describe('Gmail claim checks', () => {
+  it('renders ENROLL_PREVIEW_TRIAL_DAYS and falls back to 30', () => {
+    const previous = process.env.ENROLL_PREVIEW_TRIAL_DAYS
+    process.env.ENROLL_PREVIEW_TRIAL_DAYS = '  14  '
+    const fourteen = renderGmailTestEmail({
+      businessName: 'Ready Plumbing',
+      city: 'atlanta',
+      category: 'plumbing',
+      enrollUrl: enroll,
+    })
+    expect(fourteen.text).toContain('The 14-day preview is free')
+    process.env.ENROLL_PREVIEW_TRIAL_DAYS = 'nope'
+    const fallback = renderGmailTestEmail({
+      businessName: 'Ready Plumbing',
+      city: 'atlanta',
+      category: 'plumbing',
+      enrollUrl: enroll,
+    })
+    expect(fallback.text).toContain('The 30-day preview is free')
+    if (previous === undefined) delete process.env.ENROLL_PREVIEW_TRIAL_DAYS
+    else process.env.ENROLL_PREVIEW_TRIAL_DAYS = previous
+  })
+
+  it('holds a row with price_mismatch when the invitation price is not 29.99', () => {
+    const row = prospect({ businessName: 'Ready Plumbing', email: 'owner@ready.example' })
+    for (const monthlyPrice of [19.99, null, '30']) {
+      const batch = buildGmailTestBatch({
+        prospects: [row],
+        resend: [],
+        gmail: [],
+        mxByDomain: { 'ready.example': true },
+        postalAddress: '1 Test Street, Atlanta, GA 30301',
+        claimsByEmail: { 'owner@ready.example': { monthlyPrice } },
+      })
+      expect(batch.sendReady).toEqual([])
+      expect(batch.held.map((held) => held.reason)).toEqual(['price_mismatch'])
+    }
+    const matched = buildGmailTestBatch({
+      prospects: [row],
+      resend: [],
+      gmail: [],
+      mxByDomain: { 'ready.example': true },
+      postalAddress: '1 Test Street, Atlanta, GA 30301',
+      claimsByEmail: { 'owner@ready.example': { monthlyPrice: '29.99' } },
+    })
+    expect(matched.sendReady.map((ready) => ready.email)).toEqual(['owner@ready.example'])
   })
 })
 

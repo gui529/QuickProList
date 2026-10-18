@@ -1,4 +1,5 @@
 import { formatCategorySearchPhrase, formatCityLabel } from './display'
+import { parseEnrollPreviewTrialDays } from './enroll-preview-days'
 
 /** Gmail test sends leave from this mailbox. Sending itself is outside the repo. */
 export const GMAIL_TEST_FROM = 'gui.quickprolist@gmail.com'
@@ -65,7 +66,7 @@ It's not a lead service: homeowners call you directly. No per-lead fees, no bidd
 Your preview is ready to look over (two minutes):
 {enrollUrl}
 
-The 30-day preview is free, no card needed. After that it's a flat $29.99/month if you stay.
+The {trialDays}-day preview is free, no card needed. After that it's a flat $29.99/month if you stay.
 
 Guilherme, QuickProList
 
@@ -130,21 +131,34 @@ export function buildGmailTestSubject(city: string): string {
   return 'your listing preview'
 }
 
+export const CLAIMED_MONTHLY_PRICE_CENTS = 2999
+
+/** True only for 29.99. Missing and other amounts are not the claim in the copy. */
+export function isClaimedMonthlyPrice(price: number | string | null | undefined): boolean {
+  if (price == null || price === '') return false
+  const amount = typeof price === 'number' ? price : Number(price)
+  if (!Number.isFinite(amount)) return false
+  return Math.round(amount * 100) === CLAIMED_MONTHLY_PRICE_CENTS
+}
+
 export function renderGmailTestEmail(input: {
   businessName: string
   city: string
   category: string
   enrollUrl: string
   postalAddress?: string | null
+  trialDays?: number
 }): { subject: string; text: string; wordCount: number } {
   const city = formatCityLabel(input.city)
   const categoryPhrase = categoryPhraseInSentence(input.category)
   const postal = input.postalAddress?.trim() || POSTAL_ADDRESS_PLACEHOLDER
+  const trialDays = input.trialDays ?? parseEnrollPreviewTrialDays(process.env.ENROLL_PREVIEW_TRIAL_DAYS)
   const text = GMAIL_TEST_BODY_TEMPLATE.replaceAll('{businessName}', input.businessName.trim())
     .replaceAll('{city}', city)
     .replaceAll('{categoryPhrase}', categoryPhrase)
     .replaceAll('{enrollUrl}', input.enrollUrl.trim())
     .replaceAll('{postalAddress}', postal)
+    .replaceAll('{trialDays}', String(trialDays))
   return { subject: buildGmailTestSubject(input.city), text, wordCount: countWords(text) }
 }
 

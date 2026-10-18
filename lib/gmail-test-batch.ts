@@ -13,6 +13,7 @@ import {
   GMAIL_TEST_FROM,
   GMAIL_TEST_SUBJECT_TEMPLATE,
   GMAIL_TEST_TARGET,
+  isClaimedMonthlyPrice,
   isRoleAddress,
   renderGmailTestEmail,
   withGmailAttributionRef,
@@ -20,7 +21,15 @@ import {
 import type { ProspectRecord } from './campaign-prospect-registry'
 import { normalizeEmail } from './suppressions'
 
-export type ExclusionReason = 'bounced' | 'suppressed' | 'complained' | 'already_emailed' | 'no_mx' | 'no_email' | 'skipped'
+export type ExclusionReason =
+  | 'bounced'
+  | 'suppressed'
+  | 'complained'
+  | 'already_emailed'
+  | 'no_mx'
+  | 'no_email'
+  | 'skipped'
+  | 'price_mismatch'
 
 export interface GmailBatchRow {
   business: string
@@ -82,6 +91,11 @@ export function buildGmailTestBatch(input: {
   postalAddress?: string | null
   /** Normalized or not. Matched case-insensitively. */
   suppressedEmails?: string[]
+  /**
+   * Invitation monthly_price keyed by normalized email.
+   * Missing and non-29.99 prices are held with reason price_mismatch and are not sent.
+   */
+  claimsByEmail?: Record<string, { monthlyPrice: number | string | null }>
   /**
    * When false, the do-not-contact list was not loaded. Nothing is send-ready.
    * Omit when the caller passed `suppressedEmails` (including an empty list).
@@ -153,6 +167,12 @@ export function buildGmailTestBatch(input: {
       subject: rendered.subject,
       text: rendered.text,
       wordCount: rendered.wordCount,
+    }
+    const claim = input.claimsByEmail?.[email]
+    const monthlyPrice = claim ? claim.monthlyPrice : null
+    if (!isClaimedMonthlyPrice(monthlyPrice)) {
+      held.push({ ...row, reason: 'price_mismatch' })
+      continue
     }
     if (roleAddress || mx === null) flagged.push(row)
     else if (!postal) held.push(row)
