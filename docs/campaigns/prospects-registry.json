@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-17T21:22:00.000Z",
+  "updatedAt": "2026-10-18T02:35:53.136Z",
   "prospects": [
     {
       "businessName": "Bardi Heating, Cooling & Plumbing",
@@ -71,13 +71,15 @@
     },
     {
       "businessName": "Atlanta Green Maids",
-      "email": null,
+      "email": "support@atlantagreenmaids.com",
       "city": "atlanta",
       "category": "homecleaning",
-      "source": "curated",
-      "status": "needs_email",
+      "source": "own_site",
+      "status": "pending",
       "curatedId": "833e56d6-9b4b-4f6b-995f-0cb2757b144c",
-      "websiteUrl": "https://www.atlantagreenmaids.com/"
+      "websiteUrl": "https://atlantagreenmaids.com/",
+      "emailSource": "https://atlantagreenmaids.com/contact/",
+      "roleAddress": true
     },
     {
       "businessName": "Molly Maid of Atlanta",
@@ -122,13 +124,14 @@
     },
     {
       "businessName": "QuickPro Locksmith",
-      "email": null,
+      "email": "rotemrabani@gmail.com",
       "city": "atlanta",
       "category": "locksmiths",
-      "source": "curated",
-      "status": "needs_email",
+      "source": "own_site",
+      "status": "pending",
       "curatedId": "da0cc3f9-dae8-4c11-ad0a-a689fb7a8531",
-      "websiteUrl": "https://www.quickprolocksmith.com/"
+      "websiteUrl": "https://www.quickprolocksmith.com/",
+      "emailSource": "https://www.quickprolocksmith.com/contact"
     },
     {
       "businessName": "CertaPro Painters of Atlanta/Decatur",
@@ -216,6 +219,215 @@
       "status": "needs_email",
       "curatedId": "f5d59228-6e81-4927-a0a6-bba6cf9fde8b",
       "websiteUrl": "https://www.mrrooferatlanta.com/"
+    },
+    {
+      "businessName": "Pell Plumbing",
+      "email": "office@pellplumbing.com",
+      "city": "kennesaw",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://www.pellplumbingcompany.com/",
+      "emailSource": "https://www.pellplumbingcompany.com/about-us",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Batylin Plumbing",
+      "email": "batylinplumbing@comcast.net",
+      "city": "kennesaw",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://batylinplumbing.com/",
+      "emailSource": "https://batylinplumbing.com/"
+    },
+    {
+      "businessName": "Paramount Plumbing",
+      "email": "paramount@paraplumbing.com",
+      "city": "kennesaw",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://ppatlanta.com/",
+      "emailSource": "https://ppatlanta.com/plumber-kennesaw-ga"
+    },
+    {
+      "businessName": "The Clog Dawg Plumbing & Hydrojetting",
+      "email": "theclogdawg@gmail.com",
+      "city": "marietta",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://theclogdawg.com/",
+      "emailSource": "https://theclogdawg.com/"
+    },
+    {
+      "businessName": "Barnett Plumbing",
+      "email": "info@barnettplumbing.com",
+      "city": "marietta",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://barnettplumber.com/",
+      "emailSource": "https://barnettplumber.com/about/",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Braves City Plumbing",
+      "email": "bravescityplumbing@gmail.com",
+      "city": "marietta",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://www.bravescityplumbing.com/",
+      "emailSource": "https://www.bravescityplumbing.com/about"
+    },
+    {
+      "businessName": "Specialty Plumbing and Drain",
+      "email": "specialtydrain@yahoo.com",
+      "city": "roswell",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://www.specialtydrainllc.com/",
+      "emailSource": "https://www.specialtydrainllc.com/"
+    },
+    {
+      "businessName": "Atlanta Tankless and Water Heater",
+      "email": "info@atlantatanklessandwaterheater.com",
+      "city": "atlanta",
+      "category": "plumbing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://atlantatanklessandwaterheater.com/",
+      "emailSource": "https://atlantatanklessandwaterheater.com/",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Edwards Heating & Air",
+      "email": "service@edwardsheating.com",
+      "city": "acworth",
+      "category": "airconditioningheating",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://www.edwardsheating.com/",
+      "emailSource": "https://www.edwardsheating.com/contact-us",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Happy HVAC Solutions",
+      "email": "zach@happyhvacsolutions.com",
+      "city": "marietta",
+      "category": "airconditioningheating",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://happyhvacsolutions.com/",
+      "emailSource": "https://happyhvacsolutions.com/service-areas/marietta/"
+    },
+    {
+      "businessName": "AP Comfort",
+      "email": "info@apcomfort.com",
+      "city": "atlanta",
+      "category": "airconditioningheating",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://apcomfort.com/",
+      "emailSource": "https://apcomfort.com/",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Maguire Electric",
+      "email": "mike@maguireelectric.com",
+      "city": "woodstock",
+      "category": "electricians",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://maguireelectric.com/",
+      "emailSource": "https://maguireelectric.com/"
+    },
+    {
+      "businessName": "Genesis Electric Services",
+      "email": "genesiselectric2018@gmail.com",
+      "city": "woodstock",
+      "category": "electricians",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://genesiselectricservices.com/",
+      "emailSource": "https://genesiselectricservices.com/"
+    },
+    {
+      "businessName": "Electric Company",
+      "email": "info@electric-company.com",
+      "city": "woodstock",
+      "category": "electricians",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://electric-company.com/",
+      "emailSource": "https://electric-company.com/about-us/",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Integrated Trusted Solutions (ITS by Jay)",
+      "email": "contact@itsbyjay.com",
+      "city": "alpharetta",
+      "category": "electricians",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://www.itsbyjay.com/",
+      "emailSource": "https://www.itsbyjay.com/contactus/",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Belco Electric",
+      "email": "info@belcoinc.com",
+      "city": "doraville",
+      "category": "electricians",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://belcoinc.com/",
+      "emailSource": "https://belcoinc.com/",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Infinity Roofing",
+      "email": "info@myinfinityroof.com",
+      "city": "kennesaw",
+      "category": "roofing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://myinfinityroof.com/",
+      "emailSource": "https://myinfinityroof.com/about/",
+      "roleAddress": true
+    },
+    {
+      "businessName": "Elevated Roofing and Remodeling",
+      "email": "creece@elevatedimprovements.com",
+      "city": "acworth",
+      "category": "roofing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://www.elevatedimprovements.com/",
+      "emailSource": "https://www.elevatedimprovements.com/"
+    },
+    {
+      "businessName": "Four Seasons Roofing and Repair",
+      "email": "fsrrinc@gmail.com",
+      "city": "canton",
+      "category": "roofing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://www.fourseasonsroofingga.com/",
+      "emailSource": "https://www.fourseasonsroofingga.com/about"
+    },
+    {
+      "businessName": "Build From Above Roofing",
+      "email": "shawn@buildfromabove.com",
+      "city": "canton",
+      "category": "roofing",
+      "source": "own_site",
+      "status": "pending",
+      "websiteUrl": "https://bfaroofing.com/",
+      "emailSource": "https://bfaroofing.com/about"
     }
   ]
 }
