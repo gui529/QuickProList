@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { markPreviewOptedOut } from '@/lib/preview-tokens'
 import { addSuppression } from '@/lib/suppressions'
 import { verifyUnsubscribeToken } from '@/lib/unsubscribe'
 
@@ -36,6 +37,14 @@ export async function POST(req: NextRequest) {
   if (!email) return invalid()
 
   await addSuppression('email', email, 'unsubscribe')
+  const preview = req.nextUrl.searchParams.get('preview') ?? ''
+  if (preview) {
+    try {
+      await markPreviewOptedOut(preview, email)
+    } catch (err) {
+      console.error('preview opt-out mark failed:', err)
+    }
+  }
   return page('Unsubscribed', `<h1>You're unsubscribed.</h1><p>${escapeHtml(email)} will no longer receive marketing emails from QuickProList.</p>`)
 }
 

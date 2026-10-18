@@ -35,6 +35,26 @@ export function getCampaignSenderName(): string {
   return process.env.CAMPAIGN_SENDER_NAME?.trim() || DEFAULT_CAMPAIGN_SENDER_NAME
 }
 
+/** Free preview length and the price after it. Preview CTA copy uses these. */
+export const CAMPAIGN_TRIAL_DAYS = 30
+export const CAMPAIGN_MONTHLY_PRICE_LABEL = '$29.99'
+
+export function previewEnrollCta(): { headline: string; detail: string } {
+  return {
+    headline: `Start your ${CAMPAIGN_TRIAL_DAYS}-day free preview, no card needed. Then a flat ${CAMPAIGN_MONTHLY_PRICE_LABEL}/month.`,
+    detail: 'Not a lead service: homeowners call you directly, no per-lead fees.',
+  }
+}
+
+/**
+ * CAN-SPAM postal line. Empty when unset — callers hide the line.
+ * Do not invent an address.
+ */
+export function getCampaignPostalAddress(): string | null {
+  const raw = process.env.CAMPAIGN_POSTAL_ADDRESS?.trim()
+  return raw ? raw : null
+}
+
 /** Call once at campaign script startup (before prepare/finalize). */
 export function applyCampaignDefaults(): void {
   if (!process.env.SITE_URL?.trim()) {

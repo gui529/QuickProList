@@ -11,6 +11,7 @@ export default function CampaignQueueTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [viewedOnly, setViewedOnly] = useState(false)
 
   const load = useCallback(() => {
     return Promise.resolve()
@@ -80,13 +81,23 @@ export default function CampaignQueueTab() {
       </p>
 
       <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => load()}
-          className="text-xs font-medium text-slate-600 hover:text-slate-900"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => load()}
+            className="text-xs font-medium text-slate-600 hover:text-slate-900"
+          >
+            Refresh
+          </button>
+          <label className="text-xs text-slate-600 inline-flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={viewedOnly}
+              onChange={(e) => setViewedOnly(e.target.checked)}
+            />
+            Viewed
+          </label>
+        </div>
         <button
           type="button"
           onClick={sendAllApproved}
@@ -106,7 +117,7 @@ export default function CampaignQueueTab() {
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {prospects.map((p) => (
+          {prospects.filter((p) => !viewedOnly || (p.preview?.viewCount ?? 0) > 0).map((p) => (
             <li
               key={p.id}
               className="bg-white rounded-2xl ring-1 ring-slate-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
@@ -121,6 +132,18 @@ export default function CampaignQueueTab() {
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">{p.city} · {p.category}</p>
                 <CampaignContactLines email={p.email} phone={p.phone} website={p.website} />
+                {p.preview && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Preview views: {p.preview.viewCount}
+                    {p.preview.firstViewedAt ? ` · first ${p.preview.firstViewedAt}` : ' · not viewed yet'}
+                    {p.preview.lastViewedAt ? ` · last ${p.preview.lastViewedAt}` : ''}
+                    {p.preview.lastRef ? ` · ref ${p.preview.lastRef}` : ''}
+                    {' · '}
+                    <a href={p.preview.path} className="underline">
+                      Open preview
+                    </a>
+                  </p>
+                )}
                 {p.errorMessage && <p className="text-xs text-rose-600 mt-1">{p.errorMessage}</p>}
                 </div>
               </div>

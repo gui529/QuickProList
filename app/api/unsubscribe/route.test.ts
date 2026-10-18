@@ -1,23 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const addSuppressionMock = vi.hoisted(() => vi.fn(async () => {}))
+const markPreviewOptedOutMock = vi.hoisted(() => vi.fn(async () => true))
 vi.mock('@/lib/suppressions', async (orig) => ({
   ...(await orig<typeof import('@/lib/suppressions')>()),
   addSuppression: addSuppressionMock,
+}))
+vi.mock('@/lib/preview-tokens', async (orig) => ({
+  ...(await orig<typeof import('@/lib/preview-tokens')>()),
+  markPreviewOptedOut: markPreviewOptedOutMock,
 }))
 
 import { NextRequest } from 'next/server'
 import { GET, POST } from './route'
 import { createUnsubscribeToken } from '@/lib/unsubscribe'
 
-const req = (method: string, token: string) =>
-  new NextRequest(`https://example.test/api/unsubscribe?token=${encodeURIComponent(token)}`, {
-    method,
-  })
+const req = (method: string, token: string, preview?: string) => {
+  const url = new URL('https://example.test/api/unsubscribe')
+  url.searchParams.set('token', token)
+  if (preview) url.searchParams.set('preview', preview)
+  return new NextRequest(url, { method })
+}
 
 describe('/api/unsubscribe', () => {
   beforeEach(() => {
     addSuppressionMock.mockClear()
+    markPreviewOptedOutMock.mockClear()
     process.env.UNSUBSCRIBE_SECRET = 'test-secret'
   })
 
@@ -32,6 +40,16 @@ describe('/api/unsubscribe', () => {
     const res = await POST(req('POST', createUnsubscribeToken('A@Example.com')))
     expect(res.status).toBe(200)
     expect(addSuppressionMock).toHaveBeenCalledWith('email', 'a@example.com', 'unsubscribe')
+    expect(markPreviewOptedOutMock).not.toHaveBeenCalled()
+  })
+
+  it('POST from a preview opt-out also marks that preview token', async () => {
+    const preview = 'AAAAAAAAAAAAAAAAAAAAAA'
+    const res = await POST(req('POST', createUnsubscribeToken('owner@example.com'), preview))
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain("You're unsubscribed.")
+    expect(addSuppressionMock).toHaveBeenCalledWith('email', 'owner@example.com', 'unsubscribe')
+    expect(markPreviewOptedOutMock).toHaveBeenCalledWith(preview, 'owner@example.com')
   })
 
   it('rejects forged tokens on both methods', async () => {
