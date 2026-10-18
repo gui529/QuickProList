@@ -5,7 +5,9 @@ import type { Business } from '@/lib/business'
 const { getCuratedByIdMock, incrementProfileViewMock, listingProgramBusinessIdsMock } = vi.hoisted(() => ({
   getCuratedByIdMock: vi.fn(),
   incrementProfileViewMock: vi.fn(async () => {}),
-  listingProgramBusinessIdsMock: vi.fn(async () => new Set<string>()),
+  listingProgramBusinessIdsMock: vi.fn<(ids: string[]) => Promise<Set<string>>>(
+    async () => new Set<string>(),
+  ),
 }))
 
 vi.mock('@/lib/kv', () => ({

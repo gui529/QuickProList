@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const create = vi.hoisted(() => vi.fn(async () => ({ url: 'https://checkout.test/session' })))
+const create = vi.hoisted(() =>
+  vi.fn<(...args: unknown[]) => Promise<{ url: string }>>(async () => ({ url: 'https://checkout.test/session' }))
+)
 
 vi.mock('stripe', () => ({
   default: class Stripe {

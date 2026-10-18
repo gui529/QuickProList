@@ -3,6 +3,8 @@
  * Override via env only for local tests.
  */
 
+import { formatSubscriptionPrice } from './subscription-terms'
+
 export const DEFAULT_CAMPAIGN_SITE_URL = 'https://www.quickprolist.com'
 
 /**
@@ -37,7 +39,8 @@ export function getCampaignSenderName(): string {
 
 /** Free preview length and the price after it. Preview CTA copy uses these. */
 export const CAMPAIGN_TRIAL_DAYS = 30
-export const CAMPAIGN_MONTHLY_PRICE_LABEL = '$29.99'
+/** Same amount as formatSubscriptionPrice(). Do not hard-code a second price. */
+export const CAMPAIGN_MONTHLY_PRICE_LABEL = formatSubscriptionPrice()
 
 export function previewEnrollCta(): { headline: string; detail: string } {
   return {

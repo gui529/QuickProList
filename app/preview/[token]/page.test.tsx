@@ -66,6 +66,8 @@ vi.mock('@/lib/enrollment-trial', () => ({ activateEnrollmentTrial: activateEnro
 import PreviewPage, { generateMetadata, PREVIEW_BANNER_TEXT } from './page'
 import { EXISTING_LISTING_NOTE } from '@/lib/preview-listing'
 import { previewEnrollCta } from '@/lib/campaign-defaults'
+import { LISTING_NOT_LIVE_YET } from '@/lib/listing-preview-copy'
+import { formatSubscriptionPrice } from '@/lib/subscription-terms'
 
 const ENROLL = '33333333-3333-4333-8333-333333333333'
 
@@ -108,7 +110,16 @@ function previewRecord(token: string, overrides: Partial<PreviewTokenRecord> = {
   }
 }
 
-function walk(node: ReactNode, acc: { text: string[]; hrefs: string[] }) {
+function nodeText(node: ReactNode): string {
+  if (node == null || typeof node === 'boolean') return ''
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(nodeText).join('')
+  const el = node as ReactElement<{ children?: ReactNode }>
+  if (typeof el.type === 'function') return nodeText((el.type as (props: unknown) => ReactNode)(el.props))
+  return nodeText(el.props?.children)
+}
+
+function walk(node: ReactNode, acc: { text: string[]; hrefs: string[]; links: { href: string; text: string }[] }) {
   if (node == null || typeof node === 'boolean') return
   if (typeof node === 'string' || typeof node === 'number') {
     acc.text.push(String(node))
@@ -123,7 +134,10 @@ function walk(node: ReactNode, acc: { text: string[]; hrefs: string[] }) {
     walk((el.type as (props: unknown) => ReactNode)(el.props), acc)
     return
   }
-  if (typeof el.props?.href === 'string') acc.hrefs.push(el.props.href)
+  if (typeof el.props?.href === 'string') {
+    acc.hrefs.push(el.props.href)
+    acc.links.push({ href: el.props.href, text: nodeText(el.props.children) })
+  }
   if (el.props?.children !== undefined) walk(el.props.children, acc)
 }
 
@@ -132,9 +146,9 @@ async function render(token: string, ref?: string) {
     params: Promise.resolve({ token }),
     searchParams: Promise.resolve(ref ? { ref } : {}),
   })
-  const acc = { text: [] as string[], hrefs: [] as string[] }
+  const acc = { text: [] as string[], hrefs: [] as string[], links: [] as { href: string; text: string }[] }
   walk(result, acc)
-  return { text: acc.text.join(''), hrefs: acc.hrefs }
+  return { text: acc.text.join(''), hrefs: acc.hrefs, links: acc.links }
 }
 
 describe('contractor preview page', () => {
@@ -216,6 +230,37 @@ describe('contractor preview page', () => {
     expect(view.text).toContain(cta.headline)
     expect(view.text).toContain(cta.detail)
     expect(view.hrefs).toContain(`/enroll/${ENROLL}`)
+  })
+
+  it('links Start your free preview to enroll and does not start the trial itself', async () => {
+    const view = await render(token)
+    const start = view.links.find((link) => link.text.includes('Start your free preview'))
+    expect(start?.href).toBe(`/enroll/${ENROLL}`)
+    expect(activateEnrollmentTrialMock).not.toHaveBeenCalled()
+
+    const source = readFileSync(path.join(__dirname, 'page.tsx'), 'utf8')
+    expect(source).not.toMatch(/start-trial/)
+    expect(source).not.toMatch(/activateEnrollmentTrial/)
+  })
+
+  it('shows the same Not live yet line as enroll and the shared monthly price', async () => {
+    const view = await render(token)
+    expect(LISTING_NOT_LIVE_YET).toBe(
+      'Not live yet — this is how your listing can look on QuickProList.'
+    )
+    expect(view.text).toContain(LISTING_NOT_LIVE_YET)
+    expect(formatSubscriptionPrice()).toBe('$29.99')
+    expect(view.text).toContain(`${formatSubscriptionPrice()}/month`)
+
+    const enrollSource = readFileSync(
+      path.join(__dirname, '../../enroll/[token]/EnrollClient.tsx'),
+      'utf8'
+    )
+    const previewSource = readFileSync(path.join(__dirname, 'page.tsx'), 'utf8')
+    expect(enrollSource).toContain('LISTING_NOT_LIVE_YET')
+    expect(previewSource).toContain('LISTING_NOT_LIVE_YET')
+    expect(enrollSource).not.toContain('Not live yet —')
+    expect(previewSource).not.toContain('Not live yet —')
   })
 
   it('Scenario: Prospect opts out', async () => {

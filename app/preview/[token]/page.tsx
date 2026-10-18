@@ -6,6 +6,7 @@ import ProSiteView from '@/components/ProSiteView'
 import { getCampaignPostalAddress, previewEnrollCta } from '@/lib/campaign-defaults'
 import { isPreviewPagesEnabled } from '@/lib/feature-flags'
 import { isUuid } from '@/lib/is-uuid'
+import { LISTING_NOT_LIVE_YET } from '@/lib/listing-preview-copy'
 import { EXISTING_LISTING_NOTE, loadPreviewListing } from '@/lib/preview-listing'
 import {
   buildPreviewOptOutHref,
@@ -117,6 +118,7 @@ export default async function PreviewPage({
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">{cta.headline}</h2>
           <p className="mt-2 text-sm text-slate-600">{cta.detail}</p>
+          <p className="mt-3 text-sm text-slate-600">{LISTING_NOT_LIVE_YET}</p>
           {enroll && (
             <Link
               href={enroll}

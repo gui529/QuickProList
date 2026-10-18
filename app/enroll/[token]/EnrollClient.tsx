@@ -17,6 +17,7 @@ import {
   subscriptionSuccessLine,
 } from '@/lib/subscription-terms'
 import { buildEnrollHomeUrl } from '@/lib/enroll-home-url'
+import { LISTING_NOT_LIVE_YET } from '@/lib/listing-preview-copy'
 import { saveMyListingId } from '@/lib/my-listing-storage'
 import type { EnrollmentInvitation } from '@/lib/invitations'
 
@@ -186,9 +187,7 @@ export default function EnrollClient({
           <div className="bg-white rounded-3xl shadow-lg ring-1 ring-slate-200 p-8">
             <div className="text-center mb-6">
               <h1 className="text-3xl font-bold text-slate-900 mb-2">Your listing preview</h1>
-              <p className="text-slate-600 text-sm">
-                Not live yet — this is how your listing can look on QuickProList.
-              </p>
+              <p className="text-slate-600 text-sm">{LISTING_NOT_LIVE_YET}</p>
             </div>
 
             <EnrollListingPreview

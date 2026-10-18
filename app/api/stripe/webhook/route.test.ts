@@ -33,7 +33,12 @@ const {
   const clearCuratedTrialMock = vi.fn().mockResolvedValue(undefined)
   const sendEmailMock = vi.fn().mockResolvedValue('email-id')
   const sendCommercialNoticeMock = vi.fn().mockResolvedValue('email-id')
-  const subscriptionsRetrieveMock = vi.fn(async () => ({
+  const subscriptionsRetrieveMock = vi.fn<
+    (...args: unknown[]) => Promise<{
+      cancel_at_period_end?: boolean
+      items: { data: { current_period_end: number }[] }
+    }>
+  >(async () => ({
     items: { data: [{ current_period_end: Math.floor(Date.UTC(2026, 10, 17, 16) / 1000) }] },
   }))
   return {
