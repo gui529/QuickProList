@@ -45,7 +45,7 @@ PowerShell loop, or kill the sleeper process).
 
 See **`automation-setup.md`**.
 
-- **Resend MCP** on the automation (delivery).
+- **Do not use Resend MCP for cold outreach** (owner 2026-10-17). Manual Gmail `gui.quickprolist@gmail.com`. Board is `PAUSED`. Resend is transactional/opted-in only.
 - **Repo defaults** for from, sender, BCC, site URL (`lib/campaign-defaults.ts`, `lib/campaign-owner-bcc.ts`).
 - **Optional env:** `UNSUBSCRIBE_SECRET` (= Vercel Production `CRON_SECRET`) if `--prepare` cannot sign unsub links.
 - **Neon MCP** on automation for DB (see `neon-mcp.md`). **No `DATABASE_URL`** on automation.
