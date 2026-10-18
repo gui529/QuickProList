@@ -7,7 +7,7 @@ vi.mock('./email', () => ({
 }))
 
 import { __reset as resetInvitations, __seed as seedInvitation, getInvitationByToken } from './invitations.test-double'
-import { __reset as resetCurated, __all as allCurated } from './kv.test-double'
+import { __reset as resetCurated, __all as allCurated, __seed as seedCurated } from './kv.test-double'
 import {
   activateEnrollmentTrial,
   enrollPreviewTrialDays,
@@ -44,6 +44,78 @@ describe('activateEnrollmentTrial', () => {
     const updated = await getInvitationByToken('tok-1')
     expect(updated?.status).toBe('trial')
     expect(updated?.curated_business_id).toBe(result.curatedBusinessId)
+  })
+
+  it('copies phone, address, website, name, city, and trade onto the new listing', async () => {
+    const inv = seedInvitation({
+      token: 'tok-phone',
+      status: 'pending',
+      business_name: 'Acme Plumbing',
+      category: 'plumbing',
+      cities: ['marietta'],
+      yelp_data: {
+        name: 'Acme Plumbing',
+        phone: '770-555-0142',
+        address: '10 Main St, Marietta, GA',
+        websiteUrl: 'https://acme.example',
+        imageUrl: 'https://acme.example/logo.png',
+      },
+    })
+
+    await activateEnrollmentTrial(inv.token)
+
+    const created = allCurated().find((row) => row.name === 'Acme Plumbing')
+    expect(created?.phone).toBe('770-555-0142')
+    expect(created?.address).toBe('10 Main St, Marietta, GA')
+    expect(created?.website_url).toBe('https://acme.example')
+    expect(created?.image_url).toBe('https://acme.example/logo.png')
+    expect(created?.category).toBe('plumbing')
+    expect(created?.cities).toEqual(['marietta'])
+  })
+
+  it('leaves phone empty when the invitation has none', async () => {
+    const inv = seedInvitation({
+      token: 'tok-nophone',
+      status: 'pending',
+      business_name: 'No Phone Co',
+      category: 'roofing',
+      cities: ['kennesaw'],
+      yelp_data: { name: 'No Phone Co', phone: '   ', address: '' },
+    })
+
+    await activateEnrollmentTrial(inv.token)
+
+    const created = allCurated().find((row) => row.name === 'No Phone Co')
+    expect(created?.phone).toBeNull()
+    expect(created?.address).toBeNull()
+  })
+
+  it('does not change an existing listing when a new preview is created', async () => {
+    const existing = seedCurated({
+      id: 'existing-1',
+      name: 'Already Listed',
+      phone: '404-555-0100',
+      address: '1 Old Rd',
+      category: 'electrical',
+      cities: ['marietta'],
+    })
+    const inv = seedInvitation({
+      token: 'tok-new',
+      status: 'pending',
+      business_name: 'New Preview Pro',
+      category: 'plumbing',
+      cities: ['marietta'],
+      yelp_data: { phone: '678-555-0199' },
+    })
+
+    await activateEnrollmentTrial(inv.token)
+
+    const kept = allCurated().find((row) => row.id === existing.id)
+    expect(kept?.phone).toBe('404-555-0100')
+    expect(kept?.address).toBe('1 Old Rd')
+    expect(kept?.name).toBe('Already Listed')
+    expect(kept?.category).toBe('electrical')
+    expect(allCurated().find((row) => row.name === 'New Preview Pro')?.phone).toBe('678-555-0199')
   })
 
   it('is idempotent when trial already started', async () => {

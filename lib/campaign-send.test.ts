@@ -45,4 +45,44 @@ describe('sendCampaignEmail suppression', () => {
     expect(createInvitationMock).not.toHaveBeenCalled()
     expect(recordContactMock).not.toHaveBeenCalled()
   })
+
+  it('stores the prospect phone and other details on the invitation', async () => {
+    await sendCampaignEmail({
+      businessName: 'Acme Plumbing',
+      email: 'owner@acme.example',
+      category: 'plumbing',
+      city: 'Marietta',
+      phone: '770-555-0142',
+      address: '10 Main St',
+      website: 'https://acme.example',
+      logoUrl: 'https://acme.example/logo.png',
+    })
+
+    expect(createInvitationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        businessName: 'Acme Plumbing',
+        category: 'plumbing',
+        cities: ['Marietta'],
+        yelpData: expect.objectContaining({
+          phone: '770-555-0142',
+          address: '10 Main St',
+          websiteUrl: 'https://acme.example',
+          imageUrl: 'https://acme.example/logo.png',
+        }),
+      })
+    )
+  })
+
+  it('stores an empty phone instead of inventing one', async () => {
+    await sendCampaignEmail({
+      businessName: 'No Phone Co',
+      email: 'owner@nophone.example',
+      category: 'roofing',
+      city: 'Kennesaw',
+      phone: '   ',
+    })
+
+    const input = createInvitationMock.mock.calls[0][0] as { yelpData: { phone: string } }
+    expect(input.yelpData.phone).toBe('')
+  })
 })

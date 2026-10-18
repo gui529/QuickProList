@@ -16,6 +16,7 @@ import {
   setCuratedContactEmail,
   setCuratedTrial,
 } from './kv'
+import { listingFieldsFromInvitation } from './invitation-listing'
 import { deriveStatus } from './reports'
 import { sendEmail } from './email'
 import { isProDashboardEnabled } from './feature-flags'
@@ -79,11 +80,16 @@ async function provisionCuratedForInvitation(
     return id
   }
 
+  const details = listingFieldsFromInvitation(invitation)
   await addCuratedManual({
     name: invitation.business_name,
     category: invitation.category,
     cities: invitation.cities,
     trialEndsAt,
+    phone: details.phone ?? undefined,
+    address: details.address ?? undefined,
+    websiteUrl: details.websiteUrl ?? undefined,
+    imageUrl: details.imageUrl ?? undefined,
   })
   const id = (await findLatestManualCuratedId(invitation.business_name)) || ''
   if (!id) throw new Error('Failed to resolve curated business after manual add')

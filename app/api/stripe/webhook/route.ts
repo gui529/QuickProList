@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe, handleSubscriptionCanceled } from '@/lib/stripe'
 import { getInvitationByToken, getInvitationBySubscriptionId, markInvitationPaid } from '@/lib/invitations'
+import { listingFieldsFromInvitation } from '@/lib/invitation-listing'
 import {
   addCuratedFromYelp,
   addCuratedManual,
@@ -107,10 +108,15 @@ export async function POST(req: NextRequest) {
         })
         curatedBusinessId = invitation.curated_business_id
       } else {
+        const details = listingFieldsFromInvitation(invitation)
         await addCuratedManual({
           name: invitation.business_name,
           category: invitation.category,
           cities: invitation.cities,
+          ...(details.phone ? { phone: details.phone } : {}),
+          ...(details.address ? { address: details.address } : {}),
+          ...(details.websiteUrl ? { websiteUrl: details.websiteUrl } : {}),
+          ...(details.imageUrl ? { imageUrl: details.imageUrl } : {}),
         })
 
         curatedBusinessId = (await findLatestManualCuratedId(invitation.business_name)) || ''

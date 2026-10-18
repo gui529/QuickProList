@@ -14,6 +14,7 @@ export interface SendCampaignEmailInput {
   phone?: string
   website?: string
   logoUrl?: string
+  address?: string
 }
 
 export interface SendCampaignEmailResult {
@@ -52,13 +53,32 @@ export async function sendCampaignEmail(
   let enrollUrl: string | undefined
   try {
     const siteUrl = (process.env.SITE_URL ?? 'https://www.quickprolist.com').replace(/\/$/, '')
+    const phone = input.phone?.trim() || ''
+    const address = input.address?.trim() || ''
+    const website = input.website?.trim() || ''
+    const logoUrl = input.logoUrl?.trim() || ''
+    const yelpId = input.yelpId?.trim() || undefined
+    // A yelp id plus a partial payload would take the Yelp import path and
+    // overwrite a stored profile. Campaign prospects have no yelp id; their
+    // details ride along in yelp_data for the manual listing created at enroll.
     invitationToken = await createInvitation({
       businessName,
       category,
       cities: [city],
       monthlyPrice: 29.99,
-      yelpId: input.yelpId?.trim() || undefined,
+      yelpId,
       contactEmail: email,
+      yelpData: yelpId
+        ? undefined
+        : {
+            name: businessName,
+            phone,
+            address,
+            websiteUrl: website || undefined,
+            imageUrl: logoUrl || undefined,
+            category,
+            cities: [city],
+          },
     })
     enrollUrl = `${siteUrl}/enroll/${invitationToken}`
   } catch (err) {
