@@ -256,7 +256,11 @@ export default function EnrollClient({
                   ${invitation.monthly_price.toFixed(2)}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">Billed monthly, cancel anytime</p>
+              <p className="text-xs text-slate-500">
+                Renews automatically each month at ${invitation.monthly_price.toFixed(2)} until you cancel. Cancel anytime
+                by emailing contact@quickprolist.com; cancellation takes effect at the end of the current billing
+                period.
+              </p>
             </div>
           </div>
 

@@ -71,6 +71,7 @@ describe('sendEmail (lib/email.ts)', () => {
     process.env.RESEND_API_KEY = 'test_key'
     process.env.RESEND_FROM_EMAIL = 'noreply@example.com'
     process.env.UNSUBSCRIBE_SECRET = 'test-unsub-secret'
+    process.env.CAMPAIGN_POSTAL_ADDRESS = '123 Test St, Marietta, GA 30060'
     process.env.SITE_URL = 'https://example.test'
     isSuppressedMock.mockReset()
     isSuppressedMock.mockResolvedValue(false)
@@ -93,7 +94,7 @@ describe('sendEmail (lib/email.ts)', () => {
     expect(call.text).not.toContain('Hi Acme Plumbing,')
     expect(call.text).toContain('Preview what we would publish')
     expect(call.text).toContain('https://example.test/enroll/abc')
-    expect(call.text).toContain('We are going to launch soon')
+    expect(call.text).toContain('The site is live and we are adding local pros')
     expect(call.text).not.toContain('cancel anytime')
     expect(call.subject).not.toMatch(/🏠|\$29/)
     delete process.env.CAMPAIGN_SENDER_NAME
@@ -160,6 +161,18 @@ describe('sendEmail (lib/email.ts)', () => {
 
       await expect(sendEmail('owner@example.com', 'Biz', 'Hello')).rejects.toThrow(/UNSUBSCRIBE_SECRET/)
       expect(sendMock).not.toHaveBeenCalled()
+    })
+
+    it('refuses to send marketing email without a postal address and includes it otherwise', async () => {
+      delete process.env.CAMPAIGN_POSTAL_ADDRESS
+      await expect(sendEmail('owner@example.com', 'Biz', 'Hello')).rejects.toThrow(/CAMPAIGN_POSTAL_ADDRESS/)
+      expect(sendMock).not.toHaveBeenCalled()
+
+      process.env.CAMPAIGN_POSTAL_ADDRESS = '123 Test St, Marietta, GA 30060'
+      await sendEmail('owner@example.com', 'Biz', 'Hello')
+      const call = sendMock.mock.calls[0][0] as { text: string; html: string }
+      expect(call.text).toContain('123 Test St, Marietta, GA 30060')
+      expect(call.html).toContain('123 Test St, Marietta, GA 30060')
     })
 
     it('does not suppress or require unsubscribe config for transactional email', async () => {

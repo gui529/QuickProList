@@ -66,7 +66,7 @@ export function buildPersonalMarketingEmail(
     .map((p) => p.replace(/\s*\n\s*/g, ' ').trim())
     .filter(Boolean)
 
-  const launchNote = 'We are going to launch soon, so we are building it up right now.'
+  const launchNote = 'The site is live and we are adding local pros to it now.'
   const pricingNote =
     'After the 30-day preview window, staying listed is $29.99/month if you choose to continue.'
 
@@ -175,15 +175,20 @@ export function assertMarketingEmailConfigured(): void {
   if (!process.env.UNSUBSCRIBE_SECRET && !process.env.CRON_SECRET) {
     throw new Error('UNSUBSCRIBE_SECRET (or CRON_SECRET) not configured (required for marketing email)')
   }
+  if (!process.env.CAMPAIGN_POSTAL_ADDRESS?.trim()) {
+    throw new Error('CAMPAIGN_POSTAL_ADDRESS not configured (CAN-SPAM requires a physical postal address in marketing email)')
+  }
 }
 
 function marketingCompliance(to: string, reason: string): ComplianceFooter {
   assertMarketingEmailConfigured()
   const url = buildUnsubscribeUrl(to)
+  const postal = process.env.CAMPAIGN_POSTAL_ADDRESS!.trim().replace(/\s*\n\s*/g, ', ')
   return {
     html: `${escapeHtml(reason)}<br/>
+        ${escapeHtml(postal)}<br/>
         <a href="${url}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>`,
-    text: `\n\n${reason}\nUnsubscribe: ${url}`,
+    text: `\n\n${reason}\n${postal}\nUnsubscribe: ${url}`,
     headers: {
       'List-Unsubscribe': `<${url}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

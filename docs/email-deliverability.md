@@ -18,6 +18,7 @@ Full setup, API checks, and troubleshooting: [inbox-improvmx-namecheap.md](./inb
 ## Production env (Vercel)
 
 - `RESEND_FROM_EMAIL` — verified address on **apex** `quickprolist.com`, e.g. `jeremy@quickprolist.com` (person-like outreach). Set `CAMPAIGN_SENDER_NAME=Jeremy` so campaigns send as `Jeremy <jeremy@quickprolist.com>`; transactional mail uses `QuickProList <jeremy@quickprolist.com>` when the env value is bare.
+- `CAMPAIGN_POSTAL_ADDRESS` — **required** physical postal address (street/PO box/CMRA, city, state, ZIP) printed in every marketing email footer (CAN-SPAM). Marketing sends fail closed (error) when unset.
 - `UNSUBSCRIBE_SECRET` (or `CRON_SECRET`) — required for marketing footers with one-click unsubscribe.
 
 ## Apex DNS (optional but recommended)
